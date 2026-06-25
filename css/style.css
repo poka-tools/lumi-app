@@ -1,0 +1,34 @@
+:root {
+  --pink: #ff5c8a; --pink-soft: #ffe3ec; --purple: #a78bfa;
+  --ink: #2b2b2b; --muted: #8a8a8a; --bg: #fafafa; --card: #fff;
+  --radius: 18px; --shadow: 0 4px 16px rgba(0,0,0,.06);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; font-family: -apple-system, "Hiragino Sans", sans-serif;
+  background: var(--bg); color: var(--ink); padding-bottom: 76px; }
+#screen { padding: 16px; max-width: 480px; margin: 0 auto; }
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 16px; margin-bottom: 14px; }
+.big-amount { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
+.badge { background: var(--pink-soft); color: var(--pink); font-size: 11px;
+  padding: 2px 8px; border-radius: 10px; margin-left: 8px; vertical-align: middle; }
+.muted { color: var(--muted); font-size: 13px; }
+.row { display: flex; gap: 10px; }
+.chips { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.chip { flex: 0 0 auto; background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
+  padding: 12px 14px; text-align: center; min-width: 96px; }
+input, select, button { font: inherit; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.field input, .field select { padding: 10px 12px; border: 1px solid #eee; border-radius: 12px; }
+.btn { background: var(--pink); color: #fff; border: none; border-radius: 14px;
+  padding: 12px 16px; font-weight: 700; width: 100%; }
+.btn-ghost { background: var(--pink-soft); color: var(--pink); }
+#tabbar { position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: #fff;
+  display: flex; justify-content: space-around; align-items: center;
+  box-shadow: 0 -2px 12px rgba(0,0,0,.05); }
+#tabbar button { background: none; border: none; color: var(--muted); font-size: 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; }
+#tabbar button span { font-size: 10px; }
+#tabbar button.active { color: var(--pink); }
+#tabbar .fab { background: var(--pink); color: #fff; width: 52px; height: 52px;
+  border-radius: 50%; font-size: 28px; box-shadow: 0 4px 12px rgba(255,92,138,.4); }
