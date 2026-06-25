@@ -24,3 +24,17 @@ export function backAmount(item, entry) {
   if (item.type === 'rate') return (entry.sales || 0) * (item.value || 0) / 100;
   return 0;
 }
+
+export function shiftWage(hourlyWage, shift) {
+  return (hourlyWage || 0) * workedHours(shift);
+}
+export function shiftBackTotal(items, shift) {
+  const byId = new Map((items || []).map((it) => [it.id, it]));
+  return (shift.entries || []).reduce((sum, e) => {
+    const item = byId.get(e.backItemId);
+    return sum + backAmount(item, e);
+  }, 0);
+}
+export function shiftTotal(hourlyWage, items, shift) {
+  return shiftWage(hourlyWage, shift) + shiftBackTotal(items, shift);
+}

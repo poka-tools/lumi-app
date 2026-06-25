@@ -38,3 +38,20 @@ test('backAmount: 未入力は 0', () => {
   assert.equal(backAmount(fixed, {}), 0);
   assert.equal(backAmount(rate, {}), 0);
 });
+
+import { shiftWage, shiftBackTotal, shiftTotal } from '../js/calc.js';
+
+const _items3 = [
+  { id: 'douhan', type: 'fixed', value: 3000 },
+  { id: 'drink', type: 'rate', value: 10 },
+];
+const _shift3 = {
+  start: '20:00', end: '01:00', breakMin: 0,
+  entries: [
+    { backItemId: 'douhan', count: 2 },
+    { backItemId: 'drink', sales: 50000 },
+  ],
+};
+test('shiftWage: 時給×実働', () => { assert.equal(shiftWage(2500, _shift3), 12500); });
+test('shiftBackTotal: 全バック合計', () => { assert.equal(shiftBackTotal(_items3, _shift3), 11000); });
+test('shiftTotal: 時給分＋バック', () => { assert.equal(shiftTotal(2500, _items3, _shift3), 23500); });
