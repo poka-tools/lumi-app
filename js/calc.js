@@ -17,3 +17,10 @@ export function workedHours(shift) {
   if (mins < 0) mins = 0;
   return mins / 60;
 }
+
+export function backAmount(item, entry) {
+  if (!item || !entry) return 0;
+  if (item.type === 'fixed') return (item.value || 0) * (entry.count || 0);
+  if (item.type === 'rate') return (entry.sales || 0) * (item.value || 0) / 100;
+  return 0;
+}
