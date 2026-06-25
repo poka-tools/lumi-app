@@ -55,3 +55,42 @@ const _shift3 = {
 test('shiftWage: 時給×実働', () => { assert.equal(shiftWage(2500, _shift3), 12500); });
 test('shiftBackTotal: 全バック合計', () => { assert.equal(shiftBackTotal(_items3, _shift3), 11000); });
 test('shiftTotal: 時給分＋バック', () => { assert.equal(shiftTotal(2500, _items3, _shift3), 23500); });
+
+import {
+  monthlyEstimate, monthlyWorkedHours, hourlyEquivalent,
+  incomeBreakdown, backRanking, monthOverMonth,
+} from '../js/calc.js';
+
+const _items4 = [
+  { id: 'douhan', name: '同伴', type: 'fixed', value: 3000 },
+  { id: 'drink', name: 'ドリンクバック', type: 'rate', value: 10 },
+];
+const _shifts4 = [
+  { start: '20:00', end: '01:00', breakMin: 0, entries: [{ backItemId: 'douhan', count: 1 }] }, // 5h
+  { start: '20:00', end: '00:00', breakMin: 0, entries: [{ backItemId: 'drink', sales: 20000 }] }, // 4h
+];
+test('monthlyEstimate', () => { assert.equal(monthlyEstimate(2000, _items4, _shifts4), 23000); });
+test('monthlyWorkedHours', () => { assert.equal(monthlyWorkedHours(_shifts4), 9); });
+test('hourlyEquivalent', () => { assert.equal(hourlyEquivalent(2000, _items4, _shifts4), 2556); });
+test('incomeBreakdown', () => {
+  const b = incomeBreakdown(2000, _items4, _shifts4);
+  assert.equal(b.wage, 18000);
+  assert.equal(b.back, 5000);
+  assert.equal(b.total, 23000);
+  assert.equal(b.wagePct, 78.3);
+  assert.equal(b.backPct, 21.7);
+});
+test('backRanking: 降順＋対月収比', () => {
+  const r = backRanking(2000, _items4, _shifts4);
+  assert.equal(r[0].name, '同伴');
+  assert.equal(r[0].amount, 3000);
+  assert.equal(r[1].name, 'ドリンクバック');
+  assert.equal(r[1].amount, 2000);
+  assert.equal(r[0].pct, 13.0);
+});
+test('monthOverMonth', () => {
+  const m = monthOverMonth(23000, 20000);
+  assert.equal(m.diff, 3000);
+  assert.equal(m.pct, 15.0);
+});
+test('monthOverMonth: 前月なしは null', () => { assert.equal(monthOverMonth(23000, null), null); });

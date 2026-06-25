@@ -38,3 +38,45 @@ export function shiftBackTotal(items, shift) {
 export function shiftTotal(hourlyWage, items, shift) {
   return shiftWage(hourlyWage, shift) + shiftBackTotal(items, shift);
 }
+
+const round1 = (n) => Math.round(n * 10) / 10;
+
+export function monthlyEstimate(hourlyWage, items, shifts) {
+  return (shifts || []).reduce((s, sh) => s + shiftTotal(hourlyWage, items, sh), 0);
+}
+export function monthlyWorkedHours(shifts) {
+  return (shifts || []).reduce((s, sh) => s + workedHours(sh), 0);
+}
+export function hourlyEquivalent(hourlyWage, items, shifts) {
+  const hours = monthlyWorkedHours(shifts);
+  if (hours === 0) return 0;
+  return Math.round(monthlyEstimate(hourlyWage, items, shifts) / hours);
+}
+export function incomeBreakdown(hourlyWage, items, shifts) {
+  const wage = (shifts || []).reduce((s, sh) => s + shiftWage(hourlyWage, sh), 0);
+  const back = (shifts || []).reduce((s, sh) => s + shiftBackTotal(items, sh), 0);
+  const total = wage + back;
+  return {
+    wage, back, total,
+    wagePct: total ? round1((wage / total) * 100) : 0,
+    backPct: total ? round1((back / total) * 100) : 0,
+  };
+}
+export function backRanking(hourlyWage, items, shifts) {
+  const monthTotal = monthlyEstimate(hourlyWage, items, shifts);
+  const sums = (items || []).map((it) => {
+    const amount = (shifts || []).reduce((s, sh) => {
+      const e = (sh.entries || []).find((x) => x.backItemId === it.id);
+      return s + (e ? backAmount(it, e) : 0);
+    }, 0);
+    return { itemId: it.id, name: it.name, amount,
+      pct: monthTotal ? round1((amount / monthTotal) * 100) : 0 };
+  });
+  return sums.filter((x) => x.amount > 0).sort((a, b) => b.amount - a.amount);
+}
+export function monthOverMonth(current, previous) {
+  if (previous === null || previous === undefined) return null;
+  const diff = current - previous;
+  const pct = previous === 0 ? 0 : round1((diff / previous) * 100);
+  return { diff, pct };
+}
