@@ -25,9 +25,20 @@ document.getElementById('tabbar').addEventListener('click', (e) => {
   if (btn) navigate(btn.dataset.tab);
 });
 
+function hideSplash() {
+  const el = document.getElementById('splash');
+  if (!el) return;
+  el.classList.add('hide');
+  el.addEventListener('transitionend', () => el.remove(), { once: true });
+  setTimeout(() => el.remove(), 700); // transition 無効時のフォールバック
+}
+
 (async () => {
+  const minSplash = new Promise((r) => setTimeout(r, 1100)); // 最低表示時間
   await loadAll();
   await navigate('home');
+  await minSplash;
+  hideSplash();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
   }
