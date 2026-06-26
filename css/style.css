@@ -5,11 +5,12 @@
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body { margin: 0; font-family: -apple-system, "Hiragino Sans", sans-serif;
-  background: var(--bg); color: var(--ink); padding-bottom: 76px; }
+  background: var(--bg); color: var(--ink);
+  padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
 #screen { padding: 16px; max-width: 480px; margin: 0 auto; }
 .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 16px; margin-bottom: 14px; }
-.big-amount { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
+.big-amount { font-size: clamp(34px, 9vw, 44px); font-weight: 800; letter-spacing: -1px; }
 .badge { background: var(--pink-soft); color: var(--pink); font-size: 11px;
   padding: 2px 8px; border-radius: 10px; margin-left: 8px; vertical-align: middle; }
 .muted { color: var(--muted); font-size: 13px; }
@@ -25,6 +26,7 @@ input, select, button { font: inherit; }
 .btn-ghost { background: var(--pink-soft); color: var(--pink); }
 #tabbar { position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: #fff;
   display: flex; justify-content: space-around; align-items: center;
+  padding-bottom: env(safe-area-inset-bottom);
   box-shadow: 0 -2px 12px rgba(0,0,0,.05); }
 #tabbar button { background: none; border: none; color: var(--muted); font-size: 20px;
   display: flex; flex-direction: column; align-items: center; gap: 2px; }
@@ -40,3 +42,41 @@ input, select, button { font: inherit; }
 .cal-amt { color: var(--pink); font-weight: 700; }
 .cal-cell.has-confirmed { outline: 2px solid var(--pink); }
 .cal-cell.has-draft { outline: 1px dashed var(--purple); }
+
+/* ============ レスポンシブ ============ */
+
+/* タブレット: コンテンツ幅とカレンダーセルを拡大 */
+@media (min-width: 600px) {
+  #screen { max-width: 640px; padding: 24px; }
+  .chips { flex-wrap: wrap; overflow-x: visible; }
+  .chip { flex: 1 1 calc(25% - 10px); }
+  .cal-cell { min-height: 72px; font-size: 13px; }
+}
+
+/* PC: 下部タブバーを左サイドバーに変換 */
+@media (min-width: 900px) {
+  body { padding-bottom: 0; padding-left: 92px; }
+  #tabbar {
+    top: 0; bottom: 0; right: auto; width: 92px; height: auto;
+    flex-direction: column; justify-content: flex-start; gap: 6px;
+    padding: 20px 0 0; padding-bottom: 0;
+    box-shadow: 2px 0 14px rgba(0,0,0,.05);
+  }
+  #tabbar button { width: 100%; padding: 12px 0; font-size: 22px; }
+  #tabbar button span { font-size: 11px; }
+  #tabbar .fab { margin: 6px auto; }
+  #screen { max-width: 760px; padding: 32px; }
+  .cal-cell { min-height: 88px; }
+}
+
+/* 大画面: 最大幅をさらに拡張 */
+@media (min-width: 1200px) {
+  #screen { max-width: 1040px; }
+}
+
+/* マウス操作のホバー（タッチ端末では無効） */
+@media (hover: hover) {
+  .chip, .cal-cell, #tabbar button { transition: transform .12s ease, color .12s ease; cursor: pointer; }
+  .chip:hover, .cal-cell:hover { transform: translateY(-2px); }
+  .btn { cursor: pointer; }
+}
