@@ -1,4 +1,4 @@
-const CACHE = 'yashoku-v1';
+const CACHE = 'yashoku-v2';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',
@@ -13,6 +13,21 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) =>
     Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
+// stale-while-revalidate: キャッシュを即返しつつ裏で最新を取得してキャッシュ更新。
+// → アセット編集後はリロード1回で反映される。オフライン時はキャッシュで動作。
 self.addEventListener('fetch', (e) => {
-  e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    caches.open(CACHE).then((cache) =>
+      cache.match(e.request).then((cached) => {
+        const network = fetch(e.request)
+          .then((res) => {
+            if (res && res.ok && res.type === 'basic') cache.put(e.request, res.clone());
+            return res;
+          })
+          .catch(() => cached);
+        return cached || network;
+      })
+    )
+  );
 });
