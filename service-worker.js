@@ -1,7 +1,8 @@
-const CACHE = 'yashoku-v3';
+const CACHE = 'yashoku-v4';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',
+  './assets/logo.png', './assets/icon-192.png', './assets/icon-512.png',
   './js/app.js', './js/state.js', './js/db.js', './js/calc.js', './js/format.js',
   './js/ui/home.js', './js/ui/calendar.js', './js/ui/record.js',
   './js/ui/report.js', './js/ui/settings.js', './js/ui/donut.js',
