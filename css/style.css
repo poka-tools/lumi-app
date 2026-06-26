@@ -1,6 +1,6 @@
 :root {
   --pink: #ff5c8a; --pink-soft: #ffe3ec; --purple: #a78bfa;
-  --ink: #2b2b2b; --muted: #8a8a8a; --bg: #fafafa; --card: #fff;
+  --ink: #2b2b2b; --muted: #8a8a8a; --bg: #fdf3f7; --card: #fff;
   --radius: 18px; --shadow: 0 4px 16px rgba(0,0,0,.06);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
