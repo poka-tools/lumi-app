@@ -48,8 +48,8 @@ input, select, button { font: inherit; }
 #splash {
   position: fixed; inset: 0; z-index: 1000;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(160deg, #ff7aa2 0%, var(--pink) 45%, var(--purple) 130%);
-  color: #fff; text-align: center;
+  background: linear-gradient(160deg, #ffe7f0 0%, #fdeef6 55%, #f3e9fb 120%);
+  color: var(--ink); text-align: center;
   padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
   transition: opacity .5s ease;
 }
@@ -57,11 +57,11 @@ input, select, button { font: inherit; }
 .splash-inner { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .splash-logo { width: clamp(190px, 58vw, 260px); height: auto; display: block;
   border-radius: 28px;
-  filter: drop-shadow(0 10px 26px rgba(0,0,0,.20));
+  filter: drop-shadow(0 12px 30px rgba(217, 122, 162, .35));
   animation: splash-float 2s ease-in-out infinite; }
 .splash-dots { display: flex; gap: 7px; margin-top: 24px; }
 .splash-dots span { width: 8px; height: 8px; border-radius: 50%;
-  background: rgba(255,255,255,.85); animation: splash-blink 1.2s ease-in-out infinite; }
+  background: rgba(255, 92, 138, .7); animation: splash-blink 1.2s ease-in-out infinite; }
 .splash-dots span:nth-child(2) { animation-delay: .2s; }
 .splash-dots span:nth-child(3) { animation-delay: .4s; }
 @keyframes splash-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
