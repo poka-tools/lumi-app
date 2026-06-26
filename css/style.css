@@ -5,7 +5,7 @@
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body { margin: 0; font-family: -apple-system, "Hiragino Sans", sans-serif;
-  background: var(--bg); color: var(--ink);
+  background: var(--bg); color: var(--ink); overflow-x: hidden;
   padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
 #screen { padding: 16px; max-width: 480px; margin: 0 auto; }
 .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
@@ -26,13 +26,14 @@ input, select, button { font: inherit; }
 .btn-ghost { background: var(--pink-soft); color: var(--pink); }
 #tabbar { position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: #fff;
   display: flex; justify-content: space-around; align-items: center;
-  padding-bottom: env(safe-area-inset-bottom);
+  gap: 4px; padding: 0 6px env(safe-area-inset-bottom); overflow: hidden;
   box-shadow: 0 -2px 12px rgba(0,0,0,.05); }
-#tabbar button { background: none; border: none; color: var(--muted); font-size: 20px;
+#tabbar button { flex: 1 1 0; min-width: 0; background: none; border: none;
+  color: var(--muted); font-size: 20px; padding: 0;
   display: flex; flex-direction: column; align-items: center; gap: 2px; }
-#tabbar button span { font-size: 10px; }
+#tabbar button span { font-size: 10px; white-space: nowrap; }
 #tabbar button.active { color: var(--pink); }
-#tabbar .fab { background: var(--pink); color: #fff; width: 52px; height: 52px;
+#tabbar .fab { flex: 0 0 auto; background: var(--pink); color: #fff; width: 52px; height: 52px;
   border-radius: 50%; font-size: 28px; box-shadow: 0 4px 12px rgba(255,92,138,.4); }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .cal-grid.head { color: var(--muted); font-size: 12px; text-align: center; margin: 8px 0 4px; }
@@ -62,7 +63,7 @@ input, select, button { font: inherit; }
     padding: 20px 0 0; padding-bottom: 0;
     box-shadow: 2px 0 14px rgba(0,0,0,.05);
   }
-  #tabbar button { width: 100%; padding: 12px 0; font-size: 22px; }
+  #tabbar button { flex: 0 0 auto; width: 100%; padding: 12px 0; font-size: 22px; }
   #tabbar button span { font-size: 11px; }
   #tabbar .fab { margin: 6px auto; }
   #screen { max-width: 760px; padding: 32px; }
