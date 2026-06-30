@@ -36,7 +36,7 @@ export async function put(store, value) { return wrap((await tx(store, 'readwrit
 export async function del(store, id) { return wrap((await tx(store, 'readwrite')).delete(id)); }
 
 export async function getProfile() {
-  return (await get('profile', 'me')) || { id: 'me', name: '', hourlyWage: 0, storeName: '', defaultBreakMin: 0 };
+  return (await get('profile', 'me')) || { id: 'me', name: '', hourlyWage: 0, storeName: '', defaultStart: '20:00', defaultEnd: '01:00', defaultBreakMin: 0 };
 }
 export async function saveProfile(p) { return put('profile', { ...p, id: 'me' }); }
 

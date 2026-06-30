@@ -11,7 +11,9 @@ export function setEditingShift(s) { editingShift = s; }
 export async function renderRecord(el) {
   const today = new Date().toISOString().slice(0, 10);
   const s = editingShift || {
-    id: uid(), date: today, start: '20:00', end: '01:00',
+    id: uid(), date: today,
+    start: state.profile.defaultStart || '20:00',
+    end: state.profile.defaultEnd || '01:00',
     breakMin: Number(state.profile.defaultBreakMin) || 0, confirmed: false, entries: [],
   };
   if (!s.id) s.id = uid();

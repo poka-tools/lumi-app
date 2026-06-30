@@ -24,8 +24,12 @@ export async function renderSettings(el) {
         <div class="field" style="flex:1"><label>終了</label><input id="npEnd" type="time" value="${esc((p.nightPremium && p.nightPremium.end) || '05:00')}"></div>
         <div class="field" style="flex:1"><label>割増(円/時)</label><input id="npAdd" type="number" inputmode="numeric" value="${(p.nightPremium && Number(p.nightPremium.addPerHour)) || 0}"></div>
       </div>
-      <div class="field"><label>新規シフトのデフォルト休憩（分）</label>
-        <input id="defBreak" type="number" inputmode="numeric" value="${Number(p.defaultBreakMin) || 0}"></div>
+      <div class="muted" style="margin:4px 0 6px">新規シフトの初期値</div>
+      <div class="row">
+        <div class="field" style="flex:1"><label>開始</label><input id="defStart" type="time" value="${esc(p.defaultStart || '20:00')}"></div>
+        <div class="field" style="flex:1"><label>終了</label><input id="defEnd" type="time" value="${esc(p.defaultEnd || '01:00')}"></div>
+        <div class="field" style="flex:1"><label>休憩(分)</label><input id="defBreak" type="number" inputmode="numeric" value="${Number(p.defaultBreakMin) || 0}"></div>
+      </div>
       <button class="btn" id="saveProfile">保存</button>
     </div>
 
@@ -58,6 +62,8 @@ export async function renderSettings(el) {
       hourlyWage: num('#wage'),
       nominationWage: num('#nomWage'),
       douhanWage: num('#douWage'),
+      defaultStart: el.querySelector('#defStart').value || '20:00',
+      defaultEnd: el.querySelector('#defEnd').value || '01:00',
       defaultBreakMin: num('#defBreak'),
       nightPremium: {
         enabled: el.querySelector('#npEnabled').checked,

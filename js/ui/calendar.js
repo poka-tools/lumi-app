@@ -205,9 +205,10 @@ export async function renderCalendar(el) {
 
   const openSheet = (iso) => {
     const existing = state.shifts.find((s) => s.date === iso);
+    const p = state.profile;
     draft = existing
       ? JSON.parse(JSON.stringify(existing))
-      : { id: uid(), date: iso, start: '20:00', end: '01:00', breakMin: Number(state.profile.defaultBreakMin) || 0, confirmed: false, entries: [] };
+      : { id: uid(), date: iso, start: p.defaultStart || '20:00', end: p.defaultEnd || '01:00', breakMin: Number(p.defaultBreakMin) || 0, confirmed: false, entries: [] };
     renderSheet();
     sheet.hidden = false; backdrop.hidden = false;
     requestAnimationFrame(() => { sheet.classList.add('show'); backdrop.classList.add('show'); });
