@@ -12,7 +12,7 @@ export async function renderRecord(el) {
   const today = new Date().toISOString().slice(0, 10);
   const s = editingShift || {
     id: uid(), date: today, start: '20:00', end: '01:00',
-    breakMin: 0, confirmed: false, entries: [],
+    breakMin: Number(state.profile.defaultBreakMin) || 0, confirmed: false, entries: [],
   };
   if (!s.id) s.id = uid();
 

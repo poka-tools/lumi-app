@@ -207,7 +207,7 @@ export async function renderCalendar(el) {
     const existing = state.shifts.find((s) => s.date === iso);
     draft = existing
       ? JSON.parse(JSON.stringify(existing))
-      : { id: uid(), date: iso, start: '20:00', end: '01:00', breakMin: 0, confirmed: false, entries: [] };
+      : { id: uid(), date: iso, start: '20:00', end: '01:00', breakMin: Number(state.profile.defaultBreakMin) || 0, confirmed: false, entries: [] };
     renderSheet();
     sheet.hidden = false; backdrop.hidden = false;
     requestAnimationFrame(() => { sheet.classList.add('show'); backdrop.classList.add('show'); });
