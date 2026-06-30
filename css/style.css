@@ -21,10 +21,12 @@ body { margin: 0; font-family: -apple-system, "Hiragino Sans", sans-serif;
 .chip { flex: 0 0 auto; background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
   padding: 12px 14px; text-align: center; min-width: 96px; }
 input, select, button { font: inherit; }
+/* 入力欄を縮小可能に：time/number 等がフレックス枠から飛び出すのを防ぐ */
+input, select { min-width: 0; }
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-.field input, .field select { padding: 10px 12px; border: 1px solid #eee; border-radius: 12px; width: 100%; }
-/* 設定のバック項目など、.field の外に並ぶインライン入力 */
-.inline-input { padding: 10px 12px; border: 1px solid #eee; border-radius: 12px; width: 100%; min-width: 0; }
+.field input, .field select { padding: 10px 12px; border: 1px solid #eee; border-radius: 12px; width: 100%; min-width: 0; }
+/* 設定のバック項目など、.field の外に並ぶインライン入力（フレックス子なので width:100% は付けない） */
+.inline-input { padding: 10px 12px; border: 1px solid #eee; border-radius: 12px; min-width: 0; }
 .btn { background: var(--pink); color: #fff; border: none; border-radius: 14px;
   padding: 12px 16px; font-weight: 700; width: 100%; }
 .btn-ghost { background: var(--pink-soft); color: var(--pink); }
