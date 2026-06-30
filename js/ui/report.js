@@ -3,7 +3,7 @@ import { incomeBreakdown, backRanking, monthlyEstimate, monthlyWorkedHours } fro
 import { yen, esc } from '../format.js';
 
 export async function renderReport(el) {
-  const wage = state.profile.hourlyWage, items = state.backItems;
+  const wage = state.profile, items = state.backItems;
   const cur = shiftsOfMonth();
   const bd = incomeBreakdown(wage, items, cur);
   const ranking = backRanking(wage, items, cur);
@@ -14,7 +14,7 @@ export async function renderReport(el) {
       <div class="row" style="justify-content:space-between">
         <span>${esc(label)}</span><strong>${yen(amount)}</strong></div>
       <div style="background:#eee;border-radius:6px;height:8px">
-        <div style="background:var(--pink);height:8px;border-radius:6px;width:${Math.min(100, (amount / total) * 100)}%"></div>
+        <div style="background:var(--pink);height:8px;border-radius:6px;width:${Math.max(0, Math.min(100, (amount / total) * 100))}%"></div>
       </div>
     </div>`;
 

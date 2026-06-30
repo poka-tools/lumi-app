@@ -18,15 +18,62 @@ export function workedHours(shift) {
   return mins / 60;
 }
 
+// バック額。後方互換: 旧 type:'fixed'/'rate'+value はそのまま。
+// 新モデル: fixedValue(円/件) と rateValue(％) の併用に対応。
+// kind:'penalty' の項目はマイナス（罰金）として扱う。
 export function backAmount(item, entry) {
   if (!item || !entry) return 0;
-  if (item.type === 'fixed') return (item.value || 0) * (entry.count || 0);
-  if (item.type === 'rate') return (entry.sales || 0) * (item.value || 0) / 100;
-  return 0;
+  let amt;
+  if (item.type === 'fixed') amt = (item.value || 0) * (entry.count || 0);
+  else if (item.type === 'rate') amt = (entry.sales || 0) * (item.value || 0) / 100;
+  else amt = (item.fixedValue || 0) * (entry.count || 0)
+          + (entry.sales || 0) * (item.rateValue || 0) / 100;
+  return item.kind === 'penalty' ? -Math.abs(amt) : amt;
 }
 
-export function shiftWage(hourlyWage, shift) {
-  return (hourlyWage || 0) * workedHours(shift);
+// wage は数値（旧）でも時給設定オブジェクト（新）でも受ける。
+// 新オブジェクト: { hourlyWage, nominationWage, douhanWage,
+//   nightPremium: { enabled, start, end, addPerHour } }
+function normalizeWage(wage) {
+  if (typeof wage === 'number') return { hourlyWage: wage };
+  return wage || { hourlyWage: 0 };
+}
+
+// 指名・同伴のフラグに応じて適用する時給を返す（同伴 > 指名 > 基本給）。
+export function effectiveHourly(wage, shift) {
+  const w = normalizeWage(wage);
+  if (shift && shift.douhan && w.douhanWage) return w.douhanWage;
+  if (shift && shift.nomination && w.nominationWage) return w.nominationWage;
+  return w.hourlyWage || 0;
+}
+
+// 深夜帯（既定 22:00〜05:00, 日跨ぎ可）に重なる実働時間。休憩控除後の実働を上限にする。
+export function nightHours(shift, startHHMM = '22:00', endHHMM = '05:00') {
+  const ws = parseTimeToMinutes(shift.start);
+  let we = parseTimeToMinutes(shift.end);
+  if (ws === null || we === null) return 0;
+  if (we <= ws) we += 24 * 60; // 日跨ぎ
+  const ns = parseTimeToMinutes(startHHMM);
+  let ne = parseTimeToMinutes(endHHMM);
+  if (ns === null || ne === null) return 0;
+  if (ne <= ns) ne += 24 * 60; // 夜間帯の日跨ぎ
+  let nightMin = 0;
+  for (const off of [0, 24 * 60]) {
+    nightMin += Math.max(0, Math.min(we, ne + off) - Math.max(ws, ns + off));
+  }
+  const workedMin = workedHours(shift) * 60;
+  return Math.min(nightMin, workedMin) / 60;
+}
+
+// 深夜手当の加算額（割増は円/時の加算）。
+export function nightPremium(wage, shift) {
+  const np = normalizeWage(wage).nightPremium;
+  if (!np || !np.enabled || !np.addPerHour) return 0;
+  return nightHours(shift, np.start, np.end) * (np.addPerHour || 0);
+}
+
+export function shiftWage(wage, shift) {
+  return effectiveHourly(wage, shift) * workedHours(shift) + nightPremium(wage, shift);
 }
 export function shiftBackTotal(items, shift) {
   const byId = new Map((items || []).map((it) => [it.id, it]));
@@ -72,7 +119,7 @@ export function backRanking(hourlyWage, items, shifts) {
     return { itemId: it.id, name: it.name, amount,
       pct: monthTotal ? round1((amount / monthTotal) * 100) : 0 };
   });
-  return sums.filter((x) => x.amount > 0).sort((a, b) => b.amount - a.amount);
+  return sums.filter((x) => x.amount !== 0).sort((a, b) => b.amount - a.amount);
 }
 export function monthOverMonth(current, previous) {
   if (previous === null || previous === undefined) return null;

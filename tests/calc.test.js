@@ -39,7 +39,57 @@ test('backAmount: 未入力は 0', () => {
   assert.equal(backAmount(rate, {}), 0);
 });
 
+test('backAmount hybrid: 円/件＋％ の併用', () => {
+  const item = { fixedValue: 1000, rateValue: 5 };
+  assert.equal(backAmount(item, { count: 2, sales: 100000 }), 7000); // 2000 + 5000
+});
+test('backAmount penalty: マイナス（旧fixed型）', () => {
+  const item = { type: 'fixed', value: 3000, kind: 'penalty' };
+  assert.equal(backAmount(item, { count: 1 }), -3000);
+});
+test('backAmount penalty: マイナス（新型・件数）', () => {
+  const item = { fixedValue: 2000, kind: 'penalty' };
+  assert.equal(backAmount(item, { count: 2 }), -4000);
+});
+
+import { effectiveHourly, nightHours, nightPremium } from '../js/calc.js';
+
+test('effectiveHourly: 同伴 > 指名 > 基本給', () => {
+  const w = { hourlyWage: 2000, nominationWage: 2500, douhanWage: 3000 };
+  assert.equal(effectiveHourly(w, {}), 2000);
+  assert.equal(effectiveHourly(w, { nomination: true }), 2500);
+  assert.equal(effectiveHourly(w, { douhan: true }), 3000);
+  assert.equal(effectiveHourly(w, { nomination: true, douhan: true }), 3000); // 同伴優先
+  assert.equal(effectiveHourly(2000, { nomination: true }), 2000); // 数値はそのまま
+});
+
+test('nightHours: 20:00→01:00 の 22:00〜05:00 重なりは3h', () => {
+  assert.equal(nightHours({ start: '20:00', end: '01:00', breakMin: 0 }), 3);
+});
+test('nightHours: 18:00→23:00 は 22:00〜23:00 の1h', () => {
+  assert.equal(nightHours({ start: '18:00', end: '23:00', breakMin: 0 }), 1);
+});
+test('nightHours: 実働（休憩控除後）を上限にする', () => {
+  // 22:00→02:00=4h, 休憩120分で実働2h → 深夜帯も2hが上限
+  assert.equal(nightHours({ start: '22:00', end: '02:00', breakMin: 120 }), 2);
+});
+
+test('nightPremium: 深夜3h × 300円 = 900円', () => {
+  const w = { hourlyWage: 2000, nightPremium: { enabled: true, start: '22:00', end: '05:00', addPerHour: 300 } };
+  assert.equal(nightPremium(w, { start: '20:00', end: '01:00', breakMin: 0 }), 900);
+});
+test('nightPremium: 無効・数値時給は0', () => {
+  assert.equal(nightPremium(2000, { start: '20:00', end: '01:00', breakMin: 0 }), 0);
+});
+
 import { shiftWage, shiftBackTotal, shiftTotal } from '../js/calc.js';
+
+test('shiftWage: 深夜手当＋指名時給を反映', () => {
+  // 20:00→01:00=5h, 指名時給2500, 深夜3h×300
+  const w = { hourlyWage: 2000, nominationWage: 2500, nightPremium: { enabled: true, start: '22:00', end: '05:00', addPerHour: 300 } };
+  const shift = { start: '20:00', end: '01:00', breakMin: 0, nomination: true };
+  assert.equal(shiftWage(w, shift), 2500 * 5 + 900); // 13400
+});
 
 const _items3 = [
   { id: 'douhan', type: 'fixed', value: 3000 },

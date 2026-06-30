@@ -91,3 +91,5 @@ if (c) {
 </body></html>`;
 writeFileSync('/mnt/c/Users/tsuba/yashoku-snapshot.html', html);
 console.log('snapshot written. month total =', bd.total, 'wage', bd.wage, 'back', bd.back);
+// fake-indexeddb がイベントループを開放しないため明示終了する
+process.exit(process.exitCode || 0);

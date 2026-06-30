@@ -9,7 +9,7 @@ import { setEditingShift } from './record.js';
 import { navigate } from '../app.js';
 
 export async function renderHome(el) {
-  const wage = state.profile.hourlyWage;
+  const wage = state.profile;
   const items = state.backItems;
   const cur = shiftsOfMonth();
   const prev = shiftsOfMonth(prevMonth());
@@ -86,7 +86,7 @@ export async function renderHome(el) {
 
   drawDonut(
     el.querySelector('#donut'),
-    [{ value: bd.wage, color: '#ff5c8a' }, { value: bd.back, color: '#a78bfa' }],
+    [{ value: Math.max(0, bd.wage), color: '#ff5c8a' }, { value: Math.max(0, bd.back), color: '#a78bfa' }],
     yen(estimate)
   );
 
