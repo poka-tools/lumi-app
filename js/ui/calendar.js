@@ -134,7 +134,7 @@ export async function renderCalendar(el) {
       `${Number(draft.date.slice(5, 7))}月${Number(draft.date.slice(8))}日(${weekdayJa(draft.date)})`;
 
     const itemsHtml = state.backItems.length === 0
-      ? '<p class="muted">先に「設定」でバック項目を登録してください。</p>'
+      ? '<p class="muted">先に「設定」でインセンティブ項目を登録してください。</p>'
       : state.backItems.map((it) => {
         const c = Number(entryVal(it.id, 'count')) || 0;
         const sales = entryVal(it.id, 'sales');

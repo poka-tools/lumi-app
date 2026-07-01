@@ -34,7 +34,7 @@ export async function renderSettings(el) {
     </div>
 
     <div class="card">
-      <h3>バック項目</h3>
+      <h3>インセンティブ項目</h3>
       <div id="itemList"></div>
       <button class="btn btn-ghost" id="addItem">＋ 項目を追加</button>
     </div>
@@ -79,6 +79,8 @@ export async function renderSettings(el) {
   // 旧モデル(type/value)・新モデル(fixedValue/rateValue)の両方から値を読む。
   const itemFixed = (it) => it.type === 'fixed' ? Number(it.value) || 0 : Number(it.fixedValue) || 0;
   const itemRate = (it) => it.type === 'rate' ? Number(it.value) || 0 : Number(it.rateValue) || 0;
+  // 0 は未入力とみなし空欄表示（プレースホルダーを見せる）。何を入力する欄か分かるように。
+  const blankIfZero = (n) => n ? n : '';
 
   const renderItems = () => {
     const box = el.querySelector('#itemList');
@@ -93,8 +95,8 @@ export async function renderSettings(el) {
             <option value="income" ${it.kind === 'penalty' ? '' : 'selected'}>収入</option>
             <option value="penalty" ${it.kind === 'penalty' ? 'selected' : ''}>ペナルティ</option>
           </select>
-          <input class="i-fixed inline-input" type="number" inputmode="numeric" placeholder="円/件" title="円/件" value="${itemFixed(it)}" style="flex:1">
-          <input class="i-rate inline-input" type="number" inputmode="numeric" placeholder="％" title="売上の％" value="${itemRate(it)}" style="flex:1">
+          <input class="i-fixed inline-input" type="number" inputmode="numeric" placeholder="円/件" title="円/件" value="${blankIfZero(itemFixed(it))}" style="flex:1">
+          <input class="i-rate inline-input" type="number" inputmode="numeric" placeholder="％" title="売上の％" value="${blankIfZero(itemRate(it))}" style="flex:1">
         </div>
       </div>`).join('');
     box.querySelectorAll('[data-id]').forEach((rowEl) => {
@@ -125,7 +127,7 @@ export async function renderSettings(el) {
 
   el.querySelector('#addItem').onclick = async () => {
     const order = state.backItems.length;
-    await put('backItems', { id: uid(), name: '新規バック', kind: 'income', fixedValue: 0, rateValue: 0, order });
+    await put('backItems', { id: uid(), name: '新規インセンティブ', kind: 'income', fixedValue: 0, rateValue: 0, order });
     await loadAll();
     renderItems();
   };

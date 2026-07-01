@@ -199,3 +199,27 @@ test('plStatement: シフト無しは全て0・行なし', () => {
   assert.equal(pl.wageRows.length, 0);
   assert.equal(pl.net, 0);
 });
+
+import { annualSeries } from '../js/calc.js';
+
+test('annualSeries: 年の12ヶ月分・該当月に集計', () => {
+  const wage = { hourlyWage: 2000 };
+  const items = [{ id: 'd', name: '同伴', kind: 'income', fixedValue: 3000, rateValue: 0 }];
+  const shifts = [
+    // 2026-03: 4h → 時給8000, 同伴1件3000
+    { date: '2026-03-05', start: '20:00', end: '00:00', breakMin: 0,
+      entries: [{ backItemId: 'd', count: 1 }] },
+    // 2026-03: もう1日 5h → 時給10000
+    { date: '2026-03-12', start: '19:00', end: '00:00', breakMin: 0, entries: [] },
+    // 別年は無視
+    { date: '2025-03-01', start: '20:00', end: '00:00', breakMin: 0, entries: [] },
+  ];
+  const s = annualSeries(wage, items, shifts, 2026);
+  assert.equal(s.length, 12);
+  assert.equal(s[2].month, 3);
+  assert.equal(s[2].wage, 18000);      // 8000 + 10000
+  assert.equal(s[2].incentive, 3000);
+  assert.equal(s[2].total, 21000);
+  assert.equal(s[0].total, 0);         // 1月は実績なし
+  assert.equal(s[11].total, 0);        // 12月も0
+});

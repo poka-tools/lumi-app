@@ -171,6 +171,18 @@ export function plStatement(wage, items, shifts) {
   };
 }
 
+// 指定年(西暦)の月次収入推移。各月の 時給合計 / インセンティブ合計 / 合算 を返す（1〜12月・欠損月は0）。
+export function annualSeries(wage, items, shifts, year) {
+  const out = [];
+  for (let m = 1; m <= 12; m++) {
+    const prefix = `${year}-${String(m).padStart(2, '0')}`;
+    const monthShifts = (shifts || []).filter((s) => (s.date || '').startsWith(prefix));
+    const pl = plStatement(wage, items, monthShifts);
+    out.push({ month: m, wage: pl.wageTotal, incentive: pl.incentiveTotal, total: pl.grossIncome });
+  }
+  return out;
+}
+
 export function monthOverMonth(current, previous) {
   if (previous === null || previous === undefined) return null;
   const diff = current - previous;

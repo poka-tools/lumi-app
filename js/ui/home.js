@@ -88,8 +88,8 @@ export async function renderHome(el) {
     </div>
 
     <div class="card">
-      <h3>バック TOP3</h3>
-      ${ranking.length === 0 ? '<p class="muted">まだバック実績がありません。</p>'
+      <h3>インセンティブ TOP3</h3>
+      ${ranking.length === 0 ? '<p class="muted">まだインセンティブ実績がありません。</p>'
         : ranking.map((r, i) => `<div class="row" style="justify-content:space-between;margin-bottom:6px">
             <span>${medals[i]} ${esc(r.name)}</span><span><strong>${yen(r.amount)}</strong> <span class="muted">${r.pct}%</span></span>
           </div>`).join('')}
