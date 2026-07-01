@@ -13,6 +13,14 @@ export async function renderCalendar(el) {
   const byDate = new Map(shiftsOfMonth().map((s) => [s.date, s]));
   const wage = state.profile, items = state.backItems;
 
+  // 期限付きTodoを日付ごとに集計（カレンダー表示用）
+  const todosByDate = new Map();
+  for (const t of state.todos) {
+    if (!t.due) continue;
+    if (!todosByDate.has(t.due)) todosByDate.set(t.due, []);
+    todosByDate.get(t.due).push(t);
+  }
+
   const cells = [];
   for (let i = 0; i < startDay; i++) cells.push('<div></div>');
   for (let d = 1; d <= daysInMonth; d++) {
@@ -27,8 +35,13 @@ export async function renderCalendar(el) {
       body = `<div class="cal-amt planned">${esc(s.start || '')}〜</div><div class="cal-tag">予定</div>`;
       cls = 'has-draft';
     }
+    const dueT = todosByDate.get(iso) || [];
+    const pend = dueT.filter((t) => !t.done).length;
+    const todoMark = dueT.length
+      ? `<div class="cal-todo${pend ? '' : ' done'}">${pend ? '📌' + (pend > 1 ? pend : '') : '✓'}</div>`
+      : '';
     cells.push(`<div class="cal-cell ${cls}" data-date="${esc(iso)}">
-      <div class="cal-day">${d}</div>${body}</div>`);
+      <div class="cal-day">${d}</div>${body}${todoMark}</div>`);
   }
 
   el.innerHTML = `
@@ -142,7 +155,15 @@ export async function renderCalendar(el) {
         </div>`;
       }).join('');
 
+    const dayTodos = state.todos.filter((t) => t.due === draft.date);
+    const dayTodosHtml = dayTodos.length ? `
+      <div class="sheet-todos">
+        <div class="muted" style="margin-bottom:4px">📌 この日のやること</div>
+        <ul>${dayTodos.map((t) => `<li class="${t.done ? 'done' : ''}">${esc(t.text)}</li>`).join('')}</ul>
+      </div>` : '';
+
     body.innerHTML = `
+      ${dayTodosHtml}
       <div class="row">
         <div class="field" style="flex:1"><label>開始</label><input id="sStart" type="time" value="${esc(draft.start || '20:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="sEnd" type="time" value="${esc(draft.end || '01:00')}"></div>

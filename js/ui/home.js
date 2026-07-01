@@ -1,11 +1,13 @@
-import { state, shiftsOfMonth, prevMonth } from '../state.js';
+import { state, shiftsOfMonth, prevMonth, loadAll } from '../state.js';
+import { put } from '../db.js';
 import {
-  monthlyEstimate, monthlyWorkedHours, hourlyEquivalent,
+  monthlyEstimate, monthlyWorkedHours,
   incomeBreakdown, backRanking, monthOverMonth, shiftTotal, workedHours,
 } from '../calc.js';
-import { yen, signedYen, weekdayJa, esc } from '../format.js';
+import { yen, signedYen, weekdayJa, esc, todayIso, shortDateJa } from '../format.js';
 import { drawDonut } from './donut.js';
 import { setEditingShift } from './record.js';
+import { renderReminder } from './todos.js';
 import { navigate } from '../app.js';
 
 export async function renderHome(el) {
@@ -20,40 +22,55 @@ export async function renderHome(el) {
   const bd = incomeBreakdown(wage, items, cur);
   const ranking = backRanking(wage, items, cur).slice(0, 3);
   const hours = monthlyWorkedHours(cur);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const todayShift = cur.find((s) => s.date === today);
   const todayAmount = todayShift ? shiftTotal(wage, items, todayShift) : 0;
 
   const monthLabel = state.month.replace('-', '年') + '月';
-  const greetName = state.profile.name || 'あなた';
   const medals = ['🥇', '🥈', '🥉'];
+
+  // 本日の予定：シフト出勤と今日締切のTodo
+  let shiftLine;
+  if (todayShift && todayShift.confirmed)
+    shiftLine = `🏢 <strong>出勤（実績）</strong> ${esc(todayShift.start || '')}〜${esc(todayShift.end || '')} ・ ${yen(todayAmount)}`;
+  else if (todayShift)
+    shiftLine = `🏢 <strong>出勤予定</strong> ${esc(todayShift.start || '')}〜${esc(todayShift.end || '')}`;
+  else
+    shiftLine = '<span class="muted">🏢 本日の出勤予定はありません</span>';
+
+  const todayTodos = state.todos.filter((t) => t.due === today);
+  const todoBlock = todayTodos.length
+    ? `<ul class="today-todos">${todayTodos.map((t) => `
+        <li class="${t.done ? 'done' : ''}" data-id="${esc(t.id)}">
+          <button class="todo-check" type="button" aria-label="${t.done ? '未完了に戻す' : '完了にする'}">${t.done ? '✓' : ''}</button>
+          <span>${esc(t.text)}</span>
+        </li>`).join('')}</ul>`
+    : '<div class="muted" style="margin-top:8px">✅ 今日のやることはありません</div>';
 
   const activeAnn = state.announcements.filter((a) =>
     (!a.startDate || a.startDate <= today) && (!a.endDate || today <= a.endDate));
 
   el.innerHTML = `
-    <div class="card" style="display:flex;align-items:center;gap:10px">
-      <div style="font-size:32px">🦉</div>
-      <div><strong>おはようございます、${esc(greetName)}さん🌸</strong>
-      <div class="muted">今日も一日がんばりましょう！</div></div>
-    </div>
-
     <div class="card">
-      <div>${esc(monthLabel)}の見込み<span class="badge">確定前</span></div>
-      <div class="big-amount">${yen(estimate)}</div>
-      ${mom ? `<div class="muted">前月比 <span style="color:var(--pink)">${signedYen(mom.diff)}（${mom.pct >= 0 ? '+' : ''}${mom.pct}%）</span></div>` : ''}
-      <div class="row" style="margin-top:12px;text-align:center">
-        <div style="flex:1"><div class="muted">時給(基本給)</div><strong>${yen(bd.wage)}</strong></div>
-        <div style="flex:1"><div class="muted">インセンティブ</div><strong>${yen(bd.back)}</strong></div>
-        <div style="flex:1"><div class="muted">総勤務時間</div><strong>${hours}h</strong></div>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h3 style="margin:0">📅 本日の予定</h3>
+        <span class="muted">${shortDateJa(today)}</span>
       </div>
+      <div style="margin-top:8px">${shiftLine}</div>
+      ${todoBlock}
     </div>
 
-    <div class="chips">
-      <div class="chip"><div class="muted">出勤日数</div><strong>${cur.length}日</strong></div>
-      <div class="chip"><div class="muted">時給換算</div><strong>${yen(hourlyEquivalent(wage, items, cur))}</strong></div>
-      <div class="chip"><div class="muted">バック総額</div><strong>${yen(bd.back)}</strong></div>
-      <div class="chip"><div class="muted">本日見込み</div><strong>${yen(todayAmount)}</strong></div>
+    <div id="reminder"></div>
+
+    <div class="card estimate-card">
+      <div class="estimate-head">${esc(monthLabel)}の見込み <span class="badge">確定前</span></div>
+      <div class="big-amount">${yen(estimate)}</div>
+      ${mom ? `<div class="muted">前月比 <span style="color:var(--pink);font-weight:600">${signedYen(mom.diff)}（${mom.pct >= 0 ? '+' : ''}${mom.pct}%）</span></div>` : ''}
+      <div class="metric-grid">
+        <div><span class="muted">時給(基本給)</span><strong>${yen(bd.wage)}</strong></div>
+        <div><span class="muted">インセンティブ</span><strong>${yen(bd.back)}</strong></div>
+        <div><span class="muted">総勤務時間</span><strong>${hours}h</strong></div>
+      </div>
     </div>
 
     ${activeAnn.map((a) => `<div class="card" style="background:var(--pink-soft)">
@@ -83,6 +100,17 @@ export async function renderHome(el) {
         <a id="toCal" class="muted">カレンダーで確認 ›</a></div>
       <div class="chips" id="recent"></div>
     </div>`;
+
+  el.querySelectorAll('.today-todos li').forEach((li) => {
+    const todo = state.todos.find((t) => t.id === li.dataset.id);
+    li.querySelector('.todo-check').onclick = async () => {
+      await put('todos', { ...todo, done: !todo.done });
+      await loadAll();
+      renderHome(el);
+    };
+  });
+
+  renderReminder(el.querySelector('#reminder'));
 
   drawDonut(
     el.querySelector('#donut'),
