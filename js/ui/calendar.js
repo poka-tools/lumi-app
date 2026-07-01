@@ -82,28 +82,12 @@ export async function renderCalendar(el) {
   const body = el.querySelector('#sheetBody');
   const q = (sel) => sheet.querySelector(sel);
   let draft = null;
+  let counts = {}, sales = {}; // 項目id -> 件数 / 対象売上（チップ入力の作業用）
 
   const closeSheet = () => {
     sheet.classList.remove('show');
     backdrop.classList.remove('show');
     setTimeout(() => { sheet.hidden = true; backdrop.hidden = true; }, 280);
-  };
-
-  const entryVal = (id, key) => {
-    const e = (draft.entries || []).find((x) => x.backItemId === id);
-    return e && e[key] != null ? e[key] : '';
-  };
-
-  // 件数/売上の現在値からバッジと選択状態（見た目）を更新
-  const syncRow = (row) => {
-    const hasC = row.dataset.hasc === '1';
-    const ci = row.querySelector('[data-key="count"]');
-    const si = row.querySelector('[data-key="sales"]');
-    const c = ci ? Number(ci.value) || 0 : 0;
-    const sv = si ? Number(si.value) || 0 : 0;
-    const active = c > 0 || sv > 0;
-    row.classList.toggle('active', active);
-    row.querySelector('.bi-check').textContent = hasC ? (c > 0 ? String(c) : '＋') : (active ? '✓' : '＋');
   };
 
   const collectDraft = () => {
@@ -114,11 +98,10 @@ export async function renderCalendar(el) {
     draft.nomination = q('#sNom').checked;
     draft.douhan = q('#sDou').checked;
     const entries = [];
-    sheet.querySelectorAll('.bi-row').forEach((row) => {
-      const e = { backItemId: row.dataset.id };
-      row.querySelectorAll('.bi-input').forEach((inp) => { e[inp.dataset.key] = Number(inp.value) || 0; });
-      if (e.count || e.sales) entries.push(e);
-    });
+    for (const it of state.backItems) {
+      const c = Number(counts[it.id]) || 0, s = Number(sales[it.id]) || 0;
+      if (c || s) entries.push({ backItemId: it.id, count: c, sales: s });
+    }
     draft.entries = entries;
     return draft;
   };
@@ -133,27 +116,26 @@ export async function renderCalendar(el) {
     q('#sheetDate').textContent =
       `${Number(draft.date.slice(5, 7))}月${Number(draft.date.slice(8))}日(${weekdayJa(draft.date)})`;
 
+    // チップ入力の作業用マップを下書きから初期化
+    counts = {}; sales = {};
+    (draft.entries || []).forEach((e) => {
+      if (e.count) counts[e.backItemId] = e.count;
+      if (e.sales) sales[e.backItemId] = e.sales;
+    });
+
+    const chipHtml = (it) => {
+      const hasC = hasFixed(it);
+      const c = Number(counts[it.id]) || 0, s = Number(sales[it.id]) || 0;
+      const active = c > 0 || s > 0;
+      const badge = hasC ? (c > 0 ? '×' + c : '') : (s > 0 ? '✓' : '');
+      return `<button type="button" class="chip-inc${active ? ' active' : ''}${it.kind === 'penalty' ? ' penalty' : ''}" data-id="${esc(it.id)}">
+        <span class="chip-name">${it.kind === 'penalty' ? '⚠' : ''}${esc(it.name)}</span>
+        ${badge ? `<span class="chip-badge">${badge}</span>` : ''}
+      </button>`;
+    };
     const itemsHtml = state.backItems.length === 0
       ? '<p class="muted">先に「設定」でインセンティブ項目を登録してください。</p>'
-      : state.backItems.map((it) => {
-        const c = Number(entryVal(it.id, 'count')) || 0;
-        const sales = entryVal(it.id, 'sales');
-        const hasC = hasFixed(it), hasR = hasRate(it);
-        const active = c > 0 || (Number(sales) || 0) > 0;
-        const badge = hasC ? (c > 0 ? c : '＋') : (active ? '✓' : '＋');
-        return `<div class="bi-row ${active ? 'active' : ''}" data-id="${esc(it.id)}" data-hasc="${hasC ? 1 : 0}">
-          <div class="bi-head">
-            <span class="bi-check">${badge}</span>
-            <span style="flex:1">${esc(it.name)} <span class="muted">${esc(itemLabel(it))}</span><div class="muted bi-hint">タップで＋1</div></span>
-          </div>
-          <div class="bi-controls row" style="margin-top:8px;align-items:center">
-            ${hasC ? `<button class="bi-minus" type="button" aria-label="減らす">−</button>
-              <input class="bi-input inline-input" data-key="count" type="number" inputmode="numeric" placeholder="件数" value="${c || ''}" style="flex:1;text-align:center">
-              <button class="bi-plus" type="button" aria-label="増やす">＋</button>` : ''}
-            ${hasR ? `<input class="bi-input inline-input" data-key="sales" type="number" inputmode="numeric" placeholder="対象売上(円)" value="${sales}" style="flex:1">` : ''}
-          </div>
-        </div>`;
-      }).join('');
+      : `<div class="chip-grid" id="chipGrid">${state.backItems.map(chipHtml).join('')}</div>`;
 
     const dayTodos = state.todos.filter((t) => t.due === draft.date);
     const dayTodosHtml = dayTodos.length ? `
@@ -173,7 +155,8 @@ export async function renderCalendar(el) {
         <label><input id="sNom" type="checkbox" ${draft.nomination ? 'checked' : ''}> 指名あり</label>
         <label><input id="sDou" type="checkbox" ${draft.douhan ? 'checked' : ''}> 同伴あり</label>
       </div>
-      <h4 style="margin:10px 0 8px">入ったインセンティブをタップで選択</h4>
+      <h4 style="margin:10px 0 4px">入ったインセンティブ</h4>
+      <p class="muted" style="margin:0 0 8px;font-size:12px">タップで＋1／長押しで件数・売上を調整</p>
       ${itemsHtml}
       <div class="sheet-total">
         <span>この日の合計 <span class="muted" id="sheetHours"></span></span>
@@ -185,28 +168,95 @@ export async function renderCalendar(el) {
       </label>
       <button class="btn" id="sSave">保存</button>
       <div style="height:8px"></div>
-      <button class="btn btn-ghost" id="sDelete" style="color:#f55">この日の記録を削除</button>`;
+      <button class="btn btn-ghost" id="sDelete" style="color:#f55">この日の記録を削除</button>
 
-    // バック項目：タップ／＋／− で件数更新、売上は直接入力
-    sheet.querySelectorAll('.bi-row').forEach((row) => {
-      const hasC = row.dataset.hasc === '1';
-      const countInp = row.querySelector('[data-key="count"]');
-      const setCount = (n) => { countInp.value = n > 0 ? n : ''; syncRow(row); recalc(); };
-      if (hasC) {
-        const inc = () => setCount((Number(countInp.value) || 0) + 1);
-        const dec = () => setCount(Math.max(0, (Number(countInp.value) || 0) - 1));
-        row.querySelector('.bi-head').onclick = inc;
-        row.querySelector('.bi-plus').onclick = (e) => { e.stopPropagation(); inc(); };
-        row.querySelector('.bi-minus').onclick = (e) => { e.stopPropagation(); dec(); };
-      } else {
-        // 率（売上）項目はタップで入力欄にフォーカス
-        const sales = row.querySelector('[data-key="sales"]');
-        row.querySelector('.bi-head').onclick = () => { if (sales) sales.focus(); };
+      <div class="chip-pop-backdrop" id="chipPopBg" hidden></div>
+      <div class="chip-pop" id="chipPop" role="dialog" aria-modal="true" hidden></div>`;
+
+    // ===== インセンティブ・チップ：タップ＝＋1／長押し＝調整ポップオーバー =====
+    const chipGrid = q('#chipGrid');
+    const pop = q('#chipPop'), popBg = q('#chipPopBg');
+
+    const refreshChip = (id) => {
+      const it = state.backItems.find((x) => x.id === id);
+      const btn = chipGrid && chipGrid.querySelector(`.chip-inc[data-id="${CSS.escape(id)}"]`);
+      if (!it || !btn) return;
+      const hasC = hasFixed(it);
+      const c = Number(counts[id]) || 0, s = Number(sales[id]) || 0;
+      btn.classList.toggle('active', c > 0 || s > 0);
+      const badge = hasC ? (c > 0 ? '×' + c : '') : (s > 0 ? '✓' : '');
+      let b = btn.querySelector('.chip-badge');
+      if (badge) {
+        if (!b) { b = document.createElement('span'); b.className = 'chip-badge'; btn.appendChild(b); }
+        b.textContent = badge;
+      } else if (b) { b.remove(); }
+    };
+
+    const closePop = () => { pop.hidden = true; popBg.hidden = true; };
+    const openPop = (it) => {
+      const hasC = hasFixed(it), hasR = hasRate(it);
+      pop.innerHTML = `
+        <div class="chip-pop-title">${it.kind === 'penalty' ? '⚠' : ''}${esc(it.name)}
+          <span class="muted">${esc(itemLabel(it))}</span></div>
+        ${hasC ? `<div class="row" style="align-items:center;gap:8px;margin:12px 0">
+          <button class="bi-minus" type="button" id="popMinus" aria-label="減らす">−</button>
+          <input id="popCount" class="inline-input" type="number" inputmode="numeric" placeholder="件数"
+            value="${Number(counts[it.id]) > 0 ? counts[it.id] : ''}" style="flex:1;text-align:center">
+          <button class="bi-plus" type="button" id="popPlus" aria-label="増やす">＋</button>
+        </div>` : ''}
+        ${hasR ? `<div class="field" style="margin:12px 0"><label>対象売上(円)</label>
+          <input id="popSales" class="inline-input" type="number" inputmode="numeric"
+            value="${Number(sales[it.id]) > 0 ? sales[it.id] : ''}" style="width:100%"></div>` : ''}
+        <div class="row" style="gap:8px">
+          <button class="btn btn-ghost" type="button" id="popClear" style="flex:1">クリア</button>
+          <button class="btn" type="button" id="popDone" style="flex:1">完了</button>
+        </div>`;
+      const cInp = pop.querySelector('#popCount'), sInp = pop.querySelector('#popSales');
+      const apply = () => {
+        if (cInp) counts[it.id] = Number(cInp.value) || 0;
+        if (sInp) sales[it.id] = Number(sInp.value) || 0;
+        refreshChip(it.id); recalc();
+      };
+      if (cInp) {
+        pop.querySelector('#popPlus').onclick = () => { cInp.value = (Number(cInp.value) || 0) + 1; apply(); };
+        pop.querySelector('#popMinus').onclick = () => {
+          cInp.value = Math.max(0, (Number(cInp.value) || 0) - 1) || ''; apply();
+        };
+        cInp.oninput = apply;
       }
+      if (sInp) sInp.oninput = apply;
+      pop.querySelector('#popClear').onclick = () => {
+        counts[it.id] = 0; sales[it.id] = 0;
+        if (cInp) cInp.value = ''; if (sInp) sInp.value = '';
+        refreshChip(it.id); recalc();
+      };
+      pop.querySelector('#popDone').onclick = closePop;
+      pop.hidden = false; popBg.hidden = false;
+      if (cInp) { cInp.focus(); cInp.select(); }
+    };
+    popBg.onclick = closePop;
+
+    const tapChip = (it) => {
+      if (hasFixed(it)) { counts[it.id] = (Number(counts[it.id]) || 0) + 1; refreshChip(it.id); recalc(); }
+      else openPop(it); // 率(売上)のみの項目はポップオーバーで入力
+    };
+    if (chipGrid) chipGrid.querySelectorAll('.chip-inc').forEach((btn) => {
+      const it = state.backItems.find((x) => x.id === btn.dataset.id);
+      let timer = null, longFired = false, moved = false, sx = 0, sy = 0;
+      const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+      btn.addEventListener('pointerdown', (e) => {
+        longFired = false; moved = false; sx = e.clientX; sy = e.clientY;
+        timer = setTimeout(() => { longFired = true; openPop(it); }, 450);
+      });
+      btn.addEventListener('pointermove', (e) => {
+        if (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10) { moved = true; clear(); }
+      });
+      btn.addEventListener('pointerup', () => { clear(); if (!longFired && !moved) tapChip(it); });
+      btn.addEventListener('pointercancel', clear);
+      btn.addEventListener('pointerleave', clear);
+      btn.addEventListener('contextmenu', (e) => e.preventDefault());
     });
-    sheet.querySelectorAll('.bi-input').forEach((inp) => {
-      inp.oninput = () => { syncRow(inp.closest('.bi-row')); recalc(); };
-    });
+
     sheet.querySelectorAll('#sStart,#sEnd,#sBreak,#sNom,#sDou').forEach((inp) => {
       inp.oninput = recalc; inp.onchange = recalc;
     });

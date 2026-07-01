@@ -260,3 +260,23 @@ input, select { min-width: 0; }
 .lg-total { color: var(--pink); }
 .lg-wage { color: var(--pink); font-weight: 700; }
 .lg-inc { color: var(--purple); font-weight: 700; }
+
+/* インセンティブ・チップ（カレンダー日別入力） */
+.chip-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.chip-inc { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid #eadfe4;
+  background: #fff; color: var(--ink); border-radius: 18px; padding: 8px 14px;
+  font-size: 14px; font-weight: 600; cursor: pointer; user-select: none;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: transform .08s ease; }
+.chip-inc:active { transform: scale(.94); }
+.chip-inc.active { border-color: var(--pink); background: var(--pink-soft); color: var(--pink); }
+.chip-inc.penalty.active { border-color: #f0a; background: #ffe9f2; }
+.chip-badge { min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+  background: var(--pink); color: #fff; font-size: 12px; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center; }
+/* 調整ポップオーバー */
+.chip-pop-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.28); z-index: 60; }
+.chip-pop { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  width: min(320px, 86vw); background: #fff; border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  padding: 16px; z-index: 61; }
+.chip-pop-title { font-weight: 700; font-size: 16px; }
+.chip-pop-title .muted { font-weight: 400; font-size: 13px; margin-left: 4px; }
