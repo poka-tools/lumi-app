@@ -24,10 +24,7 @@ export async function renderReport(el) {
   const hasData = pl.wageRows.length || pl.incentiveRows.length || pl.penaltyRows.length;
 
   el.innerHTML = `
-    <div class="row" style="justify-content:space-between;align-items:center">
-      <h2 style="margin:0">収支レポート（${esc(state.month.replace('-', '年'))}月）</h2>
-      <button id="pdfBtn" class="btn btn-ghost no-print" style="width:auto;padding:7px 14px;font-size:13px">PDF保存</button>
-    </div>
+    <h2>収支レポート（${esc(state.month.replace('-', '年'))}月）</h2>
     <div class="card">
       <div class="row" style="justify-content:space-between"><span>総勤務時間</span><strong>${monthlyWorkedHours(cur)}h</strong></div>
       <div class="row" style="justify-content:space-between"><span>出勤日数</span><strong>${cur.length}日</strong></div>
@@ -67,7 +64,9 @@ export async function renderReport(el) {
           <strong>${yen(pl.net)}</strong>
         </div>
       ` : '<p class="muted">この月の実績がまだありません。</p>'}
-    </div>`;
+    </div>
+
+    <button id="pdfBtn" class="btn btn-ghost no-print" style="margin-bottom:8px">PDF保存</button>`;
 
   // --- 年間推移グラフ（インラインSVG・左→右へ描画アニメーション） ---
   const W = 340, H = 190, padL = 14, padR = 12, padT = 14, padB = 24;

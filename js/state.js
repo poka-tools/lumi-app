@@ -6,8 +6,13 @@ export const state = {
   shifts: [],
   announcements: [],
   todos: [],
-  month: new Date().toISOString().slice(0, 7),
+  month: monthIso(new Date()),
 };
+
+// ローカル日付の年月（YYYY-MM）。toISOString は UTC 変換で月がずれるため使わない。
+function monthIso(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 export async function loadAll() {
   state.profile = await getProfile();
@@ -22,6 +27,5 @@ export function shiftsOfMonth(month = state.month) {
 }
 export function prevMonth(month = state.month) {
   const [y, m] = month.split('-').map(Number);
-  const d = new Date(y, m - 2, 1);
-  return d.toISOString().slice(0, 7);
+  return monthIso(new Date(y, m - 2, 1));
 }

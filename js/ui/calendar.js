@@ -70,7 +70,8 @@ export async function renderCalendar(el) {
 
   const shiftMonth = (delta) => {
     const d = new Date(y, m - 1 + delta, 1);
-    state.month = d.toISOString().slice(0, 7);
+    // ローカルの年月で組み立てる（toISOString だと UTC 変換で月がずれる）
+    state.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     renderCalendar(el);
   };
   el.querySelector('#prev').onclick = () => shiftMonth(-1);
