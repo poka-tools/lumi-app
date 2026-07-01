@@ -212,3 +212,24 @@ input, select { min-width: 0; }
   .chip:hover, .cal-cell:hover { transform: translateY(-2px); }
   .btn { cursor: pointer; }
 }
+
+/* 収支レポート（損益計算書スタイル） */
+.pl-card { padding-top: 8px; }
+.pl-section-head { font-weight: 700; font-size: 14px; color: var(--muted);
+  margin: 4px 0 6px; letter-spacing: .02em; }
+.pl-line { display: flex; justify-content: space-between; align-items: baseline;
+  padding: 6px 0; font-size: 15px; }
+.pl-line > span:first-child { color: var(--ink); padding-left: 10px; }
+.pl-amt { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl-neg .pl-amt { color: var(--pink); }
+.pl-subtotal { border-top: 1px dashed #eadfe4; margin-top: 2px; font-weight: 600; }
+.pl-subtotal > span:first-child { color: var(--muted); font-size: 14px; }
+.pl-gap { height: 8px; }
+.pl-net { display: flex; justify-content: space-between; align-items: center;
+  margin-top: 14px; padding: 14px 12px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--pink), var(--purple)); color: #fff; }
+.pl-net > span { font-weight: 700; font-size: 15px; }
+.pl-net > strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+.pl-count { display: inline-block; margin-left: 6px; padding: 0 7px;
+  font-size: 12px; font-weight: 700; line-height: 18px; color: var(--pink);
+  background: var(--pink-soft); border-radius: 9px; vertical-align: middle; }

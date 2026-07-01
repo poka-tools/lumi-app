@@ -121,6 +121,56 @@ export function backRanking(hourlyWage, items, shifts) {
   });
   return sums.filter((x) => x.amount !== 0).sort((a, b) => b.amount - a.amount);
 }
+// 損益計算書（P/L）スタイルの収支内訳。設定項目に沿って行を構成する。
+// 時給は適用レート（基本/指名/同伴）と深夜手当に分解、バックは項目別に収入/ペナルティへ振り分ける。
+export function plStatement(wage, items, shifts) {
+  const w = normalizeWage(wage);
+  const sh = shifts || [];
+
+  // --- 時給内訳 ---
+  let base = 0, nom = 0, dou = 0, night = 0;
+  for (const s of sh) {
+    const amt = effectiveHourly(w, s) * workedHours(s);
+    if (s.douhan && w.douhanWage) dou += amt;
+    else if (s.nomination && w.nominationWage) nom += amt;
+    else base += amt;
+    night += nightPremium(w, s);
+  }
+  const wageRows = [];
+  if (base) wageRows.push({ label: '基本時給', amount: base });
+  if (nom) wageRows.push({ label: '指名時給', amount: nom });
+  if (dou) wageRows.push({ label: '同伴時給', amount: dou });
+  if (night) wageRows.push({ label: '深夜手当', amount: night });
+  const wageTotal = base + nom + dou + night;
+
+  // --- バック項目（収入=インセンティブ / ペナルティ=控除） ---
+  const incentiveRows = [], penaltyRows = [];
+  for (const it of (items || [])) {
+    let amount = 0, count = 0;
+    for (const shift of sh) {
+      const e = (shift.entries || []).find((x) => x.backItemId === it.id);
+      if (!e) continue;
+      amount += backAmount(it, e);
+      count += e.count || 0;
+    }
+    if (amount === 0) continue;
+    const row = { label: it.name, amount, count };
+    if (it.kind === 'penalty' || amount < 0) penaltyRows.push(row);
+    else incentiveRows.push(row);
+  }
+  const incentiveTotal = incentiveRows.reduce((s, r) => s + r.amount, 0);
+  const penaltyTotal = penaltyRows.reduce((s, r) => s + r.amount, 0);
+  const grossIncome = wageTotal + incentiveTotal;
+  const net = grossIncome + penaltyTotal; // penaltyTotal は負値
+
+  return {
+    wageRows, wageTotal,
+    incentiveRows, incentiveTotal,
+    penaltyRows, penaltyTotal,
+    grossIncome, net,
+  };
+}
+
 export function monthOverMonth(current, previous) {
   if (previous === null || previous === undefined) return null;
   const diff = current - previous;

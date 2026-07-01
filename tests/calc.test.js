@@ -144,3 +144,58 @@ test('monthOverMonth', () => {
   assert.equal(m.pct, 15.0);
 });
 test('monthOverMonth: 前月なしは null', () => { assert.equal(monthOverMonth(23000, null), null); });
+
+import { plStatement } from '../js/calc.js';
+
+const _wage5 = {
+  hourlyWage: 2000, nominationWage: 2500, douhanWage: 3000,
+  nightPremium: { enabled: true, start: '22:00', end: '05:00', addPerHour: 500 },
+};
+const _items5 = [
+  { id: 'd', name: '同伴バック', kind: 'income', fixedValue: 3000, rateValue: 0 },
+  { id: 'p', name: '遅刻罰金', kind: 'penalty', fixedValue: 1000, rateValue: 0 },
+];
+const _shifts5 = [
+  // 20:00→翌02:00, 休憩0 → 実働6h, 深夜(22-05)4h。基本給。
+  { date: '2026-07-01', start: '20:00', end: '02:00', breakMin: 0, entries: [] },
+  // 20:00→24:00, 実働4h, 深夜2h。指名。同伴バック1件・遅刻罰金1件。
+  { date: '2026-07-02', start: '20:00', end: '00:00', breakMin: 0, nomination: true,
+    entries: [{ backItemId: 'd', count: 1 }, { backItemId: 'p', count: 1 }] },
+];
+
+test('plStatement: 時給を基本/指名/深夜手当に分解', () => {
+  const pl = plStatement(_wage5, _items5, _shifts5);
+  // 基本時給: 2000*6 = 12000（同伴なし・指名なしのシフト）
+  assert.equal(pl.wageRows.find((r) => r.label === '基本時給').amount, 12000);
+  // 指名時給: 2500*4 = 10000
+  assert.equal(pl.wageRows.find((r) => r.label === '指名時給').amount, 10000);
+  // 同伴時給行は無い（該当シフトなし）
+  assert.equal(pl.wageRows.find((r) => r.label === '同伴時給'), undefined);
+  // 深夜手当: (4h + 2h)*500 = 3000
+  assert.equal(pl.wageRows.find((r) => r.label === '深夜手当').amount, 3000);
+  assert.equal(pl.wageTotal, 25000);
+});
+
+test('plStatement: インセンティブと控除を項目別に振り分け', () => {
+  const pl = plStatement(_wage5, _items5, _shifts5);
+  assert.equal(pl.incentiveRows.length, 1);
+  assert.equal(pl.incentiveRows[0].amount, 3000);
+  assert.equal(pl.incentiveRows[0].count, 1);
+  assert.equal(pl.incentiveTotal, 3000);
+  assert.equal(pl.penaltyRows.length, 1);
+  assert.equal(pl.penaltyRows[0].amount, -1000);
+  assert.equal(pl.penaltyRows[0].count, 1);
+  assert.equal(pl.penaltyTotal, -1000);
+});
+
+test('plStatement: 収入合計と差引最終合計', () => {
+  const pl = plStatement(_wage5, _items5, _shifts5);
+  assert.equal(pl.grossIncome, 28000); // 25000 + 3000
+  assert.equal(pl.net, 27000);         // 28000 - 1000
+});
+
+test('plStatement: シフト無しは全て0・行なし', () => {
+  const pl = plStatement(_wage5, _items5, []);
+  assert.equal(pl.wageRows.length, 0);
+  assert.equal(pl.net, 0);
+});
