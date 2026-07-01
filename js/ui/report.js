@@ -24,7 +24,10 @@ export async function renderReport(el) {
   const hasData = pl.wageRows.length || pl.incentiveRows.length || pl.penaltyRows.length;
 
   el.innerHTML = `
-    <h2>収支レポート（${esc(state.month.replace('-', '年'))}月）</h2>
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <h2 style="margin:0">収支レポート（${esc(state.month.replace('-', '年'))}月）</h2>
+      <button id="pdfBtn" class="btn btn-ghost no-print" style="width:auto;padding:7px 14px;font-size:13px">PDF保存</button>
+    </div>
     <div class="card">
       <div class="row" style="justify-content:space-between"><span>総勤務時間</span><strong>${monthlyWorkedHours(cur)}h</strong></div>
       <div class="row" style="justify-content:space-between"><span>出勤日数</span><strong>${cur.length}日</strong></div>
@@ -127,4 +130,7 @@ export async function renderReport(el) {
     };
   });
   renderChart('bar');
+
+  // 印刷（ブラウザの「PDFで保存」で書き出し）
+  el.querySelector('#pdfBtn').onclick = () => window.print();
 }

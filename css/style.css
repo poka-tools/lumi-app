@@ -54,7 +54,8 @@ input, select { min-width: 0; }
 #tabbar button span { font-size: 10px; white-space: nowrap; }
 #tabbar button.active { color: var(--pink); }
 #tabbar .fab { flex: 0 0 auto; background: var(--pink); color: #fff; width: 52px; height: 52px;
-  border-radius: 50%; font-size: 28px; box-shadow: 0 4px 12px rgba(255,92,138,.4); }
+  border-radius: 50%; font-size: 28px; box-shadow: 0 4px 12px rgba(255,92,138,.4);
+  justify-content: center; align-items: center; gap: 0; line-height: 1; padding: 3px 0 0; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .cal-grid.head { color: var(--muted); font-size: 12px; text-align: center; margin: 8px 0 4px; }
 .cal-cell { background: var(--card); border-radius: 10px; min-height: 56px; padding: 4px;
@@ -280,3 +281,15 @@ input, select { min-width: 0; }
   padding: 16px; z-index: 61; }
 .chip-pop-title { font-weight: 700; font-size: 16px; }
 .chip-pop-title .muted { font-weight: 400; font-size: 13px; margin-left: 4px; }
+
+/* 印刷（レポートをPDFで保存） */
+@media print {
+  #tabbar, #splash, .sheet, .sheet-backdrop, .no-print, .seg { display: none !important; }
+  body { background: #fff !important; }
+  #screen { padding: 0 !important; }
+  h2 { margin: 0 0 8px !important; }
+  .card { box-shadow: none !important; border: 1px solid #eee; break-inside: avoid; margin-bottom: 10px; }
+  .pl-net { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { margin: 14mm; }
+}
