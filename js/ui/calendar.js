@@ -3,6 +3,7 @@ import { put, del, uid } from '../db.js';
 import { shiftTotal, workedHours } from '../calc.js';
 import { yen, esc, weekdayJa } from '../format.js';
 import { hasFixed, hasRate, itemLabel } from './backfields.js';
+import { renderTodos } from './todos.js';
 
 export async function renderCalendar(el) {
   const [y, m] = state.month.split('-').map(Number);
@@ -40,6 +41,8 @@ export async function renderCalendar(el) {
     <div class="cal-grid" id="grid">${cells.join('')}</div>
     <p class="muted" style="text-align:center;margin-top:10px">日付をタップして記録・予定を入力</p>
 
+    <div id="todoSection" style="margin-top:16px"></div>
+
     <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
     <section class="sheet" id="sheet" hidden aria-label="日別入力">
       <div class="sheet-handle"></div>
@@ -49,6 +52,8 @@ export async function renderCalendar(el) {
       </div>
       <div id="sheetBody"></div>
     </section>`;
+
+  renderTodos(el.querySelector('#todoSection'));
 
   const shiftMonth = (delta) => {
     const d = new Date(y, m - 1 + delta, 1);

@@ -5,6 +5,7 @@ export const state = {
   backItems: [],
   shifts: [],
   announcements: [],
+  todos: [],
   month: new Date().toISOString().slice(0, 7),
 };
 
@@ -13,6 +14,7 @@ export async function loadAll() {
   state.backItems = (await getAll('backItems')).sort((a, b) => (a.order || 0) - (b.order || 0));
   state.shifts = await getAll('shifts');
   state.announcements = await getAll('announcements');
+  state.todos = (await getAll('todos')).sort((a, b) => (a.order || 0) - (b.order || 0));
 }
 
 export function shiftsOfMonth(month = state.month) {

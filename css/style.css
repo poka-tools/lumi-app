@@ -81,6 +81,24 @@ input, select { min-width: 0; }
   margin: 14px 0; padding: 12px 14px; background: var(--pink-soft); border-radius: 14px; }
 .sheet-total strong { color: var(--pink); }
 
+/* ============ やることリスト（カレンダー下） ============ */
+.todo-card { padding: 16px; }
+.todo-add { gap: 8px; margin-bottom: 10px; }
+.todo-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.todo-empty { text-align: center; padding: 10px 0; margin: 0; }
+.todo-item { display: flex; align-items: center; gap: 10px;
+  background: var(--bg); border-radius: 12px; padding: 8px 10px; }
+.todo-check { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid var(--pink); background: #fff; color: #fff; font-size: 14px;
+  line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.todo-item.done .todo-check { background: var(--pink); }
+.todo-text { flex: 1; cursor: pointer; word-break: break-word; }
+.todo-item.done .todo-text { text-decoration: line-through; color: var(--muted); }
+.todo-del { flex: 0 0 auto; border: none; background: none; color: var(--muted);
+  font-size: 15px; cursor: pointer; padding: 4px; }
+.todo-del:active { color: var(--pink); }
+.todo-clear { margin-top: 10px; }
+
 /* ============ スプラッシュ画面 ============ */
 #splash {
   position: fixed; inset: 0; z-index: 1000;

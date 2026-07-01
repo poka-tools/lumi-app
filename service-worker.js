@@ -1,4 +1,4 @@
-const CACHE = 'yashoku-v11';
+const CACHE = 'yashoku-v12';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',
@@ -6,6 +6,7 @@ const ASSETS = [
   './js/app.js', './js/state.js', './js/db.js', './js/calc.js', './js/format.js',
   './js/ui/home.js', './js/ui/calendar.js', './js/ui/record.js',
   './js/ui/report.js', './js/ui/settings.js', './js/ui/donut.js',
+  './js/ui/backfields.js', './js/ui/todos.js',
 ];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
