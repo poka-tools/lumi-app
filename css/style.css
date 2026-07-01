@@ -293,3 +293,6 @@ input, select { min-width: 0; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @page { margin: 14mm; }
 }
+
+.chart-grid { stroke: #f2e6ec; stroke-width: 1; }
+.chart-ylabel { fill: var(--muted); font-size: 8.5px; }

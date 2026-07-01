@@ -69,12 +69,35 @@ export async function renderReport(el) {
     <button id="pdfBtn" class="btn btn-ghost no-print" style="margin-bottom:8px">PDF保存</button>`;
 
   // --- 年間推移グラフ（インラインSVG・左→右へ描画アニメーション） ---
-  const W = 340, H = 190, padL = 14, padR = 12, padT = 14, padB = 24;
+  const W = 340, H = 190, padL = 36, padR = 12, padT = 14, padB = 24;
   const plotW = W - padL - padR, plotH = H - padT - padB, slot = plotW / 12;
   const baseY = padT + plotH;
-  const maxV = Math.max(1, ...series.map((d) => d.total));
+
+  // 縦軸（円）を「きりの良い」目盛りに丸める
+  const rawMax = Math.max(1, ...series.map((d) => d.total));
+  const niceNum = (x, round) => {
+    const exp = Math.floor(Math.log10(x));
+    const f = x / Math.pow(10, exp);
+    const nf = round ? (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10)
+                     : (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10);
+    return nf * Math.pow(10, exp);
+  };
+  const step = niceNum(niceNum(rawMax, false) / 4, true);
+  const maxV = Math.ceil(rawMax / step) * step;
   const cx = (i) => padL + (i + 0.5) * slot;
   const cy = (v) => padT + plotH - (v / maxV) * plotH;
+
+  // 縦軸ラベル（円）：1万以上は「◯万」表記でコンパクトに
+  const yLabel = (v) => v >= 10000
+    ? (v % 10000 === 0 ? v / 10000 + '万' : (v / 10000).toFixed(1) + '万')
+    : String(v);
+  const yticks = [];
+  for (let v = 0; v <= maxV + 0.5; v += step) yticks.push(v);
+  const ygrid = yticks.map((v) => {
+    const yy = cy(v).toFixed(1);
+    return `<line class="chart-grid" x1="${padL}" y1="${yy}" x2="${padL + plotW}" y2="${yy}"/>
+      <text class="chart-ylabel" x="${padL - 5}" y="${(cy(v) + 3).toFixed(1)}" text-anchor="end">${yLabel(v)}</text>`;
+  }).join('');
 
   const xlabels = series.map((d, i) =>
     `<text class="chart-xlabel" x="${cx(i).toFixed(1)}" y="${baseY + 14}" text-anchor="middle">${d.month}</text>`
@@ -108,6 +131,7 @@ export async function renderReport(el) {
         <defs><linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="var(--pink)"/><stop offset="1" stop-color="var(--purple)"/>
         </linearGradient></defs>
+        ${ygrid}
         <line class="chart-axis" x1="${padL}" y1="${baseY}" x2="${padL + plotW}" y2="${baseY}"/>
         ${body}
         ${xlabels}
