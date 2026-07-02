@@ -1,5 +1,5 @@
 import { state, shiftsOfMonth } from '../state.js';
-import { plStatement, annualSeries, monthlyWorkedHours } from '../calc.js';
+import { plStatement, annualSeries, monthlyWorkedHours, backRanking } from '../calc.js';
 import { yen, signedYen, esc } from '../format.js';
 
 export async function renderReport(el) {
@@ -8,6 +8,8 @@ export async function renderReport(el) {
   const pl = plStatement(wage, items, cur);
   const year = Number(state.month.slice(0, 4));
   const series = annualSeries(wage, items, state.shifts, year);
+  const ranking = backRanking(wage, items, cur).slice(0, 3);
+  const medals = ['🥇', '🥈', '🥉'];
 
   // P/L の1行（金額はマイナスなら符号付き）。count 指定時は数量バッジを添える。
   const line = (label, amount, cls = '', count = null) => `
@@ -64,6 +66,14 @@ export async function renderReport(el) {
           <strong>${yen(pl.net)}</strong>
         </div>
       ` : '<p class="muted">この月の実績がまだありません。</p>'}
+    </div>
+
+    <div class="card">
+      <h3>インセンティブ TOP3</h3>
+      ${ranking.length === 0 ? '<p class="muted">まだインセンティブ実績がありません。</p>'
+        : ranking.map((r, i) => `<div class="row" style="justify-content:space-between;margin-bottom:6px">
+            <span>${medals[i]} ${esc(r.name)}</span><span><strong>${yen(r.amount)}</strong> <span class="muted">${r.pct}%</span></span>
+          </div>`).join('')}
     </div>
 
     <button id="pdfBtn" class="btn btn-ghost no-print" style="margin-bottom:8px">PDF保存</button>`;

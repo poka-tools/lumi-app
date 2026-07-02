@@ -2,7 +2,7 @@ import { state, shiftsOfMonth, prevMonth, loadAll } from '../state.js';
 import { put } from '../db.js';
 import {
   monthlyEstimate, monthlyWorkedHours,
-  incomeBreakdown, backRanking, monthOverMonth, shiftTotal, workedHours,
+  incomeBreakdown, monthOverMonth, shiftTotal, workedHours,
 } from '../calc.js';
 import { yen, signedYen, weekdayJa, esc, todayIso, shortDateJa } from '../format.js';
 import { drawDonut } from './donut.js';
@@ -20,14 +20,12 @@ export async function renderHome(el) {
   const prevEstimate = prev.length ? monthlyEstimate(wage, items, prev) : null;
   const mom = monthOverMonth(estimate, prevEstimate);
   const bd = incomeBreakdown(wage, items, cur);
-  const ranking = backRanking(wage, items, cur).slice(0, 3);
   const hours = monthlyWorkedHours(cur);
   const today = todayIso();
   const todayShift = cur.find((s) => s.date === today);
   const todayAmount = todayShift ? shiftTotal(wage, items, todayShift) : 0;
 
   const monthLabel = state.month.replace('-', '年') + '月';
-  const medals = ['🥇', '🥈', '🥉'];
 
   // 本日の予定：シフト出勤と今日締切のTodo
   let shiftLine;
@@ -81,18 +79,10 @@ export async function renderHome(el) {
       <div class="row" style="align-items:center">
         <canvas id="donut"></canvas>
         <div style="flex:1">
-          <div>🩷 時給(基本給) <strong>${bd.wagePct}%</strong></div>
-          <div>💜 インセンティブ <strong>${bd.backPct}%</strong></div>
+          <div><span style="color:#ff5c8a">●</span> 時給(基本給) <strong>${bd.wagePct}%</strong></div>
+          <div><span style="color:#a78bfa">●</span> インセンティブ <strong>${bd.backPct}%</strong></div>
         </div>
       </div>
-    </div>
-
-    <div class="card">
-      <h3>インセンティブ TOP3</h3>
-      ${ranking.length === 0 ? '<p class="muted">まだインセンティブ実績がありません。</p>'
-        : ranking.map((r, i) => `<div class="row" style="justify-content:space-between;margin-bottom:6px">
-            <span>${medals[i]} ${esc(r.name)}</span><span><strong>${yen(r.amount)}</strong> <span class="muted">${r.pct}%</span></span>
-          </div>`).join('')}
     </div>
 
     <div class="card">
