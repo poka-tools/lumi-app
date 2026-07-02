@@ -293,6 +293,40 @@ export async function renderCalendar(el) {
 
   el.querySelector('#sheetClose').onclick = closeSheet;
   backdrop.onclick = closeSheet;
+
+  // ハンドルを下へドラッグして閉じる（しきい値未満なら元位置へ戻る）
+  const handle = q('.sheet-handle');
+  let dragStartY = null;
+  const dragMove = (e) => {
+    if (dragStartY === null) return;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    const dy = Math.max(0, y - dragStartY);
+    sheet.style.transition = 'none';
+    sheet.style.transform = `translateY(${dy}px)`;
+    if (e.cancelable) e.preventDefault();
+  };
+  const dragEnd = (e) => {
+    if (dragStartY === null) return;
+    const y = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+    const dy = Math.max(0, y - dragStartY);
+    dragStartY = null;
+    window.removeEventListener('touchmove', dragMove);
+    window.removeEventListener('touchend', dragEnd);
+    window.removeEventListener('mousemove', dragMove);
+    window.removeEventListener('mouseup', dragEnd);
+    sheet.style.transition = '';
+    sheet.style.transform = '';
+    if (dy > 90) closeSheet(); // 十分下げたら閉じる。未満は .show のtranslateY(0)へスナップ
+  };
+  const dragStart = (e) => {
+    dragStartY = e.touches ? e.touches[0].clientY : e.clientY;
+    window.addEventListener('touchmove', dragMove, { passive: false });
+    window.addEventListener('touchend', dragEnd);
+    window.addEventListener('mousemove', dragMove);
+    window.addEventListener('mouseup', dragEnd);
+  };
+  handle.addEventListener('touchstart', dragStart, { passive: true });
+  handle.addEventListener('mousedown', dragStart);
   el.querySelectorAll('.cal-cell').forEach((cell) => {
     cell.onclick = () => openSheet(cell.dataset.date);
   });
