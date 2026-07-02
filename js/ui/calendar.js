@@ -68,6 +68,20 @@ export async function renderCalendar(el) {
 
   renderTodos(el.querySelector('#todoSection'));
 
+  // 金額を必ず1行に収める：セル幅からはみ出す分だけフォントを縮小して横1列に揃える
+  const fitAmounts = () => {
+    el.querySelectorAll('.cal-amt').forEach((a) => {
+      let fs = 11;
+      a.style.fontSize = fs + 'px';
+      let guard = 0;
+      while (a.scrollWidth > a.clientWidth + 0.5 && fs > 6 && guard++ < 20) {
+        fs -= 0.5;
+        a.style.fontSize = fs + 'px';
+      }
+    });
+  };
+  requestAnimationFrame(fitAmounts);
+
   const shiftMonth = (delta) => {
     const d = new Date(y, m - 1 + delta, 1);
     // ローカルの年月で組み立てる（toISOString だと UTC 変換で月がずれる）
