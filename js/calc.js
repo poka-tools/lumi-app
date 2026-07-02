@@ -112,14 +112,17 @@ export function incomeBreakdown(hourlyWage, items, shifts) {
 export function backRanking(hourlyWage, items, shifts) {
   const monthTotal = monthlyEstimate(hourlyWage, items, shifts);
   const sums = (items || []).map((it) => {
-    const amount = (shifts || []).reduce((s, sh) => {
+    let amount = 0, count = 0;
+    for (const sh of (shifts || [])) {
       const e = (sh.entries || []).find((x) => x.backItemId === it.id);
-      return s + (e ? backAmount(it, e) : 0);
-    }, 0);
-    return { itemId: it.id, name: it.name, amount,
+      if (!e) continue;
+      amount += backAmount(it, e);
+      count += e.count || 0;
+    }
+    return { itemId: it.id, name: it.name, amount, count,
       pct: monthTotal ? round1((amount / monthTotal) * 100) : 0 };
   });
-  return sums.filter((x) => x.amount !== 0).sort((a, b) => b.amount - a.amount);
+  return sums.filter((x) => x.amount !== 0 || x.count !== 0).sort((a, b) => b.amount - a.amount);
 }
 // 損益計算書（P/L）スタイルの収支内訳。設定項目に沿って行を構成する。
 // 時給は適用レート（基本/指名/同伴）と深夜手当に分解、バックは項目別に収入/ペナルティへ振り分ける。

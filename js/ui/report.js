@@ -8,8 +8,21 @@ export async function renderReport(el) {
   const pl = plStatement(wage, items, cur);
   const year = Number(state.month.slice(0, 4));
   const series = annualSeries(wage, items, state.shifts, year);
-  const ranking = backRanking(wage, items, cur).slice(0, 3);
+  const rankingBase = backRanking(wage, items, cur);
   const medals = ['🥇', '🥈', '🥉'];
+
+  // インセンティブ TOP3 を金額順／数量順で並べ替えて描画する（同じ card 内でトグル）
+  const rankRows = (mode) => {
+    const sorted = [...rankingBase].sort((a, b) =>
+      mode === 'count' ? (b.count - a.count) || (b.amount - a.amount)
+                       : (b.amount - a.amount) || (b.count - a.count));
+    const top = sorted.slice(0, 3);
+    if (top.length === 0) return '<p class="muted">まだインセンティブ実績がありません。</p>';
+    return top.map((r, i) => `<div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <span>${medals[i]} ${esc(r.name)}</span>
+        <span><strong>${yen(r.amount)}</strong> <span class="muted">${r.count}件 / ${r.pct}%</span></span>
+      </div>`).join('');
+  };
 
   // P/L の1行（金額はマイナスなら符号付き）。count 指定時は数量バッジを添える。
   const line = (label, amount, cls = '', count = null) => `
@@ -24,6 +37,41 @@ export async function renderReport(el) {
     </div>`;
 
   const hasData = pl.wageRows.length || pl.incentiveRows.length || pl.penaltyRows.length;
+  const incentiveCount = pl.incentiveRows.reduce((s, r) => s + (r.count || 0), 0);
+
+  // P/L 本文（全体／インセンティブのみ を切替）
+  const plFull = () => `
+    <div class="pl-section-head">売上（収入）</div>
+    ${pl.wageRows.map((r) => line(r.label, r.amount)).join('')}
+    ${pl.wageRows.length ? subtotal('時給 小計', pl.wageTotal) : ''}
+    ${pl.incentiveRows.length ? `
+      <div class="pl-gap"></div>
+      ${pl.incentiveRows.map((r) => line(r.label, r.amount, '', r.count)).join('')}
+      ${subtotal('インセンティブ 小計', pl.incentiveTotal)}
+    ` : ''}
+    ${subtotal('収入合計', pl.grossIncome)}
+    ${pl.penaltyRows.length ? `
+      <div class="pl-section-head" style="margin-top:14px">控除（ペナルティ）</div>
+      ${pl.penaltyRows.map((r) => line(r.label, r.amount, 'pl-neg', r.count)).join('')}
+      ${subtotal('控除 小計', pl.penaltyTotal)}
+    ` : ''}
+    <div class="pl-net">
+      <span>差引 最終合計</span>
+      <strong>${yen(pl.net)}</strong>
+    </div>`;
+
+  // インセンティブのみ：数量と額を項目別に並べ、末尾に合計（数量＋額）
+  const plIncentiveOnly = () => pl.incentiveRows.length === 0
+    ? '<p class="muted">この月のインセンティブ実績がまだありません。</p>'
+    : `
+      <div class="pl-section-head">インセンティブのみ</div>
+      ${pl.incentiveRows.map((r) => line(r.label, r.amount, '', r.count)).join('')}
+      <div class="pl-net">
+        <span>合計<span class="pl-count">${incentiveCount}件</span></span>
+        <strong>${yen(pl.incentiveTotal)}</strong>
+      </div>`;
+
+  const plBody = (view) => view === 'incentive' ? plIncentiveOnly() : plFull();
 
   el.innerHTML = `
     <h2>収支レポート（${esc(state.month.replace('-', '年'))}月）</h2>
@@ -45,35 +93,25 @@ export async function renderReport(el) {
 
     <div class="card pl-card">
       ${hasData ? `
-        <div class="pl-section-head">売上（収入）</div>
-        ${pl.wageRows.map((r) => line(r.label, r.amount)).join('')}
-        ${pl.wageRows.length ? subtotal('時給 小計', pl.wageTotal) : ''}
-        ${pl.incentiveRows.length ? `
-          <div class="pl-gap"></div>
-          ${pl.incentiveRows.map((r) => line(r.label, r.amount, '', r.count)).join('')}
-          ${subtotal('インセンティブ 小計', pl.incentiveTotal)}
-        ` : ''}
-        ${subtotal('収入合計', pl.grossIncome)}
-
-        ${pl.penaltyRows.length ? `
-          <div class="pl-section-head" style="margin-top:14px">控除（ペナルティ）</div>
-          ${pl.penaltyRows.map((r) => line(r.label, r.amount, 'pl-neg', r.count)).join('')}
-          ${subtotal('控除 小計', pl.penaltyTotal)}
-        ` : ''}
-
-        <div class="pl-net">
-          <span>差引 最終合計</span>
-          <strong>${yen(pl.net)}</strong>
+        <div class="row" style="justify-content:flex-end;margin-bottom:8px">
+          <div class="seg" id="plSeg">
+            <button class="seg-btn active" data-view="all">全体</button>
+            <button class="seg-btn" data-view="incentive">インセンティブのみ</button>
+          </div>
         </div>
+        <div id="plBody">${plBody('all')}</div>
       ` : '<p class="muted">この月の実績がまだありません。</p>'}
     </div>
 
     <div class="card">
-      <h3>インセンティブ TOP3</h3>
-      ${ranking.length === 0 ? '<p class="muted">まだインセンティブ実績がありません。</p>'
-        : ranking.map((r, i) => `<div class="row" style="justify-content:space-between;margin-bottom:6px">
-            <span>${medals[i]} ${esc(r.name)}</span><span><strong>${yen(r.amount)}</strong> <span class="muted">${r.pct}%</span></span>
-          </div>`).join('')}
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h3 style="margin:0">インセンティブ TOP3</h3>
+        <div class="seg" id="rankSeg">
+          <button class="seg-btn active" data-rank="amount">金額順</button>
+          <button class="seg-btn" data-rank="count">数量順</button>
+        </div>
+      </div>
+      <div id="rankList">${rankRows('amount')}</div>
     </div>
 
     <button id="pdfBtn" class="btn btn-ghost no-print" style="margin-bottom:8px">PDF保存</button>`;
@@ -156,13 +194,36 @@ export async function renderReport(el) {
       ? buildChart(mode)
       : `<p class="muted">${year}年の実績がまだありません。</p>`;
   };
-  el.querySelectorAll('.seg-btn').forEach((b) => {
+  const chartSeg = chartBox.parentElement.querySelector('.seg');
+  chartSeg.querySelectorAll('.seg-btn').forEach((b) => {
     b.onclick = () => {
-      el.querySelectorAll('.seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+      chartSeg.querySelectorAll('.seg-btn').forEach((x) => x.classList.toggle('active', x === b));
       renderChart(b.dataset.mode);
     };
   });
   renderChart('bar');
+
+  // P/L の全体／インセンティブのみ トグル
+  const plSeg = el.querySelector('#plSeg');
+  if (plSeg) {
+    const plBodyEl = el.querySelector('#plBody');
+    plSeg.querySelectorAll('.seg-btn').forEach((b) => {
+      b.onclick = () => {
+        plSeg.querySelectorAll('.seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+        plBodyEl.innerHTML = plBody(b.dataset.view);
+      };
+    });
+  }
+
+  // インセンティブ TOP3 の並べ替えトグル（金額順／数量順）
+  const rankSeg = el.querySelector('#rankSeg');
+  const rankList = el.querySelector('#rankList');
+  rankSeg.querySelectorAll('.seg-btn').forEach((b) => {
+    b.onclick = () => {
+      rankSeg.querySelectorAll('.seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+      rankList.innerHTML = rankRows(b.dataset.rank);
+    };
+  });
 
   // 印刷（ブラウザの「PDFで保存」で書き出し）
   el.querySelector('#pdfBtn').onclick = () => window.print();

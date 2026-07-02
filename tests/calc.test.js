@@ -137,6 +137,8 @@ test('backRanking: 降順＋対月収比', () => {
   assert.equal(r[1].name, 'ドリンクバック');
   assert.equal(r[1].amount, 2000);
   assert.equal(r[0].pct, 13.0);
+  assert.equal(r[0].count, 1); // 同伴×1
+  assert.equal(r[1].count, 0); // 売上ベースは件数0
 });
 test('monthOverMonth', () => {
   const m = monthOverMonth(23000, 20000);
