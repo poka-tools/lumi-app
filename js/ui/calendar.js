@@ -2,7 +2,7 @@ import { state, shiftsOfMonth, loadAll } from '../state.js';
 import { put, del, uid } from '../db.js';
 import { shiftTotal, workedHours } from '../calc.js';
 import { yen, esc, weekdayJa } from '../format.js';
-import { hasFixed, hasRate, itemLabel } from './backfields.js';
+import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './backfields.js';
 import { renderTodos } from './todos.js';
 
 export async function renderCalendar(el) {
@@ -150,7 +150,7 @@ export async function renderCalendar(el) {
     };
     const itemsHtml = state.backItems.length === 0
       ? '<p class="muted">先に「設定」でインセンティブ項目を登録してください。</p>'
-      : `<div class="chip-grid" id="chipGrid">${state.backItems.map(chipHtml).join('')}</div>`;
+      : `<div class="cat-tabs" id="chipTabs"></div><div class="chip-grid" id="chipGrid"></div>`;
 
     const dayTodos = state.todos.filter((t) => t.due === draft.date);
     const dayTodosHtml = dayTodos.length ? `
@@ -255,22 +255,55 @@ export async function renderCalendar(el) {
       if (hasFixed(it)) { counts[it.id] = (Number(counts[it.id]) || 0) + 1; refreshChip(it.id); recalc(); }
       else openPop(it); // 率(売上)のみの項目はポップオーバーで入力
     };
-    if (chipGrid) chipGrid.querySelectorAll('.chip-inc').forEach((btn) => {
-      const it = state.backItems.find((x) => x.id === btn.dataset.id);
-      let timer = null, longFired = false, moved = false, sx = 0, sy = 0;
-      const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
-      btn.addEventListener('pointerdown', (e) => {
-        longFired = false; moved = false; sx = e.clientX; sy = e.clientY;
-        timer = setTimeout(() => { longFired = true; openPop(it); }, 450);
+    const wireChips = () => {
+      if (!chipGrid) return;
+      chipGrid.querySelectorAll('.chip-inc').forEach((btn) => {
+        const it = state.backItems.find((x) => x.id === btn.dataset.id);
+        let timer = null, longFired = false, moved = false, sx = 0, sy = 0;
+        const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+        btn.addEventListener('pointerdown', (e) => {
+          longFired = false; moved = false; sx = e.clientX; sy = e.clientY;
+          timer = setTimeout(() => { longFired = true; openPop(it); }, 450);
+        });
+        btn.addEventListener('pointermove', (e) => {
+          if (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10) { moved = true; clear(); }
+        });
+        btn.addEventListener('pointerup', () => { clear(); if (!longFired && !moved) tapChip(it); });
+        btn.addEventListener('pointercancel', clear);
+        btn.addEventListener('pointerleave', clear);
+        btn.addEventListener('contextmenu', (e) => e.preventDefault());
       });
-      btn.addEventListener('pointermove', (e) => {
-        if (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10) { moved = true; clear(); }
+    };
+
+    // ===== 分類タブでチップを絞り込み（全て＋出現カテゴリ・1種類以下ならタブ非表示） =====
+    const chipTabs = q('#chipTabs');
+    let activeChipCat = '全て';
+    const renderChipGrid = () => {
+      if (!chipGrid) return;
+      const list = activeChipCat === '全て'
+        ? state.backItems
+        : state.backItems.filter((it) => itemCategory(it) === activeChipCat);
+      chipGrid.innerHTML = list.map(chipHtml).join('');
+      wireChips();
+    };
+    const renderChipTabs = () => {
+      if (!chipGrid) return;
+      const cats = categoryList(state.backItems);
+      if (!chipTabs || cats.length <= 1) { activeChipCat = '全て'; renderChipGrid(); return; }
+      const all = ['全て', ...cats];
+      if (!all.includes(activeChipCat)) activeChipCat = '全て';
+      chipTabs.innerHTML = all.map((c) =>
+        `<button type="button" class="cat-tab${c === activeChipCat ? ' active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+      chipTabs.querySelectorAll('.cat-tab').forEach((b) => {
+        b.onclick = () => {
+          activeChipCat = b.dataset.cat;
+          chipTabs.querySelectorAll('.cat-tab').forEach((x) => x.classList.toggle('active', x === b));
+          renderChipGrid();
+        };
       });
-      btn.addEventListener('pointerup', () => { clear(); if (!longFired && !moved) tapChip(it); });
-      btn.addEventListener('pointercancel', clear);
-      btn.addEventListener('pointerleave', clear);
-      btn.addEventListener('contextmenu', (e) => e.preventDefault());
-    });
+      renderChipGrid();
+    };
+    renderChipTabs();
 
     sheet.querySelectorAll('#sStart,#sEnd,#sBreak,#sNom,#sDou').forEach((inp) => {
       inp.oninput = recalc; inp.onchange = recalc;

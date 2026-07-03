@@ -19,3 +19,17 @@ export function itemLabel(it) {
   const desc = parts.join(' + ') || '0';
   return it.kind === 'penalty' ? `⚠️罰金 ${desc}` : desc;
 }
+
+// 項目の分類（カテゴリ）。空欄は「未分類」に寄せる。
+export const UNCATEGORIZED = '未分類';
+export const itemCategory = (it) => ((it.category || '').trim() || UNCATEGORIZED);
+
+// 登録済み項目に出現する分類を出現順に列挙（重複なし）。
+export function categoryList(items) {
+  const seen = [];
+  for (const it of (items || [])) {
+    const c = itemCategory(it);
+    if (!seen.includes(c)) seen.push(c);
+  }
+  return seen;
+}

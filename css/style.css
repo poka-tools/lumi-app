@@ -267,6 +267,16 @@ input, select { min-width: 0; }
 .lg-wage { color: var(--pink); font-weight: 700; }
 .lg-inc { color: var(--purple); font-weight: 700; }
 
+/* 分類タブ（設定・カレンダー日別入力で共用・横スクロール） */
+.cat-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.cat-tabs:empty { display: none; }
+.cat-tabs::-webkit-scrollbar { display: none; }
+.cat-tab { flex: 0 0 auto; border: 1.5px solid #eadfe4; background: #fff; color: var(--muted);
+  font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 14px; cursor: pointer;
+  white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+.cat-tab.active { border-color: var(--pink); background: var(--pink-soft); color: var(--pink); }
+
 /* インセンティブ・チップ（カレンダー日別入力） */
 .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
 .chip-inc { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid #eadfe4;

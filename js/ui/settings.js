@@ -2,6 +2,7 @@ import { state, loadAll } from '../state.js';
 import { put, del, uid, saveProfile } from '../db.js';
 import { esc } from '../format.js';
 import { navigate } from '../app.js';
+import { categoryList, itemCategory } from './backfields.js';
 
 export async function renderSettings(el) {
   const p = state.profile;
@@ -35,6 +36,8 @@ export async function renderSettings(el) {
 
     <div class="card">
       <h3>インセンティブ項目</h3>
+      <div class="cat-tabs" id="itemTabs"></div>
+      <datalist id="catOptions"></datalist>
       <div id="itemList"></div>
       <button class="btn btn-ghost" id="addItem">＋ 項目を追加</button>
     </div>
@@ -82,9 +85,30 @@ export async function renderSettings(el) {
   // 0 は未入力とみなし空欄表示（プレースホルダーを見せる）。何を入力する欄か分かるように。
   const blankIfZero = (n) => n ? n : '';
 
+  // 分類タブ（全て＋出現カテゴリ）。分類が実質1種類以下ならタブは隠す。
+  let activeCat = '全て';
+  const renderTabs = () => {
+    const cats = categoryList(state.backItems);
+    const tabsEl = el.querySelector('#itemTabs');
+    // datalist を最新のカテゴリで更新（自由入力の候補）
+    el.querySelector('#catOptions').innerHTML =
+      cats.filter((c) => c !== '未分類').map((c) => `<option value="${esc(c)}">`).join('');
+    if (cats.length <= 1) { tabsEl.innerHTML = ''; activeCat = '全て'; return; }
+    const all = ['全て', ...cats];
+    if (!all.includes(activeCat)) activeCat = '全て';
+    tabsEl.innerHTML = all.map((c) =>
+      `<button class="cat-tab${c === activeCat ? ' active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+    tabsEl.querySelectorAll('.cat-tab').forEach((b) => {
+      b.onclick = () => { activeCat = b.dataset.cat; renderTabs(); renderItems(); };
+    });
+  };
+
   const renderItems = () => {
     const box = el.querySelector('#itemList');
-    box.innerHTML = state.backItems.map((it) => `
+    const shown = activeCat === '全て'
+      ? state.backItems
+      : state.backItems.filter((it) => itemCategory(it) === activeCat);
+    box.innerHTML = shown.map((it) => `
       <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f3f3f3" data-id="${esc(it.id)}">
         <div class="row" style="align-items:center">
           <input class="i-name inline-input" value="${esc(it.name)}" placeholder="項目名" style="flex:1">
@@ -98,7 +122,10 @@ export async function renderSettings(el) {
           <input class="i-fixed inline-input" type="number" inputmode="numeric" placeholder="円/件" title="円/件" value="${blankIfZero(itemFixed(it))}" style="flex:1">
           <input class="i-rate inline-input" type="number" inputmode="numeric" placeholder="％" title="売上の％" value="${blankIfZero(itemRate(it))}" style="flex:1">
         </div>
-      </div>`).join('');
+        <div class="row" style="margin-top:8px">
+          <input class="i-cat inline-input" list="catOptions" value="${esc(it.category || '')}" placeholder="分類（例: ドリンク・指名/同伴）" style="flex:1">
+        </div>
+      </div>`).join('') || '<p class="muted">この分類の項目はありません。</p>';
     box.querySelectorAll('[data-id]').forEach((rowEl) => {
       const id = rowEl.dataset.id;
       const save = async () => {
@@ -109,26 +136,34 @@ export async function renderSettings(el) {
           kind: rowEl.querySelector('.i-kind').value,
           fixedValue: Number(rowEl.querySelector('.i-fixed').value) || 0,
           rateValue: Number(rowEl.querySelector('.i-rate').value) || 0,
+          category: rowEl.querySelector('.i-cat').value.trim(),
         };
         // 旧 type/value を破棄して新モデルへ移行
         Object.assign(it, next, { type: undefined, value: undefined });
         await put('backItems', it);
       };
-      rowEl.querySelectorAll('input,select').forEach((f) => (f.onchange = save));
+      rowEl.querySelectorAll('.i-name,.i-kind,.i-fixed,.i-rate').forEach((f) => (f.onchange = save));
+      // 分類変更はタブ構成・絞り込みに影響するため、保存後にタブ＋一覧を再描画
+      rowEl.querySelector('.i-cat').onchange = async () => { await save(); renderTabs(); renderItems(); };
       rowEl.querySelector('.i-del').onclick = async () => {
         if (!confirm('この項目を削除しますか？')) return;
         await del('backItems', id);
         await loadAll();
+        renderTabs();
         renderItems();
       };
     });
   };
+  renderTabs();
   renderItems();
 
   el.querySelector('#addItem').onclick = async () => {
     const order = state.backItems.length;
-    await put('backItems', { id: uid(), name: '新規インセンティブ', kind: 'income', fixedValue: 0, rateValue: 0, order });
+    // 特定タブを選択中なら、その分類で新規作成（作業を続けやすく）
+    const category = activeCat === '全て' || activeCat === '未分類' ? '' : activeCat;
+    await put('backItems', { id: uid(), name: '新規インセンティブ', kind: 'income', fixedValue: 0, rateValue: 0, category, order });
     await loadAll();
+    renderTabs();
     renderItems();
   };
 
