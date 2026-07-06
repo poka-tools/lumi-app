@@ -21,6 +21,14 @@ export async function renderCustomers(el) {
 }
 
 // ===== 顧客フォーム（ボトムシート）=====
+const pad2 = (n) => String(n).padStart(2, '0');
+// from〜to の <option>（value はゼロ埋め、表示は数値＋suffix）
+function rangeOptions(from, to, suffix = '') {
+  let s = '';
+  for (let i = from; i <= to; i++) s += `<option value="${pad2(i)}">${i}${suffix}</option>`;
+  return s;
+}
+
 function sheetMarkup() {
   return `
     <div class="sheet-backdrop" id="custSheetBg" hidden></div>
@@ -33,7 +41,12 @@ function sheetMarkup() {
       <form id="custForm" style="margin-top:8px">
         <div class="field"><label>名前 / 源氏名</label><input id="fName" class="inline-input" type="text" maxlength="40" required style="width:100%"></div>
         <div class="field"><label>連絡先（LINE/電話など）</label><input id="fContact" class="inline-input" type="text" maxlength="60" style="width:100%"></div>
-        <div class="field"><label>誕生日</label><input id="fBday" class="inline-input" type="text" inputmode="numeric" placeholder="MM-DD 例: 03-15" maxlength="5" style="width:100%"></div>
+        <div class="field"><label>誕生日</label>
+          <div class="row" style="gap:8px">
+            <select id="fBdayMonth" class="inline-input" style="flex:1"><option value="">月</option>${rangeOptions(1, 12, '月')}</select>
+            <select id="fBdayDay" class="inline-input" style="flex:1"><option value="">日</option>${rangeOptions(1, 31, '日')}</select>
+          </div>
+        </div>
         <div class="field"><label>好みのボトル・ドリンク</label><input id="fBottle" class="inline-input" type="text" maxlength="40" style="width:100%"></div>
         <div class="field"><label>メモ</label><input id="fMemo" class="inline-input" type="text" maxlength="120" style="width:100%"></div>
         <button class="btn" type="submit" style="margin-top:10px">保存</button>
@@ -48,7 +61,9 @@ function openForm(el, customer) {
   el.querySelector('#custSheetTitle').textContent = customer ? '顧客を編集' : '顧客を追加';
   el.querySelector('#fName').value = customer ? customer.name : '';
   el.querySelector('#fContact').value = customer ? (customer.contact || '') : '';
-  el.querySelector('#fBday').value = customer ? (customer.birthday || '') : '';
+  const bd = customer && customer.birthday ? customer.birthday : '';
+  el.querySelector('#fBdayMonth').value = bd ? bd.slice(0, 2) : '';
+  el.querySelector('#fBdayDay').value = bd ? bd.slice(3, 5) : '';
   el.querySelector('#fBottle').value = customer ? (customer.favoriteBottle || '') : '';
   el.querySelector('#fMemo').value = customer ? (customer.memo || '') : '';
   sheet.hidden = false; bg.hidden = false;
@@ -69,13 +84,14 @@ function wireSheet(el) {
     e.preventDefault();
     const name = el.querySelector('#fName').value.trim();
     if (!name) return;
-    const bday = el.querySelector('#fBday').value.trim();
+    const bm = el.querySelector('#fBdayMonth').value;
+    const bday = el.querySelector('#fBdayDay').value;
     const base = editingId ? state.customers.find((c) => c.id === editingId) : null;
     await put('customers', {
       id: editingId || uid(),
       name,
       contact: el.querySelector('#fContact').value.trim(),
-      birthday: /^\d{2}-\d{2}$/.test(bday) ? bday : '',
+      birthday: bm && bday ? `${bm}-${bday}` : '',
       favoriteBottle: el.querySelector('#fBottle').value.trim(),
       memo: el.querySelector('#fMemo').value.trim(),
       createdAt: base ? base.createdAt : Date.now(),
