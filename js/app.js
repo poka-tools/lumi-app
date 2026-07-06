@@ -4,12 +4,13 @@ import { renderCalendar } from './ui/calendar.js';
 import { renderRecord, setEditingShift } from './ui/record.js';
 import { renderReport } from './ui/report.js';
 import { renderSettings } from './ui/settings.js';
+import { renderCustomers } from './ui/customers.js';
 import { esc } from './format.js';
 
 const screen = document.getElementById('screen');
 const renderers = {
   home: renderHome, calendar: renderCalendar, record: renderRecord,
-  report: renderReport, settings: renderSettings,
+  report: renderReport, customers: renderCustomers, settings: renderSettings,
 };
 
 export async function navigate(tab) {
