@@ -333,3 +333,8 @@ input, select { min-width: 0; }
 .cust-hint-head { font-weight: 700; margin-bottom: 4px; }
 .cust-hint ul { list-style: none; padding: 0; margin: 0; }
 .cust-hint li { padding: 3px 0; font-size: 14px; }
+.cal-visit { color: var(--purple); font-size: 9px; font-weight: 700; margin-top: 1px; }
+.sheet-visits { background: var(--pink-soft); border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; }
+.sheet-visits ul { list-style: none; padding: 0; margin: 0; }
+.visit-line { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.visit-line.done span { text-decoration: line-through; color: var(--muted); }

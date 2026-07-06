@@ -4,6 +4,7 @@ import { shiftTotal, workedHours } from '../calc.js';
 import { yen, esc, weekdayJa } from '../format.js';
 import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './backfields.js';
 import { renderTodos } from './todos.js';
+import { visitCountByDate, visitsOnDate } from '../customers-logic.js';
 
 export async function renderCalendar(el) {
   const [y, m] = state.month.split('-').map(Number);
@@ -20,6 +21,7 @@ export async function renderCalendar(el) {
     if (!todosByDate.has(t.due)) todosByDate.set(t.due, []);
     todosByDate.get(t.due).push(t);
   }
+  const visitsByDate = visitCountByDate(state.visits);
 
   const cells = [];
   for (let i = 0; i < startDay; i++) cells.push('<div></div>');
@@ -40,8 +42,10 @@ export async function renderCalendar(el) {
     const todoMark = dueT.length
       ? `<div class="cal-todo${pend ? '' : ' done'}">${pend ? '📌' + (pend > 1 ? pend : '') : '✓'}</div>`
       : '';
+    const vCount = visitsByDate.get(iso) || 0;
+    const visitMark = vCount ? `<div class="cal-visit">👤${vCount > 1 ? vCount : ''}</div>` : '';
     cells.push(`<div class="cal-cell ${cls}" data-date="${esc(iso)}">
-      <div class="cal-day">${d}</div>${body}${todoMark}</div>`);
+      <div class="cal-day">${d}</div>${body}${todoMark}${visitMark}</div>`);
   }
 
   el.innerHTML = `
@@ -159,8 +163,18 @@ export async function renderCalendar(el) {
         <ul>${dayTodos.map((t) => `<li class="${t.done ? 'done' : ''}">${esc(t.text)}</li>`).join('')}</ul>
       </div>` : '';
 
+    const dayVisits = visitsOnDate(state.visits, state.customers, draft.date);
+    const dayVisitsHtml = dayVisits.length ? `
+      <div class="sheet-visits">
+        <div class="muted" style="margin-bottom:4px">👤 この日の来店予定</div>
+        <ul>${dayVisits.map((v) => `<li class="visit-line ${v.done ? 'done' : ''}" data-id="${esc(v.id)}">
+          <button class="todo-check" type="button" aria-label="${v.done ? '未来店に戻す' : '来店済みにする'}">${v.done ? '✓' : ''}</button>
+          <span>${esc(v.customerName)}${v.note ? ' ・ ' + esc(v.note) : ''}</span></li>`).join('')}</ul>
+      </div>` : '';
+
     body.innerHTML = `
       ${dayTodosHtml}
+      ${dayVisitsHtml}
       <div class="row">
         <div class="field" style="flex:1"><label>開始</label><input id="sStart" type="time" value="${esc(draft.start || '20:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="sEnd" type="time" value="${esc(draft.end || '01:00')}"></div>
@@ -187,6 +201,19 @@ export async function renderCalendar(el) {
 
       <div class="chip-pop-backdrop" id="chipPopBg" hidden></div>
       <div class="chip-pop" id="chipPop" role="dialog" aria-modal="true" hidden></div>`;
+
+    body.querySelectorAll('.visit-line').forEach((li) => {
+      const vid = li.dataset.id;
+      li.querySelector('.todo-check').onclick = async () => {
+        const v = state.visits.find((x) => x.id === vid);
+        if (!v) return;
+        await put('visits', { ...v, done: !v.done });
+        await loadAll();
+        const nv = state.visits.find((x) => x.id === vid);
+        li.classList.toggle('done', !!(nv && nv.done));
+        li.querySelector('.todo-check').textContent = nv && nv.done ? '✓' : '';
+      };
+    });
 
     // ===== インセンティブ・チップ：タップ＝＋1／長押し＝調整ポップオーバー =====
     const chipGrid = q('#chipGrid');
