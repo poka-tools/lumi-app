@@ -61,6 +61,30 @@ export function searchCustomers(customers, query) {
   return sorted.filter((c) => (c.name || '').toLowerCase().includes(q));
 }
 
+// 顧客の来店実績（done=true）の件数
+export function doneVisitCount(visits, customerId) {
+  return visits.filter((v) => v.customerId === customerId && v.done).length;
+}
+
+// 顧客リストを指定キーで並び替え（同点は名前順で安定化）。
+// sortKey: 'name'(既定) / 'next'(次回来店が近い順) / 'new'(登録が新しい順) / 'visits'(来店回数が多い順)
+export function sortCustomers(customers, sortKey, ctx = {}) {
+  const { visits = [], today = '' } = ctx;
+  const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'ja');
+  const list = [...customers];
+  if (sortKey === 'next') {
+    const nv = (c) => nextVisitDate(visits, c.id, today) || '9999-99-99';
+    return list.sort((a, b) => nv(a).localeCompare(nv(b)) || byName(a, b));
+  }
+  if (sortKey === 'new') {
+    return list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0) || byName(a, b));
+  }
+  if (sortKey === 'visits') {
+    return list.sort((a, b) => doneVisitCount(visits, b.id) - doneVisitCount(visits, a.id) || byName(a, b));
+  }
+  return list.sort(byName);
+}
+
 // 日付ごとの来店予定件数 Map<date, count>（カレンダーバッジ用）
 export function visitCountByDate(visits) {
   const m = new Map();

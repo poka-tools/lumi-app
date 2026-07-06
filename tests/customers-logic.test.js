@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   birthdaysInMonth, birthdaysByDate, addDaysIso, upcomingVisits,
   visitsOnDate, nextVisitDate, searchCustomers, visitCountByDate,
+  sortCustomers, doneVisitCount,
 } from '../js/customers-logic.js';
 
 const custs = [
@@ -67,4 +68,28 @@ test('visitCountByDate: 日付ごとの件数', () => {
   const m = visitCountByDate(visits);
   assert.equal(m.get('2026-07-06'), 2);
   assert.equal(m.get('2026-07-10'), 1);
+});
+
+test('doneVisitCount: 来店実績(done)の件数', () => {
+  assert.equal(doneVisitCount(visits, 'a'), 0);
+  assert.equal(doneVisitCount(visits, 'b'), 1);
+});
+
+test('sortCustomers: 各キーで並び替え（同点は名前順）', () => {
+  const cc = [
+    { id: 'a', name: 'あ', createdAt: 100 },
+    { id: 'b', name: 'い', createdAt: 300 },
+    { id: 'c', name: 'う', createdAt: 200 },
+  ];
+  const vs = [
+    { id: 'v1', customerId: 'a', date: '2026-07-20', done: false },
+    { id: 'v2', customerId: 'b', date: '2026-07-08', done: false },
+    { id: 'v3', customerId: 'a', date: '2026-07-05', done: true },
+    { id: 'v4', customerId: 'a', date: '2026-07-06', done: true },
+  ];
+  const ctx = { visits: vs, today: '2026-07-06' };
+  assert.deepEqual(sortCustomers(cc, 'name', ctx).map((c) => c.id), ['a', 'b', 'c']);
+  assert.deepEqual(sortCustomers(cc, 'next', ctx).map((c) => c.id), ['b', 'a', 'c']);
+  assert.deepEqual(sortCustomers(cc, 'new', ctx).map((c) => c.id), ['b', 'c', 'a']);
+  assert.deepEqual(sortCustomers(cc, 'visits', ctx).map((c) => c.id), ['a', 'b', 'c']);
 });

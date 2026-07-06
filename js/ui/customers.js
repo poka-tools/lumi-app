@@ -1,13 +1,22 @@
 import { state, loadAll } from '../state.js';
 import { put, del, uid } from '../db.js';
 import { esc, shortDateJa, todayIso } from '../format.js';
-import { searchCustomers, nextVisitDate } from '../customers-logic.js';
+import { searchCustomers, sortCustomers, nextVisitDate, doneVisitCount } from '../customers-logic.js';
 
 let query = '';      // 検索文字列（再描画で保持）
+let sortKey = 'name'; // 並び替えキー（再描画で保持）
 let editingId = null; // フォーム編集中の顧客id（新規は null）
+
+const SORTS = [
+  { key: 'name', label: '名前' },
+  { key: 'next', label: '来店予定' },
+  { key: 'new', label: '新着' },
+  { key: 'visits', label: '来店回数' },
+];
 
 export async function renderCustomers(el) {
   query = '';
+  sortKey = 'name';
   drawList(el);
 }
 
@@ -81,17 +90,27 @@ function wireSheet(el) {
 // ===== 一覧 =====
 function drawList(el) {
   const today = todayIso();
-  const list = searchCustomers(state.customers, query);
+  const filtered = searchCustomers(state.customers, query);
+  const list = sortCustomers(filtered, sortKey, { visits: state.visits, today });
   const cardHtml = list.length === 0
     ? `<p class="muted" style="text-align:center;margin-top:24px">${
         state.customers.length ? '該当する顧客がいません。' : '「＋顧客を追加」から登録できます。'}</p>`
     : list.map((c) => {
-        const nv = nextVisitDate(state.visits, c.id, today);
+        const sub = sortKey === 'visits'
+          ? `来店 ${doneVisitCount(state.visits, c.id)}回`
+          : (() => {
+              const nv = nextVisitDate(state.visits, c.id, today);
+              return nv ? '次回来店 ' + shortDateJa(nv) : '来店予定なし';
+            })();
         return `<button class="cust-card" data-id="${esc(c.id)}" type="button">
           <div class="cust-name">${esc(c.name)}</div>
-          <div class="muted cust-sub">${nv ? '次回来店 ' + shortDateJa(nv) : '来店予定なし'}</div>
+          <div class="muted cust-sub">${sub}</div>
         </button>`;
       }).join('');
+
+  const sortTabsHtml = SORTS.map((s) =>
+    `<button class="sort-chip${s.key === sortKey ? ' active' : ''}" type="button" data-sort="${s.key}">${s.label}</button>`
+  ).join('');
 
   el.innerHTML = `
     <div class="row" style="justify-content:space-between;align-items:center">
@@ -99,7 +118,8 @@ function drawList(el) {
       <span class="muted">${state.customers.length}人</span>
     </div>
     <input id="custSearch" class="inline-input" type="search" placeholder="名前で検索…"
-      value="${esc(query)}" autocomplete="off" style="width:100%;margin:12px 0">
+      value="${esc(query)}" autocomplete="off" style="width:100%;margin:12px 0 8px">
+    <div class="sort-tabs" id="sortTabs">${sortTabsHtml}</div>
     <div class="cust-list">${cardHtml}</div>
     <button class="btn" id="custAdd" type="button" style="margin-top:14px">＋顧客を追加</button>
     ${sheetMarkup()}`;
@@ -112,6 +132,9 @@ function drawList(el) {
     const s2 = el.querySelector('#custSearch');
     s2.focus(); s2.setSelectionRange(pos, pos);
   };
+  el.querySelectorAll('.sort-chip').forEach((b) => {
+    b.onclick = () => { sortKey = b.dataset.sort; drawList(el); };
+  });
   el.querySelectorAll('.cust-card').forEach((b) => {
     b.onclick = () => drawDetail(el, b.dataset.id);
   });
