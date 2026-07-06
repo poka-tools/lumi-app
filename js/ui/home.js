@@ -9,6 +9,7 @@ import { drawDonut } from './donut.js';
 import { setEditingShift } from './record.js';
 import { renderReminder } from './todos.js';
 import { navigate } from '../app.js';
+import { birthdaysInMonth, upcomingVisits } from '../customers-logic.js';
 
 export async function renderHome(el) {
   const wage = state.profile;
@@ -45,6 +46,20 @@ export async function renderHome(el) {
         </li>`).join('')}</ul>`
     : '<div class="muted" style="margin-top:8px">✅ 今日のやることはありません</div>';
 
+  const bdays = birthdaysInMonth(state.customers, state.month);
+  const upcoming = upcomingVisits(state.visits, state.customers, today, 7);
+  const custHintHtml = (bdays.length || upcoming.length) ? `
+    <div class="card cust-hint">
+      ${upcoming.length ? `<div class="cust-hint-block">
+        <div class="cust-hint-head">👤 近日の来店予定</div>
+        <ul>${upcoming.map((v) => `<li>${shortDateJa(v.date)} ・ ${esc(v.customerName)}${v.note ? '（' + esc(v.note) + '）' : ''}</li>`).join('')}</ul>
+      </div>` : ''}
+      ${bdays.length ? `<div class="cust-hint-block">
+        <div class="cust-hint-head">🎂 今月お誕生日</div>
+        <ul>${bdays.map((c) => `<li>${Number(c.birthday.slice(0, 2))}/${Number(c.birthday.slice(3, 5))} ・ ${esc(c.name)}</li>`).join('')}</ul>
+      </div>` : ''}
+    </div>` : '';
+
   const activeAnn = state.announcements.filter((a) =>
     (!a.startDate || a.startDate <= today) && (!a.endDate || today <= a.endDate));
 
@@ -52,13 +67,17 @@ export async function renderHome(el) {
     <div class="card">
       <div class="row" style="justify-content:space-between;align-items:center">
         <h3 style="margin:0">📅 本日の予定</h3>
-        <span class="muted">${shortDateJa(today)}</span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="muted">${shortDateJa(today)}</span>
+          <button id="homeSettings" type="button" aria-label="設定" style="border:none;background:none;font-size:20px;cursor:pointer;padding:0;line-height:1">⚙️</button>
+        </div>
       </div>
       <div style="margin-top:8px">${shiftLine}</div>
       ${todoBlock}
     </div>
 
     <div id="reminder"></div>
+    ${custHintHtml}
 
     <div class="card estimate-card">
       <div class="estimate-head">${esc(monthLabel)}の見込み <span class="badge">確定前</span></div>
@@ -123,4 +142,5 @@ export async function renderHome(el) {
     };
   });
   el.querySelector('#toCal').onclick = () => navigate('calendar');
+  el.querySelector('#homeSettings').onclick = () => navigate('settings');
 }

@@ -329,3 +329,7 @@ input, select { min-width: 0; }
 .visit-date { font-weight: 600; }
 .visit-note { font-size: 12px; }
 .visit-del { border: none; background: none; color: var(--muted); font-size: 16px; }
+.cust-hint .cust-hint-block + .cust-hint-block { margin-top: 12px; }
+.cust-hint-head { font-weight: 700; margin-bottom: 4px; }
+.cust-hint ul { list-style: none; padding: 0; margin: 0; }
+.cust-hint li { padding: 3px 0; font-size: 14px; }
