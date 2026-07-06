@@ -4,7 +4,7 @@ import { shiftTotal, workedHours } from '../calc.js';
 import { yen, esc, weekdayJa } from '../format.js';
 import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './backfields.js';
 import { renderTodos } from './todos.js';
-import { visitCountByDate, visitsOnDate } from '../customers-logic.js';
+import { visitCountByDate, visitsOnDate, birthdaysByDate } from '../customers-logic.js';
 
 export async function renderCalendar(el) {
   const [y, m] = state.month.split('-').map(Number);
@@ -22,6 +22,7 @@ export async function renderCalendar(el) {
     todosByDate.get(t.due).push(t);
   }
   const visitsByDate = visitCountByDate(state.visits);
+  const bdaysByDate = birthdaysByDate(state.customers, state.month);
 
   const cells = [];
   for (let i = 0; i < startDay; i++) cells.push('<div></div>');
@@ -44,8 +45,10 @@ export async function renderCalendar(el) {
       : '';
     const vCount = visitsByDate.get(iso) || 0;
     const visitMark = vCount ? `<div class="cal-visit">👤${vCount > 1 ? vCount : ''}</div>` : '';
+    const bdayNames = bdaysByDate.get(iso);
+    const bdayMark = bdayNames ? `<div class="cal-bday">🎂${bdayNames.length > 1 ? bdayNames.length : ''}</div>` : '';
     cells.push(`<div class="cal-cell ${cls}" data-date="${esc(iso)}">
-      <div class="cal-day">${d}</div>${body}${todoMark}${visitMark}</div>`);
+      <div class="cal-day">${d}</div>${body}${todoMark}${visitMark}${bdayMark}</div>`);
   }
 
   el.innerHTML = `
@@ -172,9 +175,15 @@ export async function renderCalendar(el) {
           <span>${esc(v.customerName)}${v.note ? ' ・ ' + esc(v.note) : ''}</span></li>`).join('')}</ul>
       </div>` : '';
 
+    const dayBdays = bdaysByDate.get(draft.date) || [];
+    const dayBdayHtml = dayBdays.length
+      ? `<div class="sheet-bday">🎂 ${dayBdays.map((n) => esc(n)).join('・')} さんのお誕生日</div>`
+      : '';
+
     body.innerHTML = `
       ${dayTodosHtml}
       ${dayVisitsHtml}
+      ${dayBdayHtml}
       <div class="row">
         <div class="field" style="flex:1"><label>開始</label><input id="sStart" type="time" value="${esc(draft.start || '20:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="sEnd" type="time" value="${esc(draft.end || '01:00')}"></div>

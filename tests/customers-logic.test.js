@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  birthdaysInMonth, addDaysIso, upcomingVisits,
+  birthdaysInMonth, birthdaysByDate, addDaysIso, upcomingVisits,
   visitsOnDate, nextVisitDate, searchCustomers, visitCountByDate,
 } from '../js/customers-logic.js';
 
@@ -22,6 +22,17 @@ test('birthdaysInMonth: 当月の誕生日のみを日付順で返す', () => {
   assert.deepEqual(r.map((c) => c.id), ['b']);
   assert.equal(birthdaysInMonth(custs, '2026-03')[0].id, 'a');
   assert.equal(birthdaysInMonth(custs, '2026-12').length, 0);
+});
+
+test('birthdaysByDate: 当月の誕生日をISO日付→名前配列で', () => {
+  const cc = [
+    { id: 'a', name: '田中', birthday: '07-06' },
+    { id: 'b', name: 'サトウ', birthday: '07-06' },
+    { id: 'c', name: '鈴木', birthday: '03-01' },
+  ];
+  const m = birthdaysByDate(cc, '2026-07');
+  assert.deepEqual(m.get('2026-07-06'), ['田中', 'サトウ']);
+  assert.equal(m.get('2026-03-01'), undefined);
 });
 
 test('addDaysIso: ローカル日付でn日加算（月跨ぎ）', () => {

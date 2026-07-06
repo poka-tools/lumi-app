@@ -15,6 +15,17 @@ export function birthdaysInMonth(customers, month) {
     .sort((a, b) => a.birthday.localeCompare(b.birthday));
 }
 
+// 指定月(YYYY-MM)の誕生日を ISO日付 -> 顧客名[] のMapで（カレンダー🎂用）
+export function birthdaysByDate(customers, month) {
+  const m = new Map();
+  for (const c of birthdaysInMonth(customers, month)) {
+    const iso = `${month}-${c.birthday.slice(3, 5)}`;
+    if (!m.has(iso)) m.set(iso, []);
+    m.get(iso).push(c.name);
+  }
+  return m;
+}
+
 // today〜today+days（両端含む）の未完了来店予定を日付昇順・顧客名付きで
 export function upcomingVisits(visits, customers, today, days = 7) {
   const until = addDaysIso(today, days);
