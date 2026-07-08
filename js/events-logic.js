@@ -113,15 +113,21 @@ export function eventIncentiveDetail(reservations, events, month) {
     if (reservationDate(r, events).slice(0, 7) !== month) continue;
     const amount = reservationBack(r);
     if (!amount) continue;
-    if (!groups.has(r.eventId)) groups.set(r.eventId, { total: 0, items: [] });
+    if (!groups.has(r.eventId)) groups.set(r.eventId, { total: 0, items: new Map() });
     const g = groups.get(r.eventId);
-    g.items.push({ label: reservationLabel(r), count: effectiveCount(r), amount });
+    // 同じ品目名は数量・金額をまとめて1行に合算する
+    const label = reservationLabel(r);
+    const cur = g.items.get(label) || { label, count: 0, amount: 0 };
+    cur.count += effectiveCount(r);
+    cur.amount += amount;
+    g.items.set(label, cur);
     g.total += amount;
   }
   const out = [];
   for (const [eventId, g] of groups) {
     const ev = (events || []).find((e) => e.id === eventId);
-    out.push({ eventId, name: ev ? ev.name : '(削除済みイベント)', total: g.total, items: g.items });
+    const items = [...g.items.values()].sort((a, b) => b.amount - a.amount);
+    out.push({ eventId, name: ev ? ev.name : '(削除済みイベント)', total: g.total, items });
   }
   return out.sort((a, b) => b.total - a.total);
 }
