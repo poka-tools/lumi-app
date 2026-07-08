@@ -112,7 +112,13 @@ export async function renderHome(el) {
       <div class="row" style="justify-content:space-between"><h3>直近のシフト・実績</h3>
         <a id="toCal" class="muted">カレンダーで確認 ›</a></div>
       <div class="chips" id="recent"></div>
-    </div>`;
+    </div>
+
+    <button class="settings-cta" id="homeSettingsBtn" type="button">
+      <span class="sc-ico">⚙️</span>
+      <span class="sc-label">設定</span>
+      <span class="sc-arrow">›</span>
+    </button>`;
 
   el.querySelectorAll('.today-todos li').forEach((li) => {
     const todo = state.todos.find((t) => t.id === li.dataset.id);
@@ -147,4 +153,5 @@ export async function renderHome(el) {
   });
   el.querySelector('#toCal').onclick = () => navigate('calendar');
   el.querySelector('#homeSettings').onclick = () => navigate('settings');
+  el.querySelector('#homeSettingsBtn').onclick = () => navigate('settings');
 }

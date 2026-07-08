@@ -390,6 +390,15 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .res-actions .ra-ico { font-size: 19px; }
 .res-actions .ra-txt { font-size: 10px; }
 
+/* ホーム最下部の目立つ設定ボタン */
+.settings-cta { display: flex; align-items: center; gap: 12px; width: 100%;
+  background: var(--card); border: 2px solid var(--pink); border-radius: 16px;
+  padding: 15px 18px; box-shadow: var(--shadow); cursor: pointer; margin-top: 2px; }
+.settings-cta:active { background: var(--pink-soft); }
+.settings-cta .sc-ico { font-size: 24px; line-height: 1; }
+.settings-cta .sc-label { flex: 1; text-align: left; font-weight: 700; font-size: 16px; color: var(--ink); }
+.settings-cta .sc-arrow { color: var(--pink); font-size: 22px; font-weight: 700; }
+
 /* 本日の予定カード内の「今月の来店予定」「今月お誕生日」 */
 .today-visits, .today-bday { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--pink-soft); }
 .today-visits-head, .today-bday-head { font-weight: 700; margin-bottom: 6px; font-size: 14px; }
