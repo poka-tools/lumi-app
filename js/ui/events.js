@@ -178,12 +178,13 @@ function drawEventDetail(el, eventId, opts) {
           <input id="rName" class="inline-input" type="text" maxlength="40" placeholder="源氏名・呼び名など" style="width:100%"></div>
         <div class="field"><label>種別</label>
           <select id="rTiming" class="inline-input" style="width:100%">${timingOptions}</select></div>
-        <div class="field"><label>計上日</label>
+        <div class="field"><label>売上日</label>
           <input id="rDate" type="date" class="inline-input" style="width:100%">
+          <div class="muted" style="font-size:12px;margin-top:4px;line-height:1.5">設定した売上日を含む月のレポートと、その日のカレンダーに、✓（対応済み）の予約がイベントインセンティブとして計上されます。</div>
           <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;white-space:nowrap">
             <input id="rDateTBD" type="checkbox"> 未定（後祝いなど・売上前）
           </label>
-          <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約はインセンティブに計上されません。後日、計上日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
+          <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約はインセンティブに計上されません。後日、売上日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
         </div>
         <div class="field"><label>シャンパン銘柄</label>
           <input id="rBottle" class="inline-input" type="text" maxlength="40" placeholder="モエ・アルマンド など" style="width:100%"></div>
@@ -206,7 +207,7 @@ function drawEventDetail(el, eventId, opts) {
             <input id="rBackRate" class="inline-input" type="number" inputmode="numeric" min="0" placeholder="0" style="width:100%"></div>
         </div>
         <div class="muted" id="rBackView" style="font-size:12px;margin-bottom:4px"></div>
-        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ✓（対応済み）にすると、上のバックが計上日にレポート／カレンダーのイベントインセンティブへ加算されます。</div>
+        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ✓（対応済み）にすると、上のバックが売上日にレポート／カレンダーのイベントインセンティブへ加算されます。</div>
         <div class="field"><label>メモ（任意）</label><input id="rMemo" class="inline-input" type="text" maxlength="80" style="width:100%"></div>
         <div class="row" style="gap:8px;margin-top:8px">
           <button type="button" class="btn btn-ghost" id="rCancel" style="flex:1">キャンセル</button>
@@ -394,7 +395,7 @@ function resLi(r) {
   const name = resolveResName(r, state.customers);
   const c = effectiveCount(r); // 銘柄あり・本数空欄は1本として表示
   const meta = [];
-  if (r.dateTBD) meta.push('計上日未定');
+  if (r.dateTBD) meta.push('売上日未定');
   else if (r.date) meta.push(shortDateJa(r.date));
   const goods = [r.bottle, r.product].filter((x) => x && x.trim()).map(esc);
   if (goods.length) meta.push(goods.join(' / ') + (c ? ` ×${c}` : ''));
