@@ -2,3 +2,7 @@ node_modules/
 .DS_Store
 *.log
 _verify.mjs
+_*.mjs
+_*.mjs.tmp
+_seed.html
+*.tmp

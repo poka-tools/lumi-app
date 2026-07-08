@@ -65,6 +65,11 @@ input, select { min-width: 0; }
   white-space: nowrap; overflow: hidden; text-align: center; }
 .cal-cell.has-confirmed { outline: 2px solid var(--pink); }
 .cal-cell.has-draft { outline: 1px dashed var(--purple); }
+/* 当日の目印：セルを淡く塗り、日付を塗りつぶしのバッジにする */
+.cal-cell.is-today { background: var(--pink-soft); }
+.cal-cell.is-today .cal-day { display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+  background: var(--pink); color: #fff; }
 .cal-amt.planned { color: var(--purple); font-weight: 600; font-size: 10px; }
 .cal-tag { color: var(--purple); font-size: 9px; opacity: .85; }
 
@@ -100,6 +105,8 @@ input, select { min-width: 0; }
 .sheet-total { display: flex; justify-content: space-between; align-items: center;
   margin: 14px 0; padding: 12px 14px; background: var(--pink-soft); border-radius: 14px; }
 .sheet-total strong { color: var(--pink); }
+.sheet-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.sheet-sub strong { color: var(--purple); font-size: 14px; }
 
 /* ============ やることリスト（カレンダー下） ============ */
 .todo-card { padding: 16px; }
@@ -299,7 +306,7 @@ input, select { min-width: 0; }
 
 /* 印刷（レポートをPDFで保存） */
 @media print {
-  #tabbar, #splash, .sheet, .sheet-backdrop, .no-print, .seg { display: none !important; }
+  #tabbar, #splash, .sheet, .sheet-backdrop, .no-print, .seg, .print-hide { display: none !important; }
   body { background: #fff !important; }
   #screen { padding: 0 !important; }
   h2 { margin: 0 0 8px !important; }
@@ -333,6 +340,29 @@ input, select { min-width: 0; }
 .cust-hint-head { font-weight: 700; margin-bottom: 4px; }
 .cust-hint ul { list-style: none; padding: 0; margin: 0; }
 .cust-hint li { padding: 3px 0; font-size: 14px; }
+
+/* 本日の予定カード内の「今月の来店予定」「今月お誕生日」 */
+.today-visits, .today-bday { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--pink-soft); }
+.today-visits-head, .today-bday-head { font-weight: 700; margin-bottom: 6px; font-size: 14px; }
+/* 幅に応じて自動で複数列に並べ、右側の余白を活用する */
+.today-visits ul, .today-bday ul { list-style: none; padding: 0; margin: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 14px; }
+.today-visits li, .today-bday li { font-size: 14px;
+  display: flex; align-items: baseline; gap: 8px; padding: 3px 8px;
+  background: var(--pink-soft); border-radius: 8px; }
+.today-visits li .v-date, .today-bday li .v-date { color: var(--purple); font-weight: 600; flex: 0 0 auto; }
+.today-visits li .v-name, .today-bday li .v-name { flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* レポートのPDF出力オプション */
+.pdf-opt { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 15px; }
+
+/* 保存トースト */
+.toast { position: fixed; left: 50%; bottom: 84px; transform: translate(-50%, 12px);
+  background: rgba(40, 30, 40, .92); color: #fff; padding: 10px 18px; border-radius: 999px;
+  font-size: 14px; font-weight: 600; box-shadow: var(--shadow); z-index: 1000;
+  opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
 .cal-visit { color: var(--purple); font-size: 9px; font-weight: 700; margin-top: 1px; }
 .sheet-visits { background: var(--pink-soft); border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; }
 .sheet-visits ul { list-style: none; padding: 0; margin: 0; }

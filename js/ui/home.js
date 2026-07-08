@@ -9,7 +9,7 @@ import { drawDonut } from './donut.js';
 import { setEditingShift } from './record.js';
 import { renderReminder } from './todos.js';
 import { navigate } from '../app.js';
-import { birthdaysInMonth, upcomingVisits } from '../customers-logic.js';
+import { birthdaysInMonth, visitsInMonth } from '../customers-logic.js';
 
 export async function renderHome(el) {
   const wage = state.profile;
@@ -47,17 +47,20 @@ export async function renderHome(el) {
     : '<div class="muted" style="margin-top:8px">✅ 今日のやることはありません</div>';
 
   const bdays = birthdaysInMonth(state.customers, state.month);
-  const upcoming = upcomingVisits(state.visits, state.customers, today, 7);
-  const custHintHtml = (bdays.length || upcoming.length) ? `
-    <div class="card cust-hint">
-      ${upcoming.length ? `<div class="cust-hint-block">
-        <div class="cust-hint-head">👤 近日の来店予定</div>
-        <ul>${upcoming.map((v) => `<li>${shortDateJa(v.date)} ・ ${esc(v.customerName)}${v.note ? '（' + esc(v.note) + '）' : ''}</li>`).join('')}</ul>
-      </div>` : ''}
-      ${bdays.length ? `<div class="cust-hint-block">
-        <div class="cust-hint-head">🎂 今月お誕生日</div>
-        <ul>${bdays.map((c) => `<li>${Number(c.birthday.slice(0, 2))}/${Number(c.birthday.slice(3, 5))} ・ ${esc(c.name)}</li>`).join('')}</ul>
-      </div>` : ''}
+  const monthVisits = visitsInMonth(state.visits, state.customers, state.month);
+
+  // 今月の来店予定は「本日の予定」カード内にまとめて表示（該当者ゼロなら非表示）
+  const visitsBlock = monthVisits.length ? `
+    <div class="today-visits">
+      <div class="today-visits-head">👤 今月の来店予定</div>
+      <ul>${monthVisits.map((v) => `<li><span class="v-date">${shortDateJa(v.date)}</span><span class="v-name">${esc(v.customerName)}${v.note ? '（' + esc(v.note) + '）' : ''}</span></li>`).join('')}</ul>
+    </div>` : '';
+
+  // 今月の誕生日も「本日の予定」カード内にまとめて表示（該当者ゼロなら非表示）
+  const bdayBlock = bdays.length ? `
+    <div class="today-bday">
+      <div class="today-bday-head">🎂 今月お誕生日</div>
+      <ul>${bdays.map((c) => `<li><span class="v-date">${Number(c.birthday.slice(0, 2))}/${Number(c.birthday.slice(3, 5))}</span><span class="v-name">${esc(c.name)}</span></li>`).join('')}</ul>
     </div>` : '';
 
   const activeAnn = state.announcements.filter((a) =>
@@ -74,10 +77,11 @@ export async function renderHome(el) {
       </div>
       <div style="margin-top:8px">${shiftLine}</div>
       ${todoBlock}
+      ${visitsBlock}
+      ${bdayBlock}
     </div>
 
     <div id="reminder"></div>
-    ${custHintHtml}
 
     <div class="card estimate-card">
       <div class="estimate-head">${esc(monthLabel)}の見込み <span class="badge">確定前</span></div>

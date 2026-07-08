@@ -3,6 +3,7 @@ import { put, del, uid, saveProfile } from '../db.js';
 import { esc } from '../format.js';
 import { navigate } from '../app.js';
 import { categoryList, itemCategory } from './backfields.js';
+import { toast } from './toast.js';
 
 export async function renderSettings(el) {
   const p = state.profile;
@@ -76,7 +77,7 @@ export async function renderSettings(el) {
       },
     });
     await loadAll();
-    alert('保存しました');
+    toast('保存しました');
   };
 
   // 旧モデル(type/value)・新モデル(fixedValue/rateValue)の両方から値を読む。
@@ -141,6 +142,7 @@ export async function renderSettings(el) {
         // 旧 type/value を破棄して新モデルへ移行
         Object.assign(it, next, { type: undefined, value: undefined });
         await put('backItems', it);
+        toast('保存しました');
       };
       rowEl.querySelectorAll('.i-name,.i-kind,.i-fixed,.i-rate').forEach((f) => (f.onchange = save));
       // 分類変更はタブ構成・絞り込みに影響するため、保存後にタブ＋一覧を再描画
@@ -184,6 +186,7 @@ export async function renderSettings(el) {
         a.startDate = rowEl.querySelector('.a-start').value;
         a.endDate = rowEl.querySelector('.a-end').value;
         await put('announcements', a);
+        toast('保存しました');
       };
       rowEl.querySelectorAll('input').forEach((f) => (f.onchange = save));
       rowEl.querySelector('.a-del').onclick = async () => {

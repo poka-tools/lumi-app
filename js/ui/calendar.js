@@ -1,7 +1,7 @@
 import { state, shiftsOfMonth, loadAll } from '../state.js';
 import { put, del, uid } from '../db.js';
-import { shiftTotal, workedHours } from '../calc.js';
-import { yen, esc, weekdayJa } from '../format.js';
+import { shiftTotal, shiftBackTotal, workedHours } from '../calc.js';
+import { yen, esc, weekdayJa, todayIso } from '../format.js';
 import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './backfields.js';
 import { renderTodos } from './todos.js';
 import { visitCountByDate, visitsOnDate, birthdaysByDate } from '../customers-logic.js';
@@ -23,6 +23,7 @@ export async function renderCalendar(el) {
   }
   const visitsByDate = visitCountByDate(state.visits);
   const bdaysByDate = birthdaysByDate(state.customers, state.month);
+  const today = todayIso();
 
   const cells = [];
   for (let i = 0; i < startDay; i++) cells.push('<div></div>');
@@ -30,13 +31,14 @@ export async function renderCalendar(el) {
     const iso = `${state.month}-${String(d).padStart(2, '0')}`;
     const s = byDate.get(iso);
     let body = '', cls = '';
+    if (iso === today) cls = 'is-today';
     if (s && s.confirmed) {
       body = `<div class="cal-amt">${yen(shiftTotal(wage, items, s))}</div>`;
-      cls = 'has-confirmed';
+      cls += ' has-confirmed';
     } else if (s) {
       // 入力未完了＝出勤予定：時刻を表示
       body = `<div class="cal-amt planned">${esc(s.start || '')}〜</div><div class="cal-tag">予定</div>`;
-      cls = 'has-draft';
+      cls += ' has-draft';
     }
     const dueT = todosByDate.get(iso) || [];
     const pend = dueT.filter((t) => !t.done).length;
@@ -131,6 +133,7 @@ export async function renderCalendar(el) {
   const recalc = () => {
     collectDraft();
     q('#sheetTotal').textContent = yen(shiftTotal(state.profile, state.backItems, draft));
+    q('#sheetInc').textContent = yen(shiftBackTotal(state.backItems, draft));
     q('#sheetHours').textContent = workedHours(draft) ? `実働 ${workedHours(draft)}h` : '';
   };
 
@@ -197,7 +200,10 @@ export async function renderCalendar(el) {
       <p class="muted" style="margin:0 0 8px;font-size:12px">タップで＋1／長押しで件数・売上を調整</p>
       ${itemsHtml}
       <div class="sheet-total">
-        <span>この日の合計 <span class="muted" id="sheetHours"></span></span>
+        <div>
+          <span>この日の合計 <span class="muted" id="sheetHours"></span></span>
+          <div class="sheet-sub">うちインセンティブ <strong id="sheetInc">¥0</strong></div>
+        </div>
         <strong id="sheetTotal" style="font-size:26px;font-weight:800">¥0</strong>
       </div>
       <label style="display:block;margin-bottom:12px">

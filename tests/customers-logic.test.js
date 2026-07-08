@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   birthdaysInMonth, birthdaysByDate, addDaysIso, upcomingVisits,
   visitsOnDate, nextVisitDate, searchCustomers, visitCountByDate,
-  sortCustomers, doneVisitCount,
+  sortCustomers, doneVisitCount, visitsInMonth,
 } from '../js/customers-logic.js';
 
 const custs = [
@@ -45,6 +45,14 @@ test('upcomingVisits: today〜+days の未完了を昇順・顧客名付き', ()
   const r = upcomingVisits(visits, custs, '2026-07-06', 7);
   assert.deepEqual(r.map((v) => v.id), ['v1', 'v2']);
   assert.equal(r[0].customerName, '田中さん');
+});
+
+test('visitsInMonth: 当月の未完了を昇順・顧客名付き（完了と他月は除外）', () => {
+  const r = visitsInMonth(visits, custs, '2026-07');
+  assert.deepEqual(r.map((v) => v.id), ['v1', 'v2']); // v3=完了, v4=6月 は除外
+  assert.equal(r[0].customerName, '田中さん');
+  assert.equal(visitsInMonth(visits, custs, '2026-06').map((v) => v.id).join(), 'v4');
+  assert.equal(visitsInMonth(visits, custs, '2026-12').length, 0);
 });
 
 test('visitsOnDate: 指定日の来店予定を顧客名付きで', () => {

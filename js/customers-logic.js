@@ -36,6 +36,15 @@ export function upcomingVisits(visits, customers, today, days = 7) {
     .map((v) => ({ ...v, customerName: nameById.get(v.customerId) || '(削除済み)' }));
 }
 
+// 指定月(YYYY-MM)の未完了の来店予定を日付昇順・顧客名付きで（本日の予定カード用）
+export function visitsInMonth(visits, customers, month) {
+  const nameById = new Map(customers.map((c) => [c.id, c.name]));
+  return visits
+    .filter((v) => !v.done && (v.date || '').slice(0, 7) === month)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((v) => ({ ...v, customerName: nameById.get(v.customerId) || '(削除済み)' }));
+}
+
 // 指定日の来店予定を顧客名付きで
 export function visitsOnDate(visits, customers, date) {
   const nameById = new Map(customers.map((c) => [c.id, c.name]));

@@ -75,12 +75,12 @@ export async function renderReport(el) {
 
   el.innerHTML = `
     <h2>収支レポート（${esc(state.month.replace('-', '年'))}月）</h2>
-    <div class="card">
+    <div class="card" id="secSummary">
       <div class="row" style="justify-content:space-between"><span>総勤務時間</span><strong>${monthlyWorkedHours(cur)}h</strong></div>
       <div class="row" style="justify-content:space-between"><span>出勤日数</span><strong>${cur.length}日</strong></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="secAnnual">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <h3 style="margin:0">年間（${year}年）</h3>
         <div class="seg">
@@ -91,7 +91,7 @@ export async function renderReport(el) {
       <div id="annualChart" class="chart-box"></div>
     </div>
 
-    <div class="card pl-card">
+    <div class="card pl-card" id="secPl">
       ${hasData ? `
         <div class="row" style="justify-content:flex-end;margin-bottom:8px">
           <div class="seg" id="plSeg">
@@ -103,7 +103,7 @@ export async function renderReport(el) {
       ` : '<p class="muted">この月の実績がまだありません。</p>'}
     </div>
 
-    <div class="card">
+    <div class="card" id="secRank">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <h3 style="margin:0">インセンティブ TOP3</h3>
         <div class="seg" id="rankSeg">
@@ -114,7 +114,15 @@ export async function renderReport(el) {
       <div id="rankList">${rankRows('amount')}</div>
     </div>
 
-    <button id="pdfBtn" class="btn btn-ghost no-print" style="margin-bottom:8px">PDF保存</button>`;
+    <div class="card no-print" id="pdfOptions">
+      <h3>PDFに含める項目</h3>
+      <p class="muted" style="margin:0 0 8px">チェックした項目だけをPDFに出力します。</p>
+      <label class="pdf-opt"><input type="checkbox" data-sec="secSummary" checked> 勤務サマリー</label>
+      <label class="pdf-opt"><input type="checkbox" data-sec="secAnnual" checked> 年間推移グラフ</label>
+      <label class="pdf-opt"><input type="checkbox" data-sec="secPl" checked> 収支明細（P/L）</label>
+      <label class="pdf-opt"><input type="checkbox" data-sec="secRank" checked> インセンティブ TOP3</label>
+      <button id="pdfBtn" class="btn" style="margin-top:10px">選んだ項目でPDF保存</button>
+    </div>`;
 
   // --- 年間推移グラフ（インラインSVG・左→右へ描画アニメーション） ---
   const W = 340, H = 190, padL = 36, padR = 12, padT = 14, padB = 24;
@@ -225,6 +233,19 @@ export async function renderReport(el) {
     };
   });
 
-  // 印刷（ブラウザの「PDFで保存」で書き出し）
-  el.querySelector('#pdfBtn').onclick = () => window.print();
+  // 印刷（ブラウザの「PDFで保存」で書き出し）。チェックの外れた項目は印刷時のみ隠す。
+  el.querySelector('#pdfBtn').onclick = () => {
+    const opts = el.querySelectorAll('#pdfOptions input[data-sec]');
+    opts.forEach((cb) => {
+      const sec = el.querySelector('#' + cb.dataset.sec);
+      if (sec) sec.classList.toggle('print-hide', !cb.checked);
+    });
+    const cleanup = () => {
+      el.querySelectorAll('.print-hide').forEach((s) => s.classList.remove('print-hide'));
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(cleanup, 1000); // afterprint 非対応環境のフォールバック
+    window.print();
+  };
 }
