@@ -4,6 +4,7 @@ import { esc } from '../format.js';
 import { navigate } from '../app.js';
 import { categoryList, itemCategory } from './backfields.js';
 import { toast } from './toast.js';
+import { confirmModal } from './confirm.js';
 
 export async function renderSettings(el) {
   const p = state.profile;
@@ -148,7 +149,7 @@ export async function renderSettings(el) {
       // 分類変更はタブ構成・絞り込みに影響するため、保存後にタブ＋一覧を再描画
       rowEl.querySelector('.i-cat').onchange = async () => { await save(); renderTabs(); renderItems(); };
       rowEl.querySelector('.i-del').onclick = async () => {
-        if (!confirm('この項目を削除しますか？')) return;
+        if (!(await confirmModal('この項目を削除しますか？'))) return;
         await del('backItems', id);
         await loadAll();
         renderTabs();
@@ -190,7 +191,7 @@ export async function renderSettings(el) {
       };
       rowEl.querySelectorAll('input').forEach((f) => (f.onchange = save));
       rowEl.querySelector('.a-del').onclick = async () => {
-        if (!confirm('このお知らせを削除しますか？')) return;
+        if (!(await confirmModal('このお知らせを削除しますか？'))) return;
         await del('announcements', id);
         await loadAll();
         renderAnns();
@@ -220,14 +221,14 @@ export async function renderSettings(el) {
   el.querySelector('#importFile').onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!confirm('現在のデータに上書き追加します。よろしいですか？')) return;
+    if (!(await confirmModal('現在のデータに上書き追加します。よろしいですか？', { okLabel: 'インポート', danger: false }))) return;
     const data = JSON.parse(await file.text());
     if (data.profile) await saveProfile(data.profile);
     for (const it of data.backItems || []) await put('backItems', it);
     for (const s of data.shifts || []) await put('shifts', s);
     for (const an of data.announcements || []) await put('announcements', an);
     await loadAll();
-    alert('インポートしました');
+    toast('インポートしました');
     navigate('settings');
   };
 }

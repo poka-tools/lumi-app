@@ -392,6 +392,21 @@ input, select { min-width: 0; }
   font-size: 14px; font-weight: 600; box-shadow: var(--shadow); z-index: 1000;
   opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* アプリ内 確認モーダル（PWAでも確実に動く confirm 代替） */
+.modal-backdrop { position: fixed; inset: 0; z-index: 1100; display: flex;
+  align-items: center; justify-content: center; padding: 24px;
+  background: rgba(30, 20, 30, .45); opacity: 0; transition: opacity .18s ease; }
+.modal-backdrop.show { opacity: 1; }
+.modal-card { background: #fff; border-radius: 18px; padding: 22px 20px 16px;
+  width: 100%; max-width: 340px; box-shadow: var(--shadow);
+  transform: translateY(8px) scale(.98); transition: transform .18s ease; }
+.modal-backdrop.show .modal-card { transform: translateY(0) scale(1); }
+.modal-msg { font-size: 15px; line-height: 1.6; color: var(--ink); white-space: pre-wrap; }
+.modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+.modal-actions .btn { flex: 1; }
+.btn-danger { background: #f55; color: #fff; }
+.btn-danger:active { background: #e04444; }
 .cal-visit { color: var(--purple); font-size: 9px; font-weight: 700; margin-top: 1px; }
 .sheet-visits { background: var(--pink-soft); border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; }
 .sheet-visits ul { list-style: none; padding: 0; margin: 0; }

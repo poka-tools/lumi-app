@@ -3,6 +3,7 @@ import { put, del, uid } from '../db.js';
 import { esc, shortDateJa, todayIso } from '../format.js';
 import { searchCustomers, sortCustomers, nextVisitDate, doneVisitCount } from '../customers-logic.js';
 import { drawEventsSection } from './events.js';
+import { confirmModal } from './confirm.js';
 
 let query = '';      // 検索文字列（再描画で保持）
 let sortKey = 'name'; // 並び替えキー（再描画で保持）
@@ -257,7 +258,7 @@ function drawDetail(el, id) {
   });
 
   el.querySelector('#custDelete').onclick = async () => {
-    if (!confirm(`「${c.name}」を削除します。よろしいですか？（来店予定も削除・元に戻せません）`)) return;
+    if (!(await confirmModal(`「${c.name}」を削除します。よろしいですか？（来店予定も削除・元に戻せません）`))) return;
     await Promise.all(state.visits.filter((v) => v.customerId === id).map((v) => del('visits', v.id)));
     await del('customers', id);
     await loadAll();

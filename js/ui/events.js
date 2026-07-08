@@ -2,6 +2,7 @@ import { state, loadAll } from '../state.js';
 import { put, del, uid } from '../db.js';
 import { esc, yen, shortDateJa } from '../format.js';
 import { toast } from './toast.js';
+import { confirmModal } from './confirm.js';
 import {
   TIMINGS, timingLabel, resolveResName, reservationsOfEvent,
   eventTotals, reservationCountByEvent, sortEvents, buildEventClone, cloneReservation,
@@ -107,7 +108,7 @@ function drawEventList(el, opts) {
     row.querySelector('.ev-open').onclick = () => drawEventDetail(el, id, opts);
     row.querySelector('.ev-del').onclick = async () => {
       const ev = state.events.find((x) => x.id === id);
-      if (!confirm(`「${ev.name}」を削除します。予約名簿もすべて削除されます。よろしいですか？（元に戻せません）`)) return;
+      if (!(await confirmModal(`「${ev.name}」を削除します。予約名簿もすべて削除されます。よろしいですか？（元に戻せません）`))) return;
       await deleteEventById(id);
       drawEventList(el, opts);
     };
@@ -304,7 +305,7 @@ function drawEventDetail(el, eventId, opts) {
     };
     li.querySelector('.res-edit').onclick = () => openResForm(r);
     li.querySelector('.res-del').onclick = async () => {
-      if (!confirm('この予約を削除しますか？')) return;
+      if (!(await confirmModal('この予約を削除しますか？'))) return;
       await del('reservations', r.id);
       await loadAll();
       drawEventDetail(el, eventId, opts);
@@ -312,7 +313,7 @@ function drawEventDetail(el, eventId, opts) {
   });
 
   el.querySelector('#evDelete').onclick = async () => {
-    if (!confirm(`「${ev.name}」を削除します。予約名簿もすべて削除されます。よろしいですか？（元に戻せません）`)) return;
+    if (!(await confirmModal(`「${ev.name}」を削除します。予約名簿もすべて削除されます。よろしいですか？（元に戻せません）`))) return;
     await deleteEventById(eventId);
     drawEventList(el, opts);
   };

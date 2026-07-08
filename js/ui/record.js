@@ -4,6 +4,7 @@ import { workedHours, shiftTotal } from '../calc.js';
 import { yen, esc } from '../format.js';
 import { navigate } from '../app.js';
 import { hasFixed, hasRate, itemLabel } from './backfields.js';
+import { toast } from './toast.js';
 
 export let editingShift = null;
 export function setEditingShift(s) { editingShift = s; }
@@ -95,7 +96,7 @@ export async function renderRecord(el) {
     await put('shifts', collect());
     setEditingShift(null);
     await loadAll();
-    alert('保存しました');
+    toast('保存しました');
     navigate('home');
   };
 }

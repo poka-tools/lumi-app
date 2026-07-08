@@ -4,6 +4,7 @@ import { shiftTotal, shiftBackTotal, workedHours } from '../calc.js';
 import { yen, esc, weekdayJa, todayIso } from '../format.js';
 import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './backfields.js';
 import { renderTodos } from './todos.js';
+import { confirmModal } from './confirm.js';
 import { visitCountByDate, visitsOnDate, birthdaysByDate } from '../customers-logic.js';
 
 export async function renderCalendar(el) {
@@ -359,7 +360,7 @@ export async function renderCalendar(el) {
     };
     q('#sDelete').onclick = async () => {
       const exists = state.shifts.some((s) => s.id === draft.id);
-      if (exists && !confirm('この日の記録を削除します。よろしいですか？（元に戻せません）')) return;
+      if (exists && !(await confirmModal('この日の記録を削除します。よろしいですか？（元に戻せません）'))) return;
       if (exists) await del('shifts', draft.id);
       await loadAll();
       closeSheet();
