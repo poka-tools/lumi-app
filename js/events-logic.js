@@ -13,7 +13,7 @@ export function timingLabel(key) {
 }
 
 // 予約の表示名。顧客に紐付いていれば顧客名（削除済みは控えの name → なければ表記）。
-// リスト外（手入力）は res.name をそのまま返す。
+// 未登録顧客（手入力）は res.name をそのまま返す。
 export function resolveResName(res, customers) {
   if (res.customerId) {
     const c = (customers || []).find((x) => x.id === res.customerId);

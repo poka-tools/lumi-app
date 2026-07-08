@@ -170,7 +170,7 @@ function drawEventDetail(el, eventId, opts) {
       <form id="resForm" hidden style="margin-top:10px">
         <div class="field"><label>参加者（顧客リストから選択）</label>
           <select id="rCust" class="inline-input" style="width:100%">${custOptions}</select></div>
-        <div class="field" id="rNameField"><label>名前（リスト外の場合）</label>
+        <div class="field" id="rNameField"><label>名前（未登録顧客の場合）</label>
           <input id="rName" class="inline-input" type="text" maxlength="40" placeholder="源氏名・呼び名など" style="width:100%"></div>
         <div class="field"><label>種別</label>
           <select id="rTiming" class="inline-input" style="width:100%">${timingOptions}</select></div>
@@ -397,7 +397,7 @@ function resLi(r) {
   else if (c) meta = `×${c}本`;
   // 名前の横に種別（当日/前祝い/後祝い）タグを表示
   const timingTag = r.timing ? `<span class="res-tag res-timing">${esc(timingLabel(r.timing))}</span>` : '';
-  const outTag = r.customerId ? '' : '<span class="res-tag">リスト外</span>';
+  const outTag = r.customerId ? '' : '<span class="res-tag">未登録顧客</span>';
   return `<li class="res-item ${r.done ? 'done' : ''}" data-id="${esc(r.id)}">
     <button class="res-check todo-check" type="button" aria-label="${r.done ? '未対応に戻す' : '対応済みにする'}">${r.done ? '✓' : ''}</button>
     <div class="res-main">
