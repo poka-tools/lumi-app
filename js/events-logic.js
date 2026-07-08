@@ -44,7 +44,7 @@ export function autoAmount(count, bottle, unitPrice) {
   return effectiveCount({ count, bottle }) * (Number(unitPrice) || 0);
 }
 
-// 予約1件のバック（自分の取り分）＝ 本数×バック(円/件) ＋ 売上(予定金額)×バック(％)/100。
+// 予約1件の歩合（自分の取り分）＝ 本数×歩合(円/件) ＋ 売上(予定金額)×歩合(％)/100。
 export function reservationBack(res) {
   const c = effectiveCount(res);
   const fixed = Number(res && res.backFixed) || 0;
@@ -53,7 +53,7 @@ export function reservationBack(res) {
   return c * fixed + sales * rate / 100;
 }
 
-// 指定イベントの集計（予約件数・本数・売上合計・バック合計）。本数は実効本数で合計。
+// 指定イベントの集計（予約件数・本数・売上合計・歩合合計）。本数は実効本数で合計。
 export function eventTotals(reservations, eventId) {
   const rows = (reservations || []).filter((r) => r.eventId === eventId);
   return rows.reduce((acc, r) => {
@@ -74,7 +74,7 @@ export function reservationDate(res, events) {
   return ev ? (ev.date || '') : '';
 }
 
-// 対応済み(done)の予約のバック（取り分）を売上日ごとに合計（カレンダー用）Map<date, back>。
+// 対応済み(done)の予約の歩合（取り分）を売上日ごとに合計（カレンダー用）Map<date, back>。
 export function eventIncomeByDate(reservations, events) {
   const m = new Map();
   for (const r of (reservations || [])) {
@@ -86,7 +86,7 @@ export function eventIncomeByDate(reservations, events) {
   return m;
 }
 
-// 指定月(YYYY-MM)の対応済み予約のバック合計（レポートのイベントインセンティブ用）。
+// 指定月(YYYY-MM)の対応済み予約の歩合合計（レポートのイベント歩合用）。
 export function eventIncomeInMonth(reservations, events, month) {
   return (reservations || []).reduce((s, r) => {
     if (!r.done) return s;
@@ -103,8 +103,8 @@ export function reservationLabel(res) {
   return parts.length ? parts.join(' / ') : '予約';
 }
 
-// 指定月(YYYY-MM)の対応済みバックを「イベント名ごと＋明細」で返す（レポートの別枠表示用）。
-// 返り値: [{ eventId, name, total, items: [{ label, count, amount }] }]（金額降順・バック0は除外）。
+// 指定月(YYYY-MM)の対応済み歩合を「イベント名ごと＋明細」で返す（レポートの別枠表示用）。
+// 返り値: [{ eventId, name, total, items: [{ label, count, amount }] }]（金額降順・歩合0は除外）。
 // item の label は 銘柄→なければ参加者名（控え）→「予約」の順。
 export function eventIncentiveDetail(reservations, events, month) {
   const groups = new Map();

@@ -7,7 +7,7 @@ export async function renderReport(el) {
   const wage = state.profile, items = state.backItems;
   const cur = shiftsOfMonth();
   const pl = plStatement(wage, items, cur);
-  // イベント予約（対応済み）の当月合計＝イベントインセンティブ。通常インセンティブに加算する。
+  // イベント予約（対応済み）の当月合計＝イベント歩合。通常歩合に加算する。
   // 表示はイベント名ごとの行に分けて判別できるようにする。
   const eventInc = eventIncomeInMonth(state.reservations, state.events, state.month);
   const eventDetail = eventIncentiveDetail(state.reservations, state.events, state.month);
@@ -19,13 +19,13 @@ export async function renderReport(el) {
   const rankingBase = backRanking(wage, items, cur);
   const medals = ['🥇', '🥈', '🥉'];
 
-  // インセンティブ TOP3 を金額順／数量順で並べ替えて描画する（同じ card 内でトグル）
+  // 歩合 TOP3 を金額順／数量順で並べ替えて描画する（同じ card 内でトグル）
   const rankRows = (mode) => {
     const sorted = [...rankingBase].sort((a, b) =>
       mode === 'count' ? (b.count - a.count) || (b.amount - a.amount)
                        : (b.amount - a.amount) || (b.count - a.count));
     const top = sorted.slice(0, 3);
-    if (top.length === 0) return '<p class="muted">まだインセンティブ実績がありません。</p>';
+    if (top.length === 0) return '<p class="muted">まだ歩合実績がありません。</p>';
     return top.map((r, i) => `<div class="row" style="justify-content:space-between;margin-bottom:6px">
         <span>${medals[i]} ${esc(r.name)}</span>
         <span><strong>${yen(r.amount)}</strong> <span class="muted">${r.count}件 / ${r.pct}%</span></span>
@@ -46,17 +46,17 @@ export async function renderReport(el) {
 
   const hasData = pl.wageRows.length || pl.incentiveRows.length || pl.penaltyRows.length || eventInc;
   const incentiveCount = pl.incentiveRows.reduce((s, r) => s + (r.count || 0), 0);
-  // イベントインセンティブの別枠：イベント名をタイトルに、配下へ 銘柄×本数・金額 を明細表示。
+  // イベント歩合の別枠：イベント名をタイトルに、配下へ 銘柄×本数・金額 を明細表示。
   const eventBlock = eventInc ? `
-    <div class="pl-section-head" style="margin-top:14px">イベントインセンティブ</div>
+    <div class="pl-section-head" style="margin-top:14px">イベント歩合</div>
     ${eventDetail.map((ev) => `
       <div class="pl-event-title">🎉 ${esc(ev.name)}</div>
       ${ev.items.map((it) => line(it.label, it.amount, '', it.count)).join('')}
     `).join('')}
-    ${subtotal('イベントインセンティブ 小計', eventInc)}
+    ${subtotal('イベント歩合 小計', eventInc)}
   ` : '';
 
-  // P/L 本文（全体／インセンティブのみ を切替）
+  // P/L 本文（全体／歩合のみ を切替）
   const plFull = () => `
     <div class="pl-section-head">売上（収入）</div>
     ${pl.wageRows.map((r) => line(r.label, r.amount)).join('')}
@@ -64,7 +64,7 @@ export async function renderReport(el) {
     ${pl.incentiveRows.length ? `
       <div class="pl-gap"></div>
       ${pl.incentiveRows.map((r) => line(r.label, r.amount, '', r.count)).join('')}
-      ${subtotal('インセンティブ 小計', pl.incentiveTotal)}
+      ${subtotal('歩合 小計', pl.incentiveTotal)}
     ` : ''}
     ${eventBlock}
     ${subtotal('収入合計', grossIncomeAll)}
@@ -78,11 +78,11 @@ export async function renderReport(el) {
       <strong>${yen(netAll)}</strong>
     </div>`;
 
-  // インセンティブのみ：数量と額を項目別に並べ、末尾に合計（数量＋額）
+  // 歩合のみ：数量と額を項目別に並べ、末尾に合計（数量＋額）
   const plIncentiveOnly = () => (pl.incentiveRows.length === 0 && !eventInc)
-    ? '<p class="muted">この月のインセンティブ実績がまだありません。</p>'
+    ? '<p class="muted">この月の歩合実績がまだありません。</p>'
     : `
-      <div class="pl-section-head">インセンティブのみ</div>
+      <div class="pl-section-head">歩合のみ</div>
       ${pl.incentiveRows.map((r) => line(r.label, r.amount, '', r.count)).join('')}
       ${eventBlock}
       <div class="pl-net">
@@ -115,7 +115,7 @@ export async function renderReport(el) {
         <div class="row" style="justify-content:flex-end;margin-bottom:8px">
           <div class="seg" id="plSeg">
             <button class="seg-btn active" data-view="all">全体</button>
-            <button class="seg-btn" data-view="incentive">インセンティブのみ</button>
+            <button class="seg-btn" data-view="incentive">歩合のみ</button>
           </div>
         </div>
         <div id="plBody">${plBody('all')}</div>
@@ -124,7 +124,7 @@ export async function renderReport(el) {
 
     <div class="card" id="secRank">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
-        <h3 style="margin:0">インセンティブ TOP3</h3>
+        <h3 style="margin:0">歩合 TOP3</h3>
         <div class="seg" id="rankSeg">
           <button class="seg-btn active" data-rank="amount">金額順</button>
           <button class="seg-btn" data-rank="count">数量順</button>
@@ -139,7 +139,7 @@ export async function renderReport(el) {
       <label class="pdf-opt"><input type="checkbox" data-sec="secSummary" checked> 勤務サマリー</label>
       <label class="pdf-opt"><input type="checkbox" data-sec="secAnnual" checked> 年間推移グラフ</label>
       <label class="pdf-opt"><input type="checkbox" data-sec="secPl" checked> 収支明細（P/L）</label>
-      <label class="pdf-opt"><input type="checkbox" data-sec="secRank" checked> インセンティブ TOP3</label>
+      <label class="pdf-opt"><input type="checkbox" data-sec="secRank" checked> 歩合 TOP3</label>
       <button id="pdfBtn" class="btn" style="margin-top:10px">PDFで保存</button>
     </div>`;
 
@@ -188,7 +188,7 @@ export async function renderReport(el) {
           width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="url(#barGrad)"
           style="animation-delay:${i * 45}ms"/>`;
       }).join('');
-      legend = `<span class="lg lg-total">■ 合計（時給＋インセンティブ）</span>`;
+      legend = `<span class="lg lg-total">■ 合計（時給＋歩合）</span>`;
     } else {
       const poly = (key, cls, delay) => {
         const pts = series.map((d, i) => `${cx(i).toFixed(1)},${cy(d[key]).toFixed(1)}`).join(' ');
@@ -199,7 +199,7 @@ export async function renderReport(el) {
           style="animation-delay:${delay}ms"/>${dots}`;
       };
       body = poly('wage', 'line-wage', 0) + poly('incentive', 'line-inc', 220);
-      legend = `<span class="lg lg-wage">— 時給</span><span class="lg lg-inc">— インセンティブ</span>`;
+      legend = `<span class="lg lg-wage">— 時給</span><span class="lg lg-inc">— 歩合</span>`;
     }
     return `
       <svg class="annual-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="年間収入推移">
@@ -230,7 +230,7 @@ export async function renderReport(el) {
   });
   renderChart('bar');
 
-  // P/L の全体／インセンティブのみ トグル
+  // P/L の全体／歩合のみ トグル
   const plSeg = el.querySelector('#plSeg');
   if (plSeg) {
     const plBodyEl = el.querySelector('#plBody');
@@ -242,7 +242,7 @@ export async function renderReport(el) {
     });
   }
 
-  // インセンティブ TOP3 の並べ替えトグル（金額順／数量順）
+  // 歩合 TOP3 の並べ替えトグル（金額順／数量順）
   const rankSeg = el.querySelector('#rankSeg');
   const rankList = el.querySelector('#rankList');
   rankSeg.querySelectorAll('.seg-btn').forEach((b) => {

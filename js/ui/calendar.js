@@ -35,9 +35,9 @@ export async function renderCalendar(el) {
     const s = byDate.get(iso);
     let body = '', cls = '';
     if (iso === today) cls = 'is-today';
-    const evAmt = eventIncByDate.get(iso) || 0; // その日のイベントインセンティブ（対応済み）
+    const evAmt = eventIncByDate.get(iso) || 0; // その日のイベント歩合（対応済み）
     if (s && s.confirmed) {
-      // 時給＋インセンティブ＋イベントインセンティブを合算表示
+      // 時給＋歩合＋イベント歩合を合算表示
       body = `<div class="cal-amt">${yen(shiftTotal(wage, items, s) + evAmt)}</div>`;
       cls += ' has-confirmed';
     } else if (s) {
@@ -142,7 +142,7 @@ export async function renderCalendar(el) {
 
   const recalc = () => {
     collectDraft();
-    // その日のイベントインセンティブ（対応済み）も合計・インセンティブに含める
+    // その日のイベント歩合（対応済み）も合計・歩合に含める
     const evAmt = eventIncByDate.get(draft.date) || 0;
     q('#sheetTotal').textContent = yen(shiftTotal(state.profile, state.backItems, draft) + evAmt);
     q('#sheetInc').textContent = yen(shiftBackTotal(state.backItems, draft) + evAmt);
@@ -171,7 +171,7 @@ export async function renderCalendar(el) {
       </button>`;
     };
     const itemsHtml = state.backItems.length === 0
-      ? '<p class="muted">先に「設定」でインセンティブ項目を登録してください。</p>'
+      ? '<p class="muted">先に「設定」で歩合項目を登録してください。</p>'
       : `<div class="cat-tabs" id="chipTabs"></div><div class="chip-grid" id="chipGrid"></div>`;
 
     const dayTodos = state.todos.filter((t) => t.due === draft.date);
@@ -197,7 +197,7 @@ export async function renderCalendar(el) {
 
     const dayEvAmt = eventIncByDate.get(draft.date) || 0;
     const dayEventHtml = dayEvAmt
-      ? `<div class="sheet-bday">🎉 イベントインセンティブ（対応済み） ${yen(dayEvAmt)}</div>`
+      ? `<div class="sheet-bday">🎉 イベント歩合（対応済み） ${yen(dayEvAmt)}</div>`
       : '';
 
     body.innerHTML = `
@@ -214,13 +214,13 @@ export async function renderCalendar(el) {
         <label><input id="sNom" type="checkbox" ${draft.nomination ? 'checked' : ''}> 指名あり</label>
         <label><input id="sDou" type="checkbox" ${draft.douhan ? 'checked' : ''}> 同伴あり</label>
       </div>
-      <h4 style="margin:10px 0 4px">入ったインセンティブ</h4>
+      <h4 style="margin:10px 0 4px">入った歩合</h4>
       <p class="muted" style="margin:0 0 8px;font-size:12px">タップで＋1／長押しで件数・売上を調整</p>
       ${itemsHtml}
       <div class="sheet-total">
         <div>
           <span>この日の合計 <span class="muted" id="sheetHours"></span></span>
-          <div class="sheet-sub">うちインセンティブ <strong id="sheetInc">¥0</strong></div>
+          <div class="sheet-sub">うち歩合 <strong id="sheetInc">¥0</strong></div>
         </div>
         <strong id="sheetTotal" style="font-size:26px;font-weight:800">¥0</strong>
       </div>
@@ -248,7 +248,7 @@ export async function renderCalendar(el) {
       };
     });
 
-    // ===== インセンティブ・チップ：タップ＝＋1／長押し＝調整ポップオーバー =====
+    // ===== 歩合・チップ：タップ＝＋1／長押し＝調整ポップオーバー =====
     const chipGrid = q('#chipGrid');
     const pop = q('#chipPop'), popBg = q('#chipPopBg');
 

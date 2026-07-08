@@ -161,7 +161,7 @@ function drawEventDetail(el, eventId, opts) {
         <div><span class="muted">売上</span><strong>${yen(totals.amount)}</strong></div>
       </div>
       <div class="sheet-total" style="margin:10px 0 0">
-        <span>バック合計 <span class="muted">（対応済み分を計上）</span></span>
+        <span>歩合合計 <span class="muted">（対応済み分を計上）</span></span>
         <strong>${yen(totals.back)}</strong>
       </div>
     </div>
@@ -180,11 +180,11 @@ function drawEventDetail(el, eventId, opts) {
           <select id="rTiming" class="inline-input" style="width:100%">${timingOptions}</select></div>
         <div class="field"><label>売上日</label>
           <input id="rDate" type="date" class="inline-input" style="width:100%">
-          <div class="muted" style="font-size:12px;margin-top:4px;line-height:1.5">設定した売上日を含む月のレポートと、その日のカレンダーに、✓（対応済み）の予約がイベントインセンティブとして計上されます。</div>
+          <div class="muted" style="font-size:12px;margin-top:4px;line-height:1.5">設定した売上日を含む月のレポートと、その日のカレンダーに、✓（対応済み）の予約がイベント歩合として計上されます。</div>
           <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;white-space:nowrap">
             <input id="rDateTBD" type="checkbox"> 未定（後祝いなど・売上前）
           </label>
-          <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約はインセンティブに計上されません。後日、売上日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
+          <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約は歩合に計上されません。後日、売上日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
         </div>
         <div class="field"><label>シャンパン銘柄</label>
           <input id="rBottle" class="inline-input" type="text" maxlength="40" placeholder="モエ・アルマンド など" style="width:100%"></div>
@@ -201,13 +201,13 @@ function drawEventDetail(el, eventId, opts) {
           <div class="muted" style="font-size:12px;margin-top:2px">本数×単価で自動計算（手入力で上書きできます）＝売上</div>
         </div>
         <div class="row">
-          <div class="field" style="flex:1"><label>バック（円/件）</label>
+          <div class="field" style="flex:1"><label>歩合（円/件）</label>
             <input id="rBackFixed" class="inline-input" type="number" inputmode="numeric" min="0" placeholder="0" style="width:100%"></div>
-          <div class="field" style="flex:1"><label>バック（％）</label>
+          <div class="field" style="flex:1"><label>歩合（％）</label>
             <input id="rBackRate" class="inline-input" type="number" inputmode="numeric" min="0" placeholder="0" style="width:100%"></div>
         </div>
         <div class="muted" id="rBackView" style="font-size:12px;margin-bottom:4px"></div>
-        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ✓（対応済み）にすると、上のバックが売上日にレポート／カレンダーのイベントインセンティブへ加算されます。</div>
+        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ✓（対応済み）にすると、上の歩合が売上日にレポート／カレンダーのイベント歩合へ加算されます。</div>
         <div class="field"><label>メモ（任意）</label><input id="rMemo" class="inline-input" type="text" maxlength="80" style="width:100%"></div>
         <div class="row" style="gap:8px;margin-top:8px">
           <button type="button" class="btn btn-ghost" id="rCancel" style="flex:1">キャンセル</button>
@@ -259,18 +259,18 @@ function drawEventDetail(el, eventId, opts) {
   const rBackView = el.querySelector('#rBackView');
   let amountEdited = false; // 予定金額を手入力で上書きしたら自動計算を止める
 
-  // バック（計上額）のプレビュー：本数×円/件 ＋ 売上×％
+  // 歩合（計上額）のプレビュー：本数×円/件 ＋ 売上×％
   const updateBackView = () => {
     const back = reservationBack({
       count: rCount.value, bottle: rBottle.value, amount: rAmount.value,
       backFixed: rBackFixed.value, backRate: rBackRate.value,
     });
     rBackView.textContent = back
-      ? `→ イベントインセンティブ（計上額）${yen(back)}`
-      : 'バックを入れると、対応済み時にこの額が計上されます';
+      ? `→ イベント歩合（計上額）${yen(back)}`
+      : '歩合を入れると、対応済み時にこの額が計上されます';
   };
 
-  // 本数×単価で予定金額を自動計算（手入力で上書きされていない間だけ）＋バック再計算
+  // 本数×単価で予定金額を自動計算（手入力で上書きされていない間だけ）＋歩合再計算
   const recalcAmount = () => {
     if (!amountEdited) {
       const amt = autoAmount(rCount.value, rBottle.value, rUnit.value);
@@ -359,13 +359,13 @@ function drawEventDetail(el, eventId, opts) {
       if (!r.done) {
         const back = reservationBack(r);
         const msg = back
-          ? `この項目のインセンティブ（バック ${yen(back)}）を計上しますか？`
-          : 'この項目を対応済みにしますか？（バック未設定のため計上額は0円です）';
+          ? `この項目の歩合 ${yen(back)} を計上しますか？`
+          : 'この項目を対応済みにしますか？（歩合未設定のため計上額は0円です）';
         if (!(await confirmModal(msg, { okLabel: '計上する', danger: false }))) return;
       }
       await put('reservations', { ...r, done: !r.done });
       await loadAll();
-      toast(r.done ? '計上を取り消しました' : 'インセンティブを計上しました');
+      toast(r.done ? '計上を取り消しました' : '歩合を計上しました');
       drawEventDetail(el, eventId, opts);
     };
     li.querySelector('.res-dup').onclick = async () => {
@@ -402,7 +402,7 @@ function resLi(r) {
   else if (c) meta.push(`×${c}本`);
   if (r.amount) meta.push('売上' + yen(r.amount));
   const back = reservationBack(r);
-  if (back) meta.push('バック' + yen(back) + (r.done ? '（計上済）' : ''));
+  if (back) meta.push('歩合' + yen(back) + (r.done ? '（計上済）' : ''));
   return `<li class="res-item ${r.done ? 'done' : ''}" data-id="${esc(r.id)}">
     <button class="res-check todo-check" type="button" aria-label="${r.done ? '未対応に戻す' : '対応済みにする'}">${r.done ? '✓' : ''}</button>
     <div class="res-main">

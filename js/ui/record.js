@@ -41,9 +41,9 @@ export async function renderRecord(el) {
     </div>
 
     <div class="card">
-      <h3>インセンティブ・ペナルティ実績</h3>
+      <h3>歩合・ペナルティ実績</h3>
       ${state.backItems.length === 0
-        ? '<p class="muted">先に「設定」でインセンティブ項目を登録してください。</p>'
+        ? '<p class="muted">先に「設定」で歩合項目を登録してください。</p>'
         : state.backItems.map((it) => `
           <div class="field" data-row="${esc(it.id)}">
             <label>${esc(it.name)} <span class="muted">(${esc(itemLabel(it))})</span></label>

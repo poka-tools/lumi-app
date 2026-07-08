@@ -1,4 +1,4 @@
-// バック項目の入力欄の出し分け・ラベル整形（record と calendar で共用）。
+// 歩合項目の入力欄の出し分け・ラベル整形（record と calendar で共用）。
 // 旧モデル(type/value)・新モデル(fixedValue/rateValue・kind)の両対応。
 
 export const hasFixed = (it) =>

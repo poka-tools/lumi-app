@@ -89,7 +89,7 @@ export async function renderHome(el) {
       ${mom ? `<div class="muted">前月比 <span style="color:var(--pink);font-weight:600">${signedYen(mom.diff)}（${mom.pct >= 0 ? '+' : ''}${mom.pct}%）</span></div>` : ''}
       <div class="metric-grid">
         <div><span class="muted">時給(基本給)</span><strong>${yen(bd.wage)}</strong></div>
-        <div><span class="muted">インセンティブ</span><strong>${yen(bd.back)}</strong></div>
+        <div><span class="muted">歩合</span><strong>${yen(bd.back)}</strong></div>
         <div><span class="muted">総勤務時間</span><strong>${hours}h</strong></div>
       </div>
     </div>
@@ -103,7 +103,7 @@ export async function renderHome(el) {
         <canvas id="donut"></canvas>
         <div style="flex:1">
           <div><span style="color:#ff5c8a">●</span> 時給(基本給) <strong>${bd.wagePct}%</strong></div>
-          <div><span style="color:#a78bfa">●</span> インセンティブ <strong>${bd.backPct}%</strong></div>
+          <div><span style="color:#a78bfa">●</span> 歩合 <strong>${bd.backPct}%</strong></div>
         </div>
       </div>
     </div>

@@ -37,7 +37,7 @@ export async function renderSettings(el) {
     </div>
 
     <div class="card">
-      <h3>インセンティブ項目</h3>
+      <h3>歩合項目</h3>
       <div class="cat-tabs" id="itemTabs"></div>
       <datalist id="catOptions"></datalist>
       <div id="itemList"></div>
@@ -164,7 +164,7 @@ export async function renderSettings(el) {
     const order = state.backItems.length;
     // 特定タブを選択中なら、その分類で新規作成（作業を続けやすく）
     const category = activeCat === '全て' || activeCat === '未分類' ? '' : activeCat;
-    await put('backItems', { id: uid(), name: '新規インセンティブ', kind: 'income', fixedValue: 0, rateValue: 0, category, order });
+    await put('backItems', { id: uid(), name: '新規歩合', kind: 'income', fixedValue: 0, rateValue: 0, category, order });
     await loadAll();
     renderTabs();
     renderItems();

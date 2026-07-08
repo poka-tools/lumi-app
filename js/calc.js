@@ -18,7 +18,7 @@ export function workedHours(shift) {
   return mins / 60;
 }
 
-// バック額。後方互換: 旧 type:'fixed'/'rate'+value はそのまま。
+// 歩合額。後方互換: 旧 type:'fixed'/'rate'+value はそのまま。
 // 新モデル: fixedValue(円/件) と rateValue(％) の併用に対応。
 // kind:'penalty' の項目はマイナス（罰金）として扱う。
 export function backAmount(item, entry) {
@@ -125,7 +125,7 @@ export function backRanking(hourlyWage, items, shifts) {
   return sums.filter((x) => x.amount !== 0 || x.count !== 0).sort((a, b) => b.amount - a.amount);
 }
 // 損益計算書（P/L）スタイルの収支内訳。設定項目に沿って行を構成する。
-// 時給は適用レート（基本/指名/同伴）と深夜手当に分解、バックは項目別に収入/ペナルティへ振り分ける。
+// 時給は適用レート（基本/指名/同伴）と深夜手当に分解、歩合は項目別に収入/ペナルティへ振り分ける。
 export function plStatement(wage, items, shifts) {
   const w = normalizeWage(wage);
   const sh = shifts || [];
@@ -146,7 +146,7 @@ export function plStatement(wage, items, shifts) {
   if (night) wageRows.push({ label: '深夜手当', amount: night });
   const wageTotal = base + nom + dou + night;
 
-  // --- バック項目（収入=インセンティブ / ペナルティ=控除） ---
+  // --- 歩合項目（収入=歩合 / ペナルティ=控除） ---
   const incentiveRows = [], penaltyRows = [];
   for (const it of (items || [])) {
     let amount = 0, count = 0;
@@ -174,7 +174,7 @@ export function plStatement(wage, items, shifts) {
   };
 }
 
-// 指定年(西暦)の月次収入推移。各月の 時給合計 / インセンティブ合計 / 合算 を返す（1〜12月・欠損月は0）。
+// 指定年(西暦)の月次収入推移。各月の 時給合計 / 歩合合計 / 合算 を返す（1〜12月・欠損月は0）。
 export function annualSeries(wage, items, shifts, year) {
   const out = [];
   for (let m = 1; m <= 12; m++) {
