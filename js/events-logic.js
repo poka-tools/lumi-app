@@ -32,34 +32,70 @@ export function reservationsOfEvent(reservations, eventId) {
       || (a.createdAt || 0) - (b.createdAt || 0));
 }
 
-// 実効本数：本数が入力されていればその値、未入力でも銘柄があれば最低1本とみなす。
+// 実効数量：数量が入力されていればその値、未入力でも品名(銘柄/商品)があれば最低1とみなす。
 export function effectiveCount(res) {
   const c = Number(res && res.count) || 0;
   if (c > 0) return c;
-  return (res && res.bottle) ? 1 : 0;
+  return (res && (res.bottle || res.label)) ? 1 : 0;
 }
 
-// 予定金額の自動計算（実効本数 × 単価）。
-export function autoAmount(count, bottle, unitPrice) {
-  return effectiveCount({ count, bottle }) * (Number(unitPrice) || 0);
+// 予定金額の自動計算（実効数量 × 単価）。第2引数は品名（有無で1扱い判定）。
+export function autoAmount(count, label, unitPrice) {
+  return effectiveCount({ count, label }) * (Number(unitPrice) || 0);
 }
 
-// 予約1件の歩合（自分の取り分）＝ 本数×歩合(円/件) ＋ 売上(予定金額)×歩合(％)/100。
+// 1商品アイテムの実効数量。
+export function itemCount(item) {
+  const c = Number(item && item.count) || 0;
+  if (c > 0) return c;
+  return (item && item.label && String(item.label).trim()) ? 1 : 0;
+}
+// 1商品アイテムの歩合（取り分）＝ 数量×歩合(円/件) ＋ 売上×歩合(％)/100。
+export function itemBack(item) {
+  const fixed = Number(item && item.backFixed) || 0;
+  const rate = Number(item && item.backRate) || 0;
+  const sales = Number(item && item.amount) || 0;
+  return itemCount(item) * fixed + sales * rate / 100;
+}
+// 予約の商品アイテム配列。新モデルは res.items、旧モデル(単一商品)は1アイテムへ変換。
+export function reservationItems(res) {
+  if (res && Array.isArray(res.items) && res.items.length) return res.items;
+  const label = [res && res.bottle, res && res.product]
+    .map((x) => (x == null ? '' : String(x).trim())).filter(Boolean).join(' / ');
+  return [{
+    label,
+    count: Number(res && res.count) || 0,
+    unitPrice: Number(res && res.unitPrice) || 0,
+    amount: Number(res && res.amount) || 0,
+    backFixed: Number(res && res.backFixed) || 0,
+    backRate: Number(res && res.backRate) || 0,
+  }];
+}
+// 予約の合計（全アイテム集計）。
+export function reservationCount(res) {
+  return reservationItems(res).reduce((s, it) => s + itemCount(it), 0);
+}
+export function reservationSales(res) {
+  return reservationItems(res).reduce((s, it) => s + (Number(it.amount) || 0), 0);
+}
 export function reservationBack(res) {
-  const c = effectiveCount(res);
-  const fixed = Number(res && res.backFixed) || 0;
-  const rate = Number(res && res.backRate) || 0;
-  const sales = Number(res && res.amount) || 0;
-  return c * fixed + sales * rate / 100;
+  return reservationItems(res).reduce((s, it) => s + itemBack(it), 0);
+}
+// 予約の品目サマリー（名簿の行表示用）: 「品名 ×数量」を「/」で連結。
+export function reservationSummary(res) {
+  return reservationItems(res)
+    .filter((it) => (it.label && it.label.trim()) || itemCount(it))
+    .map((it) => ((it.label && it.label.trim()) || '商品') + (itemCount(it) ? ` ×${itemCount(it)}` : ''))
+    .join(' / ');
 }
 
-// 指定イベントの集計（予約件数・本数・売上合計・歩合合計）。本数は実効本数で合計。
+// 指定イベントの集計（予約件数・数量・売上合計・歩合合計）。
 export function eventTotals(reservations, eventId) {
   const rows = (reservations || []).filter((r) => r.eventId === eventId);
   return rows.reduce((acc, r) => {
     acc.count += 1;
-    acc.bottles += effectiveCount(r);
-    acc.amount += Number(r.amount) || 0;
+    acc.bottles += reservationCount(r);
+    acc.amount += reservationSales(r);
     acc.back += reservationBack(r);
     return acc;
   }, { count: 0, bottles: 0, amount: 0, back: 0 });
@@ -94,34 +130,26 @@ export function eventIncomeInMonth(reservations, events, month) {
   }, 0);
 }
 
-// 予約の品目ラベル：シャンパン銘柄＋セットメニュー・その他商品を「/」で連結。
-// どちらも未設定なら「予約」。顧客名は使わない（レポートは品目名で表示するため）。
-export function reservationLabel(res) {
-  const parts = [res && res.bottle, res && res.product]
-    .map((x) => (x == null ? '' : String(x).trim()))
-    .filter(Boolean);
-  return parts.length ? parts.join(' / ') : '予約';
-}
-
-// 指定月(YYYY-MM)の対応済み歩合を「イベント名ごと＋明細」で返す（レポートの別枠表示用）。
+// 指定月(YYYY-MM)の対応済み歩合を「イベント名ごと＋明細（商品名別）」で返す（レポートの別枠用）。
 // 返り値: [{ eventId, name, total, items: [{ label, count, amount }] }]（金額降順・歩合0は除外）。
-// item の label は 銘柄→なければ参加者名（控え）→「予約」の順。
+// 全予約の全商品アイテムを走査し、同じ商品名は数量・金額をまとめて合算する。
 export function eventIncentiveDetail(reservations, events, month) {
   const groups = new Map();
   for (const r of (reservations || [])) {
     if (!r.done) continue;
     if (reservationDate(r, events).slice(0, 7) !== month) continue;
-    const amount = reservationBack(r);
-    if (!amount) continue;
-    if (!groups.has(r.eventId)) groups.set(r.eventId, { total: 0, items: new Map() });
-    const g = groups.get(r.eventId);
-    // 同じ品目名は数量・金額をまとめて1行に合算する
-    const label = reservationLabel(r);
-    const cur = g.items.get(label) || { label, count: 0, amount: 0 };
-    cur.count += effectiveCount(r);
-    cur.amount += amount;
-    g.items.set(label, cur);
-    g.total += amount;
+    for (const it of reservationItems(r)) {
+      const amount = itemBack(it);
+      if (!amount) continue;
+      if (!groups.has(r.eventId)) groups.set(r.eventId, { total: 0, items: new Map() });
+      const g = groups.get(r.eventId);
+      const label = (it.label && String(it.label).trim()) || '商品';
+      const cur = g.items.get(label) || { label, count: 0, amount: 0 };
+      cur.count += itemCount(it);
+      cur.amount += amount;
+      g.items.set(label, cur);
+      g.total += amount;
+    }
   }
   const out = [];
   for (const [eventId, g] of groups) {

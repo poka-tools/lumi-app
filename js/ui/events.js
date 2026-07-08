@@ -6,7 +6,7 @@ import { confirmModal } from './confirm.js';
 import {
   TIMINGS, timingLabel, resolveResName, reservationsOfEvent,
   eventTotals, reservationCountByEvent, sortEvents, buildEventClone, cloneReservation,
-  effectiveCount, autoAmount, reservationBack,
+  autoAmount, reservationBack, reservationItems, reservationSales, reservationSummary, itemBack,
 } from '../events-logic.js';
 
 // イベントと配下の予約名簿をまとめて削除（一覧・詳細で共用）
@@ -152,7 +152,7 @@ function drawEventDetail(el, eventId, opts) {
       </div>
       <div class="metric-grid" style="margin-top:12px">
         <div><span class="muted">予約</span><strong>${totals.count}件</strong></div>
-        <div><span class="muted">本数</span><strong>${totals.bottles}本</strong></div>
+        <div><span class="muted">数量</span><strong>${totals.bottles}</strong></div>
         <div><span class="muted">売上</span><strong>${yen(totals.amount)}</strong></div>
       </div>
       <div class="sheet-total" style="margin:10px 0 0">
@@ -182,28 +182,11 @@ function drawEventDetail(el, eventId, opts) {
           </label>
           <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約は歩合に計上されません。後日、売上日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
         </div>
-        <div class="field"><label>シャンパン銘柄</label>
-          <input id="rBottle" class="inline-input" type="text" maxlength="40" placeholder="モエ・アルマンド など" style="width:100%"></div>
-        <div class="field"><label>セットメニュー・その他商品</label>
-          <input id="rProduct" class="inline-input" type="text" maxlength="40" placeholder="シャンパンタワー・フードセット など" style="width:100%"></div>
-        <div class="row">
-          <div class="field" style="flex:1"><label>本数</label>
-            <select id="rCount" class="inline-input" style="width:100%">${countOptions}</select></div>
-          <div class="field" style="flex:1"><label>単価（円/本）</label>
-            <input id="rUnit" class="inline-input" type="number" inputmode="numeric" min="0" placeholder="0" style="width:100%"></div>
-        </div>
-        <div class="field"><label>予定金額（円）</label>
-          <input id="rAmount" class="inline-input" type="number" inputmode="numeric" min="0" placeholder="0" style="width:100%">
-          <div class="muted" style="font-size:12px;margin-top:2px">本数×単価で自動計算（手入力で上書きできます）＝売上</div>
-        </div>
-        <div class="row">
-          <div class="field" style="flex:1"><label>歩合（円/件）</label>
-            <input id="rBackFixed" class="inline-input" type="number" inputmode="numeric" min="0" placeholder="0" style="width:100%"></div>
-          <div class="field" style="flex:1"><label>歩合（％）</label>
-            <input id="rBackRate" class="inline-input" type="number" inputmode="numeric" min="0" placeholder="0" style="width:100%"></div>
-        </div>
-        <div class="muted" id="rBackView" style="font-size:12px;margin-bottom:4px"></div>
-        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ✓（対応済み）にすると、上の歩合が売上日にレポート／カレンダーのイベント歩合へ加算されます。</div>
+        <h4 style="margin:14px 0 4px">商品（複数追加できます）</h4>
+        <div id="rItems"></div>
+        <button type="button" class="btn btn-ghost" id="rAddItem" style="margin-top:4px">＋ 商品を追加</button>
+        <div class="sheet-total" id="rResTotals" style="margin:12px 0"></div>
+        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ✓（対応済み）にすると、歩合の合計が売上日にレポート／カレンダーのイベント歩合へ加算されます。</div>
         <div class="field"><label>メモ（任意）</label><input id="rMemo" class="inline-input" type="text" maxlength="80" style="width:100%"></div>
         <div class="row" style="gap:8px;margin-top:8px">
           <button type="button" class="btn btn-ghost" id="rCancel" style="flex:1">キャンセル</button>
@@ -239,7 +222,6 @@ function drawEventDetail(el, eventId, opts) {
   const rDate = el.querySelector('#rDate');
   const rDateTBD = el.querySelector('#rDateTBD');
   const rTBDNote = el.querySelector('#rTBDNote');
-  const rBottle = el.querySelector('#rBottle');
   // 未定チェック時は日付入力を無効化（見た目も薄く）＋注意書きを表示
   const syncDateTBD = () => {
     rDate.disabled = rDateTBD.checked;
@@ -247,67 +229,114 @@ function drawEventDetail(el, eventId, opts) {
     rTBDNote.hidden = !rDateTBD.checked;
   };
   rDateTBD.onchange = syncDateTBD;
-  const rCount = el.querySelector('#rCount');
-  const rUnit = el.querySelector('#rUnit');
-  const rAmount = el.querySelector('#rAmount');
-  const rBackFixed = el.querySelector('#rBackFixed');
-  const rBackRate = el.querySelector('#rBackRate');
-  const rBackView = el.querySelector('#rBackView');
-  let amountEdited = false; // 予定金額を手入力で上書きしたら自動計算を止める
+  const rMemo = el.querySelector('#rMemo');
+  const rItems = el.querySelector('#rItems');
+  const rResTotals = el.querySelector('#rResTotals');
+  let formItems = [];
+  const blankItem = () => ({ label: '', count: 0, unitPrice: 0, amount: 0, backFixed: 0, backRate: 0, amountEdited: false });
 
-  // 歩合（計上額）のプレビュー：本数×円/件 ＋ 売上×％
-  const updateBackView = () => {
-    const back = reservationBack({
-      count: rCount.value, bottle: rBottle.value, amount: rAmount.value,
-      backFixed: rBackFixed.value, backRate: rBackRate.value,
-    });
-    rBackView.textContent = back
-      ? `→ イベント歩合（計上額）${yen(back)}`
-      : '歩合を入れると、対応済み時にこの額が計上されます';
+  // 予約全体の合計（売上・歩合）を表示
+  const updateResTotals = () => {
+    const back = reservationBack({ items: formItems });
+    const sales = reservationSales({ items: formItems });
+    rResTotals.innerHTML = `<span>合計 <span class="muted">売上 ${yen(sales)}</span></span><strong>歩合 ${yen(back)}</strong>`;
   };
 
-  // 本数×単価で予定金額を自動計算（手入力で上書きされていない間だけ）＋歩合再計算
-  const recalcAmount = () => {
-    if (!amountEdited) {
-      const amt = autoAmount(rCount.value, rBottle.value, rUnit.value);
-      rAmount.value = amt ? amt : '';
-    }
-    updateBackView();
+  const itemRowHtml = (it, i) => `
+    <div class="res-item-row" data-idx="${i}">
+      <div class="row" style="align-items:center;gap:8px">
+        <input class="ri-label inline-input" type="text" maxlength="40" placeholder="商品名（オリシャン・フードセット 等）" value="${esc(it.label || '')}" style="flex:1">
+        <button type="button" class="ri-del" aria-label="この商品を削除">✕</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <div class="field" style="flex:1"><label>数量</label>
+          <select class="ri-count inline-input" style="width:100%">${countOptions}</select></div>
+        <div class="field" style="flex:1"><label>単価（円）</label>
+          <input class="ri-unit inline-input" type="number" inputmode="numeric" min="0" placeholder="0" value="${it.unitPrice || ''}" style="width:100%"></div>
+      </div>
+      <div class="field" style="margin-top:6px"><label>予定金額（売上・円）</label>
+        <input class="ri-amount inline-input" type="number" inputmode="numeric" min="0" placeholder="0" value="${it.amount || ''}" style="width:100%">
+        <div class="muted" style="font-size:11px;margin-top:2px">数量×単価で自動計算（手入力で上書き可）</div></div>
+      <div class="row" style="margin-top:6px">
+        <div class="field" style="flex:1"><label>歩合（円/件）</label>
+          <input class="ri-bfixed inline-input" type="number" inputmode="numeric" min="0" placeholder="0" value="${it.backFixed || ''}" style="width:100%"></div>
+        <div class="field" style="flex:1"><label>歩合（％）</label>
+          <input class="ri-brate inline-input" type="number" inputmode="numeric" min="0" placeholder="0" value="${it.backRate || ''}" style="width:100%"></div>
+      </div>
+      <div class="muted ri-back" style="font-size:12px;margin-top:4px"></div>
+    </div>`;
+
+  const wireItemRow = (i) => {
+    const row = rItems.querySelector(`[data-idx="${i}"]`);
+    const q = (sel) => row.querySelector(sel);
+    const label = q('.ri-label'), count = q('.ri-count'), unit = q('.ri-unit'),
+      amount = q('.ri-amount'), bfixed = q('.ri-bfixed'), brate = q('.ri-brate'), backView = q('.ri-back');
+    count.value = formItems[i].count ? String(formItems[i].count) : '';
+    const showBack = () => { const b = itemBack(formItems[i]); backView.textContent = b ? `→ 歩合 ${yen(b)}` : ''; };
+    const readInputs = () => {
+      formItems[i].label = label.value;
+      formItems[i].count = Number(count.value) || 0;
+      formItems[i].unitPrice = Number(unit.value) || 0;
+      formItems[i].backFixed = Number(bfixed.value) || 0;
+      formItems[i].backRate = Number(brate.value) || 0;
+    };
+    const recalc = () => {
+      readInputs();
+      if (!formItems[i].amountEdited) {
+        const amt = autoAmount(formItems[i].count, formItems[i].label, formItems[i].unitPrice);
+        amount.value = amt ? amt : '';
+      }
+      formItems[i].amount = Number(amount.value) || 0;
+      showBack(); updateResTotals();
+    };
+    label.oninput = recalc;
+    count.onchange = recalc;
+    unit.oninput = recalc;
+    bfixed.oninput = recalc;
+    brate.oninput = recalc;
+    amount.oninput = () => { formItems[i].amountEdited = true; readInputs(); formItems[i].amount = Number(amount.value) || 0; showBack(); updateResTotals(); };
+    q('.ri-del').onclick = () => {
+      if (formItems.length > 1) formItems.splice(i, 1); else formItems[0] = blankItem();
+      renderItems();
+    };
+    showBack();
   };
 
-  // 顧客選択時：名前欄を隠し、好みのボトルを銘柄へ初期補完（空欄時のみ）
+  const renderItems = () => {
+    rItems.innerHTML = formItems.map(itemRowHtml).join('');
+    formItems.forEach((_, i) => wireItemRow(i));
+    updateResTotals();
+  };
+  el.querySelector('#rAddItem').onclick = () => { formItems.push(blankItem()); renderItems(); };
+
+  // 顧客選択時：名前欄を隠し、好みのボトルを先頭商品名へ初期補完（空欄時のみ）
   const syncCustPick = () => {
     const c = state.customers.find((x) => x.id === rCust.value);
     rNameField.hidden = !!c;
-    if (c && !rBottle.value && c.favoriteBottle) { rBottle.value = c.favoriteBottle; recalcAmount(); }
+    if (c && c.favoriteBottle && formItems[0] && !formItems[0].label) { formItems[0].label = c.favoriteBottle; renderItems(); }
   };
   rCust.onchange = syncCustPick;
-  rCount.onchange = recalcAmount;
-  rUnit.oninput = recalcAmount;
-  rBottle.oninput = recalcAmount;
-  rAmount.oninput = () => { amountEdited = true; updateBackView(); };
-  rBackFixed.oninput = updateBackView;
-  rBackRate.oninput = updateBackView;
 
   const openResForm = (res) => {
     editingResId = res ? res.id : null;
-    amountEdited = !!(res && res.amount); // 既存の金額があれば手入力扱いで尊重
     rCust.value = res ? (res.customerId || '') : '';
     rName.value = res ? (res.name || '') : '';
     el.querySelector('#rTiming').value = res ? (res.timing || 'day') : 'day';
     rDate.value = (res && res.date) || ev.date || todayIso();
     rDateTBD.checked = !!(res && res.dateTBD);
     syncDateTBD();
-    rBottle.value = res ? (res.bottle || '') : '';
-    el.querySelector('#rProduct').value = res ? (res.product || '') : '';
-    rCount.value = res && res.count ? String(res.count) : '';
-    rUnit.value = res && res.unitPrice ? res.unitPrice : '';
-    rAmount.value = res && res.amount ? res.amount : '';
-    rBackFixed.value = res && res.backFixed ? res.backFixed : '';
-    rBackRate.value = res && res.backRate ? res.backRate : '';
-    el.querySelector('#rMemo').value = res ? (res.memo || '') : '';
+    // 商品アイテムを作業配列へ（旧モデルの単一商品は1アイテムに変換される）
+    formItems = res
+      ? reservationItems(res).map((it) => ({
+          label: it.label || '', count: Number(it.count) || 0, unitPrice: Number(it.unitPrice) || 0,
+          amount: Number(it.amount) || 0, backFixed: Number(it.backFixed) || 0, backRate: Number(it.backRate) || 0,
+          amountEdited: !!(Number(it.amount)),
+        }))
+      : [blankItem()];
+    if (!formItems.length) formItems = [blankItem()];
+    rMemo.value = res ? (res.memo || '') : '';
+    renderItems();
     syncCustPick();
-    updateBackView();
     form.hidden = false;
     (rNameField.hidden ? el.querySelector('#rTiming') : rName).focus();
   };
@@ -321,6 +350,13 @@ function drawEventDetail(el, eventId, opts) {
     const name = cust ? cust.name : rName.value.trim();
     if (!name) { rName.focus(); return; } // 顧客未選択なら名前必須
     const base = editingResId ? state.reservations.find((x) => x.id === editingResId) : null;
+    // 空アイテム（品名・数量・金額いずれも無し）は保存しない
+    const items = formItems
+      .filter((it) => (it.label && it.label.trim()) || it.count || it.amount)
+      .map((it) => ({
+        label: (it.label || '').trim(), count: Number(it.count) || 0, unitPrice: Number(it.unitPrice) || 0,
+        amount: Number(it.amount) || 0, backFixed: Number(it.backFixed) || 0, backRate: Number(it.backRate) || 0,
+      }));
     await put('reservations', {
       id: editingResId || uid(),
       eventId,
@@ -329,14 +365,8 @@ function drawEventDetail(el, eventId, opts) {
       timing: el.querySelector('#rTiming').value || 'day',
       date: rDateTBD.checked ? '' : (rDate.value || ''),
       dateTBD: rDateTBD.checked,
-      bottle: rBottle.value.trim(),
-      product: el.querySelector('#rProduct').value.trim(),
-      count: Number(rCount.value) || 0,
-      unitPrice: Number(rUnit.value) || 0,
-      amount: Number(rAmount.value) || 0,
-      backFixed: Number(rBackFixed.value) || 0,
-      backRate: Number(rBackRate.value) || 0,
-      memo: el.querySelector('#rMemo').value.trim(),
+      items,
+      memo: rMemo.value.trim(),
       done: base ? !!base.done : false,
       createdAt: base ? base.createdAt : Date.now(),
     });
@@ -386,15 +416,10 @@ function drawEventDetail(el, eventId, opts) {
   };
 }
 
-// 予約1行のマークアップ（名前＋種別タグ・品目名×数量のみ）
+// 予約1行のマークアップ（名前＋種別タグ・商品名×数量のみ・複数商品は「/」連結）
 function resLi(r) {
   const name = resolveResName(r, state.customers);
-  const c = effectiveCount(r); // 銘柄あり・本数空欄は1本として表示
-  // 名簿は品目名（銘柄/商品）と数量のみ表示する
-  const goods = [r.bottle, r.product].filter((x) => x && x.trim()).map(esc);
-  let meta = '';
-  if (goods.length) meta = goods.join(' / ') + (c ? ` ×${c}` : '');
-  else if (c) meta = `×${c}本`;
+  const meta = esc(reservationSummary(r)); // 例: オリシャン ×3 / フードセット ×1
   // 名前の横に種別（当日/前祝い/後祝い）タグを表示
   const timingTag = r.timing ? `<span class="res-tag res-timing">${esc(timingLabel(r.timing))}</span>` : '';
   const outTag = r.customerId ? '' : '<span class="res-tag">未登録顧客</span>';
