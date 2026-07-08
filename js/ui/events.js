@@ -1,12 +1,12 @@
 import { state, loadAll } from '../state.js';
 import { put, del, uid } from '../db.js';
-import { esc, yen, shortDateJa } from '../format.js';
+import { esc, yen, shortDateJa, todayIso } from '../format.js';
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
 import {
   TIMINGS, timingLabel, resolveResName, reservationsOfEvent,
   eventTotals, reservationCountByEvent, sortEvents, buildEventClone, cloneReservation,
-  effectiveCount, autoAmount,
+  effectiveCount, autoAmount, reservationBack,
 } from '../events-logic.js';
 
 // イベントと配下の予約名簿をまとめて削除（一覧・詳細で共用）
@@ -158,7 +158,11 @@ function drawEventDetail(el, eventId, opts) {
       <div class="metric-grid" style="margin-top:12px">
         <div><span class="muted">予約</span><strong>${totals.count}件</strong></div>
         <div><span class="muted">本数</span><strong>${totals.bottles}本</strong></div>
-        <div><span class="muted">予定金額</span><strong>${yen(totals.amount)}</strong></div>
+        <div><span class="muted">売上</span><strong>${yen(totals.amount)}</strong></div>
+      </div>
+      <div class="sheet-total" style="margin:10px 0 0">
+        <span>バック合計 <span class="muted">（対応済み分を計上）</span></span>
+        <strong>${yen(totals.back)}</strong>
       </div>
     </div>
 
@@ -172,10 +176,16 @@ function drawEventDetail(el, eventId, opts) {
           <select id="rCust" class="inline-input" style="width:100%">${custOptions}</select></div>
         <div class="field" id="rNameField"><label>名前（リスト外の場合）</label>
           <input id="rName" class="inline-input" type="text" maxlength="40" placeholder="源氏名・呼び名など" style="width:100%"></div>
-        <div class="field"><label>種別</label>
-          <select id="rTiming" class="inline-input" style="width:100%">${timingOptions}</select></div>
+        <div class="row">
+          <div class="field" style="flex:1"><label>種別</label>
+            <select id="rTiming" class="inline-input" style="width:100%">${timingOptions}</select></div>
+          <div class="field" style="flex:1"><label>計上日</label>
+            <input id="rDate" type="date" class="inline-input" style="width:100%"></div>
+        </div>
         <div class="field"><label>シャンパン銘柄</label>
           <input id="rBottle" class="inline-input" type="text" maxlength="40" placeholder="モエ・アルマンド など" style="width:100%"></div>
+        <div class="field"><label>セットメニュー・その他商品</label>
+          <input id="rProduct" class="inline-input" type="text" maxlength="40" placeholder="シャンパンタワー・フードセット など" style="width:100%"></div>
         <div class="row">
           <div class="field" style="flex:1"><label>本数</label>
             <select id="rCount" class="inline-input" style="width:100%">${countOptions}</select></div>
@@ -184,8 +194,16 @@ function drawEventDetail(el, eventId, opts) {
         </div>
         <div class="field"><label>予定金額（円）</label>
           <input id="rAmount" class="inline-input" type="number" inputmode="numeric" min="0" placeholder="0" style="width:100%">
-          <div class="muted" style="font-size:12px;margin-top:2px">本数×単価で自動計算（手入力で上書きできます）</div>
+          <div class="muted" style="font-size:12px;margin-top:2px">本数×単価で自動計算（手入力で上書きできます）＝売上</div>
         </div>
+        <div class="row">
+          <div class="field" style="flex:1"><label>バック（円/件）</label>
+            <input id="rBackFixed" class="inline-input" type="number" inputmode="numeric" min="0" placeholder="0" style="width:100%"></div>
+          <div class="field" style="flex:1"><label>バック（％）</label>
+            <input id="rBackRate" class="inline-input" type="number" inputmode="numeric" min="0" placeholder="0" style="width:100%"></div>
+        </div>
+        <div class="muted" id="rBackView" style="font-size:12px;margin-bottom:4px"></div>
+        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ✓（対応済み）にすると、上のバックが計上日にレポート／カレンダーのイベントインセンティブへ加算されます。</div>
         <div class="field"><label>メモ（任意）</label><input id="rMemo" class="inline-input" type="text" maxlength="80" style="width:100%"></div>
         <div class="row" style="gap:8px;margin-top:8px">
           <button type="button" class="btn btn-ghost" id="rCancel" style="flex:1">キャンセル</button>
@@ -222,13 +240,29 @@ function drawEventDetail(el, eventId, opts) {
   const rCount = el.querySelector('#rCount');
   const rUnit = el.querySelector('#rUnit');
   const rAmount = el.querySelector('#rAmount');
+  const rBackFixed = el.querySelector('#rBackFixed');
+  const rBackRate = el.querySelector('#rBackRate');
+  const rBackView = el.querySelector('#rBackView');
   let amountEdited = false; // 予定金額を手入力で上書きしたら自動計算を止める
 
-  // 本数×単価で予定金額を自動計算（手入力で上書きされていない間だけ）
+  // バック（計上額）のプレビュー：本数×円/件 ＋ 売上×％
+  const updateBackView = () => {
+    const back = reservationBack({
+      count: rCount.value, bottle: rBottle.value, amount: rAmount.value,
+      backFixed: rBackFixed.value, backRate: rBackRate.value,
+    });
+    rBackView.textContent = back
+      ? `→ イベントインセンティブ（計上額）${yen(back)}`
+      : 'バックを入れると、対応済み時にこの額が計上されます';
+  };
+
+  // 本数×単価で予定金額を自動計算（手入力で上書きされていない間だけ）＋バック再計算
   const recalcAmount = () => {
-    if (amountEdited) return;
-    const amt = autoAmount(rCount.value, rBottle.value, rUnit.value);
-    rAmount.value = amt ? amt : '';
+    if (!amountEdited) {
+      const amt = autoAmount(rCount.value, rBottle.value, rUnit.value);
+      rAmount.value = amt ? amt : '';
+    }
+    updateBackView();
   };
 
   // 顧客選択時：名前欄を隠し、好みのボトルを銘柄へ初期補完（空欄時のみ）
@@ -241,7 +275,9 @@ function drawEventDetail(el, eventId, opts) {
   rCount.onchange = recalcAmount;
   rUnit.oninput = recalcAmount;
   rBottle.oninput = recalcAmount;
-  rAmount.oninput = () => { amountEdited = true; };
+  rAmount.oninput = () => { amountEdited = true; updateBackView(); };
+  rBackFixed.oninput = updateBackView;
+  rBackRate.oninput = updateBackView;
 
   const openResForm = (res) => {
     editingResId = res ? res.id : null;
@@ -249,12 +285,17 @@ function drawEventDetail(el, eventId, opts) {
     rCust.value = res ? (res.customerId || '') : '';
     rName.value = res ? (res.name || '') : '';
     el.querySelector('#rTiming').value = res ? (res.timing || 'day') : 'day';
+    el.querySelector('#rDate').value = (res && res.date) || ev.date || todayIso();
     rBottle.value = res ? (res.bottle || '') : '';
+    el.querySelector('#rProduct').value = res ? (res.product || '') : '';
     rCount.value = res && res.count ? String(res.count) : '';
     rUnit.value = res && res.unitPrice ? res.unitPrice : '';
     rAmount.value = res && res.amount ? res.amount : '';
+    rBackFixed.value = res && res.backFixed ? res.backFixed : '';
+    rBackRate.value = res && res.backRate ? res.backRate : '';
     el.querySelector('#rMemo').value = res ? (res.memo || '') : '';
     syncCustPick();
+    updateBackView();
     form.hidden = false;
     (rNameField.hidden ? el.querySelector('#rTiming') : rName).focus();
   };
@@ -274,10 +315,14 @@ function drawEventDetail(el, eventId, opts) {
       customerId: custId,
       name, // 控えのスナップショット（顧客削除時のフォールバック）
       timing: el.querySelector('#rTiming').value || 'day',
+      date: el.querySelector('#rDate').value || '',
       bottle: rBottle.value.trim(),
+      product: el.querySelector('#rProduct').value.trim(),
       count: Number(rCount.value) || 0,
       unitPrice: Number(rUnit.value) || 0,
       amount: Number(rAmount.value) || 0,
+      backFixed: Number(rBackFixed.value) || 0,
+      backRate: Number(rBackRate.value) || 0,
       memo: el.querySelector('#rMemo').value.trim(),
       done: base ? !!base.done : false,
       createdAt: base ? base.createdAt : Date.now(),
@@ -293,8 +338,17 @@ function drawEventDetail(el, eventId, opts) {
     const r = state.reservations.find((x) => x.id === li.dataset.id);
     if (!r) return;
     li.querySelector('.res-check').onclick = async () => {
+      // 未対応→対応済み（＝計上）にするときだけ、計上の許可を確認する
+      if (!r.done) {
+        const back = reservationBack(r);
+        const msg = back
+          ? `この項目のインセンティブ（バック ${yen(back)}）を計上しますか？`
+          : 'この項目を対応済みにしますか？（バック未設定のため計上額は0円です）';
+        if (!(await confirmModal(msg, { okLabel: '計上する', danger: false }))) return;
+      }
       await put('reservations', { ...r, done: !r.done });
       await loadAll();
+      toast(r.done ? '計上を取り消しました' : 'インセンティブを計上しました');
       drawEventDetail(el, eventId, opts);
     };
     li.querySelector('.res-dup').onclick = async () => {
@@ -324,9 +378,13 @@ function resLi(r) {
   const name = resolveResName(r, state.customers);
   const c = effectiveCount(r); // 銘柄あり・本数空欄は1本として表示
   const meta = [];
-  if (r.bottle) meta.push(esc(r.bottle) + (c ? ` ×${c}` : ''));
+  if (r.date) meta.push(shortDateJa(r.date));
+  const goods = [r.bottle, r.product].filter((x) => x && x.trim()).map(esc);
+  if (goods.length) meta.push(goods.join(' / ') + (c ? ` ×${c}` : ''));
   else if (c) meta.push(`×${c}本`);
-  if (r.amount) meta.push(yen(r.amount));
+  if (r.amount) meta.push('売上' + yen(r.amount));
+  const back = reservationBack(r);
+  if (back) meta.push('バック' + yen(back) + (r.done ? '（計上済）' : ''));
   return `<li class="res-item ${r.done ? 'done' : ''}" data-id="${esc(r.id)}">
     <button class="res-check todo-check" type="button" aria-label="${r.done ? '未対応に戻す' : '対応済みにする'}">${r.done ? '✓' : ''}</button>
     <div class="res-main">

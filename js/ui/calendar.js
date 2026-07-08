@@ -6,6 +6,7 @@ import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './back
 import { renderTodos } from './todos.js';
 import { confirmModal } from './confirm.js';
 import { visitCountByDate, visitsOnDate, birthdaysByDate } from '../customers-logic.js';
+import { eventIncomeByDate } from '../events-logic.js';
 
 export async function renderCalendar(el) {
   const [y, m] = state.month.split('-').map(Number);
@@ -24,6 +25,7 @@ export async function renderCalendar(el) {
   }
   const visitsByDate = visitCountByDate(state.visits);
   const bdaysByDate = birthdaysByDate(state.customers, state.month);
+  const eventIncByDate = eventIncomeByDate(state.reservations, state.events); // 対応済み予約の日別収入
   const today = todayIso();
 
   const cells = [];
@@ -33,14 +35,21 @@ export async function renderCalendar(el) {
     const s = byDate.get(iso);
     let body = '', cls = '';
     if (iso === today) cls = 'is-today';
+    const evAmt = eventIncByDate.get(iso) || 0; // その日のイベントインセンティブ（対応済み）
     if (s && s.confirmed) {
-      body = `<div class="cal-amt">${yen(shiftTotal(wage, items, s))}</div>`;
+      // 時給＋インセンティブ＋イベントインセンティブを合算表示
+      body = `<div class="cal-amt">${yen(shiftTotal(wage, items, s) + evAmt)}</div>`;
       cls += ' has-confirmed';
     } else if (s) {
       // 入力未完了＝出勤予定：時刻を表示
       body = `<div class="cal-amt planned">${esc(s.start || '')}〜</div><div class="cal-tag">予定</div>`;
       cls += ' has-draft';
+    } else if (evAmt) {
+      // シフトは無いがイベント収入がある日
+      body = `<div class="cal-amt">${yen(evAmt)}</div>`;
+      cls += ' has-confirmed';
     }
+    const evMark = evAmt ? '<div class="cal-ev">🎉</div>' : '';
     const dueT = todosByDate.get(iso) || [];
     const pend = dueT.filter((t) => !t.done).length;
     const todoMark = dueT.length
@@ -51,7 +60,7 @@ export async function renderCalendar(el) {
     const bdayNames = bdaysByDate.get(iso);
     const bdayMark = bdayNames ? `<div class="cal-bday">🎂${bdayNames.length > 1 ? bdayNames.length : ''}</div>` : '';
     cells.push(`<div class="cal-cell ${cls}" data-date="${esc(iso)}">
-      <div class="cal-day">${d}</div>${body}${todoMark}${visitMark}${bdayMark}</div>`);
+      <div class="cal-day">${d}</div>${body}${todoMark}${visitMark}${bdayMark}${evMark}</div>`);
   }
 
   el.innerHTML = `
@@ -133,8 +142,10 @@ export async function renderCalendar(el) {
 
   const recalc = () => {
     collectDraft();
-    q('#sheetTotal').textContent = yen(shiftTotal(state.profile, state.backItems, draft));
-    q('#sheetInc').textContent = yen(shiftBackTotal(state.backItems, draft));
+    // その日のイベントインセンティブ（対応済み）も合計・インセンティブに含める
+    const evAmt = eventIncByDate.get(draft.date) || 0;
+    q('#sheetTotal').textContent = yen(shiftTotal(state.profile, state.backItems, draft) + evAmt);
+    q('#sheetInc').textContent = yen(shiftBackTotal(state.backItems, draft) + evAmt);
     q('#sheetHours').textContent = workedHours(draft) ? `実働 ${workedHours(draft)}h` : '';
   };
 
@@ -184,10 +195,16 @@ export async function renderCalendar(el) {
       ? `<div class="sheet-bday">🎂 ${dayBdays.map((n) => esc(n)).join('・')} さんのお誕生日</div>`
       : '';
 
+    const dayEvAmt = eventIncByDate.get(draft.date) || 0;
+    const dayEventHtml = dayEvAmt
+      ? `<div class="sheet-bday">🎉 イベントインセンティブ（対応済み） ${yen(dayEvAmt)}</div>`
+      : '';
+
     body.innerHTML = `
       ${dayTodosHtml}
       ${dayVisitsHtml}
       ${dayBdayHtml}
+      ${dayEventHtml}
       <div class="row">
         <div class="field" style="flex:1"><label>開始</label><input id="sStart" type="time" value="${esc(draft.start || '20:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="sEnd" type="time" value="${esc(draft.end || '01:00')}"></div>

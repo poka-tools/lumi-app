@@ -1,11 +1,19 @@
 import { state, shiftsOfMonth } from '../state.js';
 import { plStatement, annualSeries, monthlyWorkedHours, backRanking } from '../calc.js';
 import { yen, signedYen, esc } from '../format.js';
+import { eventIncomeInMonth, eventIncentiveDetail } from '../events-logic.js';
 
 export async function renderReport(el) {
   const wage = state.profile, items = state.backItems;
   const cur = shiftsOfMonth();
   const pl = plStatement(wage, items, cur);
+  // イベント予約（対応済み）の当月合計＝イベントインセンティブ。通常インセンティブに加算する。
+  // 表示はイベント名ごとの行に分けて判別できるようにする。
+  const eventInc = eventIncomeInMonth(state.reservations, state.events, state.month);
+  const eventDetail = eventIncentiveDetail(state.reservations, state.events, state.month);
+  const incentiveTotalAll = pl.incentiveTotal + eventInc;
+  const grossIncomeAll = pl.grossIncome + eventInc;
+  const netAll = pl.net + eventInc;
   const year = Number(state.month.slice(0, 4));
   const series = annualSeries(wage, items, state.shifts, year);
   const rankingBase = backRanking(wage, items, cur);
@@ -36,8 +44,17 @@ export async function renderReport(el) {
       <span class="pl-amt">${amount < 0 ? signedYen(amount) : yen(amount)}</span>
     </div>`;
 
-  const hasData = pl.wageRows.length || pl.incentiveRows.length || pl.penaltyRows.length;
+  const hasData = pl.wageRows.length || pl.incentiveRows.length || pl.penaltyRows.length || eventInc;
   const incentiveCount = pl.incentiveRows.reduce((s, r) => s + (r.count || 0), 0);
+  // イベントインセンティブの別枠：イベント名をタイトルに、配下へ 銘柄×本数・金額 を明細表示。
+  const eventBlock = eventInc ? `
+    <div class="pl-section-head" style="margin-top:14px">イベントインセンティブ</div>
+    ${eventDetail.map((ev) => `
+      <div class="pl-event-title">🎉 ${esc(ev.name)}</div>
+      ${ev.items.map((it) => line(it.label, it.amount, '', it.count)).join('')}
+    `).join('')}
+    ${subtotal('イベントインセンティブ 小計', eventInc)}
+  ` : '';
 
   // P/L 本文（全体／インセンティブのみ を切替）
   const plFull = () => `
@@ -49,7 +66,8 @@ export async function renderReport(el) {
       ${pl.incentiveRows.map((r) => line(r.label, r.amount, '', r.count)).join('')}
       ${subtotal('インセンティブ 小計', pl.incentiveTotal)}
     ` : ''}
-    ${subtotal('収入合計', pl.grossIncome)}
+    ${eventBlock}
+    ${subtotal('収入合計', grossIncomeAll)}
     ${pl.penaltyRows.length ? `
       <div class="pl-section-head" style="margin-top:14px">控除（ペナルティ）</div>
       ${pl.penaltyRows.map((r) => line(r.label, r.amount, 'pl-neg', r.count)).join('')}
@@ -57,18 +75,19 @@ export async function renderReport(el) {
     ` : ''}
     <div class="pl-net">
       <span>差引 最終合計</span>
-      <strong>${yen(pl.net)}</strong>
+      <strong>${yen(netAll)}</strong>
     </div>`;
 
   // インセンティブのみ：数量と額を項目別に並べ、末尾に合計（数量＋額）
-  const plIncentiveOnly = () => pl.incentiveRows.length === 0
+  const plIncentiveOnly = () => (pl.incentiveRows.length === 0 && !eventInc)
     ? '<p class="muted">この月のインセンティブ実績がまだありません。</p>'
     : `
       <div class="pl-section-head">インセンティブのみ</div>
       ${pl.incentiveRows.map((r) => line(r.label, r.amount, '', r.count)).join('')}
+      ${eventBlock}
       <div class="pl-net">
         <span>合計<span class="pl-count">${incentiveCount}件</span></span>
-        <strong>${yen(pl.incentiveTotal)}</strong>
+        <strong>${yen(incentiveTotalAll)}</strong>
       </div>`;
 
   const plBody = (view) => view === 'incentive' ? plIncentiveOnly() : plFull();

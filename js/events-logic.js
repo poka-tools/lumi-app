@@ -44,15 +44,84 @@ export function autoAmount(count, bottle, unitPrice) {
   return effectiveCount({ count, bottle }) * (Number(unitPrice) || 0);
 }
 
-// 指定イベントの集計（予約件数・本数合計・予定金額合計）。本数は実効本数で合計。
+// 予約1件のバック（自分の取り分）＝ 本数×バック(円/件) ＋ 売上(予定金額)×バック(％)/100。
+export function reservationBack(res) {
+  const c = effectiveCount(res);
+  const fixed = Number(res && res.backFixed) || 0;
+  const rate = Number(res && res.backRate) || 0;
+  const sales = Number(res && res.amount) || 0;
+  return c * fixed + sales * rate / 100;
+}
+
+// 指定イベントの集計（予約件数・本数・売上合計・バック合計）。本数は実効本数で合計。
 export function eventTotals(reservations, eventId) {
   const rows = (reservations || []).filter((r) => r.eventId === eventId);
   return rows.reduce((acc, r) => {
     acc.count += 1;
     acc.bottles += effectiveCount(r);
     acc.amount += Number(r.amount) || 0;
+    acc.back += reservationBack(r);
     return acc;
-  }, { count: 0, bottles: 0, amount: 0 });
+  }, { count: 0, bottles: 0, amount: 0, back: 0 });
+}
+
+// 予約の計上日：個別日付があればそれ、無ければ所属イベントの開催日にフォールバック。
+export function reservationDate(res, events) {
+  if (res && res.date) return res.date;
+  const ev = (events || []).find((e) => e.id === (res && res.eventId));
+  return ev ? (ev.date || '') : '';
+}
+
+// 対応済み(done)の予約のバック（取り分）を計上日ごとに合計（カレンダー用）Map<date, back>。
+export function eventIncomeByDate(reservations, events) {
+  const m = new Map();
+  for (const r of (reservations || [])) {
+    if (!r.done) continue;
+    const d = reservationDate(r, events);
+    if (!d) continue;
+    m.set(d, (m.get(d) || 0) + reservationBack(r));
+  }
+  return m;
+}
+
+// 指定月(YYYY-MM)の対応済み予約のバック合計（レポートのイベントインセンティブ用）。
+export function eventIncomeInMonth(reservations, events, month) {
+  return (reservations || []).reduce((s, r) => {
+    if (!r.done) return s;
+    return reservationDate(r, events).slice(0, 7) === month ? s + reservationBack(r) : s;
+  }, 0);
+}
+
+// 予約の品目ラベル：シャンパン銘柄＋セットメニュー・その他商品を「/」で連結。
+// どちらも未設定なら「予約」。顧客名は使わない（レポートは品目名で表示するため）。
+export function reservationLabel(res) {
+  const parts = [res && res.bottle, res && res.product]
+    .map((x) => (x == null ? '' : String(x).trim()))
+    .filter(Boolean);
+  return parts.length ? parts.join(' / ') : '予約';
+}
+
+// 指定月(YYYY-MM)の対応済みバックを「イベント名ごと＋明細」で返す（レポートの別枠表示用）。
+// 返り値: [{ eventId, name, total, items: [{ label, count, amount }] }]（金額降順・バック0は除外）。
+// item の label は 銘柄→なければ参加者名（控え）→「予約」の順。
+export function eventIncentiveDetail(reservations, events, month) {
+  const groups = new Map();
+  for (const r of (reservations || [])) {
+    if (!r.done) continue;
+    if (reservationDate(r, events).slice(0, 7) !== month) continue;
+    const amount = reservationBack(r);
+    if (!amount) continue;
+    if (!groups.has(r.eventId)) groups.set(r.eventId, { total: 0, items: [] });
+    const g = groups.get(r.eventId);
+    g.items.push({ label: reservationLabel(r), count: effectiveCount(r), amount });
+    g.total += amount;
+  }
+  const out = [];
+  for (const [eventId, g] of groups) {
+    const ev = (events || []).find((e) => e.id === eventId);
+    out.push({ eventId, name: ev ? ev.name : '(削除済みイベント)', total: g.total, items: g.items });
+  }
+  return out.sort((a, b) => b.total - a.total);
 }
 
 // イベントごとの予約件数 Map<eventId, count>（一覧バッジ用）。
