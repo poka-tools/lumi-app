@@ -122,15 +122,10 @@ function drawEventDetail(el, eventId, opts) {
   const rows = reservationsOfEvent(state.reservations, eventId);
   const totals = eventTotals(state.reservations, eventId);
 
-  // タイミング種別ごとにグループ表示
-  const groupHtml = TIMINGS.map((t) => {
-    const grp = rows.filter((r) => (r.timing || 'day') === t.key);
-    if (!grp.length) return '';
-    return `<div class="res-group">
-      <div class="res-group-head">${t.label}<span class="muted">（${grp.length}件）</span></div>
-      <ul class="res-list">${grp.map(resLi).join('')}</ul>
-    </div>`;
-  }).join('') || '<p class="muted" style="margin:10px 0 0">まだ予約がありません。「＋予約を追加」から登録できます。</p>';
+  // 名簿は種別順のフラットリスト（種別は名前の横にタグ表示）
+  const groupHtml = rows.length
+    ? `<ul class="res-list">${rows.map(resLi).join('')}</ul>`
+    : '<p class="muted" style="margin:10px 0 0">まだ予約がありません。「＋予約を追加」から登録できます。</p>';
 
   const custOptions = ['<option value="">—</option>']
     .concat([...state.customers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'))
@@ -171,6 +166,7 @@ function drawEventDetail(el, eventId, opts) {
         <h3 style="margin:0">予約名簿</h3>
         <button id="resAdd" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">＋予約を追加</button>
       </div>
+      <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6">誰が何を予約したかを管理する一覧です。各行は「名前＋種別（当日/前祝い/後祝い）」と「商品名×数量」を表示します。実際に対応できたら左の〇を ✓（対応済み）にすると、売上日にレポート／カレンダーの歩合へ計上されます。金額は上の集計・各予約の編集画面で確認できます。</p>
       <form id="resForm" hidden style="margin-top:10px">
         <div class="field"><label>参加者（顧客リストから選択）</label>
           <select id="rCust" class="inline-input" style="width:100%">${custOptions}</select></div>
@@ -390,25 +386,23 @@ function drawEventDetail(el, eventId, opts) {
   };
 }
 
-// 予約1行のマークアップ（名前・種別控え不要=グループ見出しで示す・銘柄×本数・金額・メモ）
+// 予約1行のマークアップ（名前＋種別タグ・品目名×数量のみ）
 function resLi(r) {
   const name = resolveResName(r, state.customers);
   const c = effectiveCount(r); // 銘柄あり・本数空欄は1本として表示
-  const meta = [];
-  if (r.dateTBD) meta.push('売上日未定');
-  else if (r.date) meta.push(shortDateJa(r.date));
+  // 名簿は品目名（銘柄/商品）と数量のみ表示する
   const goods = [r.bottle, r.product].filter((x) => x && x.trim()).map(esc);
-  if (goods.length) meta.push(goods.join(' / ') + (c ? ` ×${c}` : ''));
-  else if (c) meta.push(`×${c}本`);
-  if (r.amount) meta.push('売上' + yen(r.amount));
-  const back = reservationBack(r);
-  if (back) meta.push('歩合' + yen(back) + (r.done ? '（計上済）' : ''));
+  let meta = '';
+  if (goods.length) meta = goods.join(' / ') + (c ? ` ×${c}` : '');
+  else if (c) meta = `×${c}本`;
+  // 名前の横に種別（当日/前祝い/後祝い）タグを表示
+  const timingTag = r.timing ? `<span class="res-tag res-timing">${esc(timingLabel(r.timing))}</span>` : '';
+  const outTag = r.customerId ? '' : '<span class="res-tag">リスト外</span>';
   return `<li class="res-item ${r.done ? 'done' : ''}" data-id="${esc(r.id)}">
     <button class="res-check todo-check" type="button" aria-label="${r.done ? '未対応に戻す' : '対応済みにする'}">${r.done ? '✓' : ''}</button>
     <div class="res-main">
-      <div class="res-name">${esc(name)}${r.customerId ? '' : ' <span class="res-tag">リスト外</span>'}</div>
-      ${meta.length ? `<div class="muted res-meta">${meta.join(' ・ ')}</div>` : ''}
-      ${r.memo ? `<div class="muted res-memo">${esc(r.memo)}</div>` : ''}
+      <div class="res-name">${esc(name)}${timingTag}${outTag}</div>
+      ${meta ? `<div class="muted res-meta">${meta}</div>` : ''}
     </div>
     <div class="res-actions">
       <button class="res-dup" type="button" aria-label="複製">⧉</button>

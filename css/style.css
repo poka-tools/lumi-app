@@ -369,7 +369,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .res-main { flex: 1; min-width: 0; }
 .res-name { font-weight: 600; }
 .res-tag { font-size: 10px; color: var(--purple); background: var(--pink-soft);
-  border-radius: 6px; padding: 1px 5px; vertical-align: middle; font-weight: 600; }
+  border-radius: 6px; padding: 1px 5px; vertical-align: middle; font-weight: 600; margin-left: 6px; }
+/* 種別（当日/前祝い/後祝い）タグは塗りつぶしで目立たせる */
+.res-timing { color: #fff; background: var(--purple); }
 .res-meta { font-size: 13px; margin-top: 2px; }
 .res-memo { font-size: 12px; margin-top: 2px; }
 .res-actions { flex: 0 0 auto; display: flex; gap: 2px; }
