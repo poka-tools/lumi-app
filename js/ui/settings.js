@@ -32,6 +32,7 @@ export async function renderSettings(el) {
 
     <div class="card">
       <h3>歩合項目</h3>
+      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">シャンパンバック・ドリンクバック・指名料・同伴・ペナルティなど、時給以外の歩合を項目として登録します。「円/件」（1件あたりの額）や「％」（売上に対する割合）で設定でき、カレンダーの日別入力「入った歩合」にチップとして並んで、タップで件数・売上を記録できます。分類を付けるとタブで絞り込めます。</p>
       <div class="cat-tabs" id="itemTabs"></div>
       <datalist id="catOptions"></datalist>
       <div id="itemList"></div>
@@ -40,6 +41,7 @@ export async function renderSettings(el) {
 
     <div class="card">
       <h3>キャンペーンお知らせ</h3>
+      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">期間を決めてホーム画面に表示されるメモです（例：今月のバック増額キャンペーン）。開始日〜終了日の間だけホームに📣で表示されます。空欄なら常時表示します。</p>
       <div id="annList"></div>
       <button class="btn btn-ghost" id="addAnn">＋ お知らせを追加</button>
     </div>
