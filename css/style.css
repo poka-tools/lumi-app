@@ -41,8 +41,11 @@ input, select { min-width: 0; }
 .field input, .field select { padding: 10px 12px; border: 1px solid #eee; border-radius: 12px; width: 100%; min-width: 0; }
 /* 設定のバック項目など、.field の外に並ぶインライン入力（フレックス子なので width:100% は付けない） */
 .inline-input { padding: 10px 12px; border: 1px solid #eee; border-radius: 12px; min-width: 0; }
-/* iOSの日付入力が枠からはみ出すのを防ぐ（枠内に収める） */
-input[type="date"] { max-width: 100%; }
+/* iOS Safari は input[type=date] の width を最小幅としてしか扱わず、ネイティブ枠が
+   指定幅を超えてはみ出す。-webkit-appearance を無効化すると width 指定を厳守する。 */
+input[type="date"] { -webkit-appearance: none; appearance: none; width: 100%; max-width: 100%; }
+/* デスクトップのカレンダー起動ボタンは押しやすいよう残す */
+input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .btn { background: var(--pink); color: #fff; border: none; border-radius: 14px;
   padding: 12px 16px; font-weight: 700; width: 100%; }
 .btn-ghost { background: var(--pink-soft); color: var(--pink); }
