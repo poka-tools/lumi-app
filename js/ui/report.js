@@ -121,7 +121,7 @@ export async function renderReport(el) {
       <label class="pdf-opt"><input type="checkbox" data-sec="secAnnual" checked> 年間推移グラフ</label>
       <label class="pdf-opt"><input type="checkbox" data-sec="secPl" checked> 収支明細（P/L）</label>
       <label class="pdf-opt"><input type="checkbox" data-sec="secRank" checked> インセンティブ TOP3</label>
-      <button id="pdfBtn" class="btn" style="margin-top:10px">選んだ項目でPDF保存</button>
+      <button id="pdfBtn" class="btn" style="margin-top:10px">PDFで保存</button>
     </div>`;
 
   // --- 年間推移グラフ（インラインSVG・左→右へ描画アニメーション） ---
