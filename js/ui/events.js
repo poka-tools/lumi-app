@@ -150,7 +150,7 @@ function drawEventDetail(el, eventId, opts) {
         ${ev.date ? `<div class="cust-info-row"><span class="muted">開催日</span><span>${shortDateJa(ev.date)}</span></div>` : ''}
         ${ev.memo ? `<div class="cust-info-row"><span class="muted">メモ</span><span>${esc(ev.memo)}</span></div>` : ''}
       </div>
-      <div class="metric-grid" style="margin-top:12px">
+      <div class="metric-grid" style="margin-top:12px;text-align:center">
         <div><span class="muted">予約</span><strong>${totals.count}件</strong></div>
         <div><span class="muted">数量</span><strong>${totals.bottles}</strong></div>
         <div><span class="muted">売上</span><strong>${yen(totals.amount)}</strong></div>
