@@ -40,7 +40,12 @@ const wrap = (req) => new Promise((res, rej) => {
   req.onerror = () => rej(req.error);
 });
 
-export async function getAll(store) { return wrap((await tx(store, 'readonly')).getAll()); }
+export async function getAll(store) {
+  // 更新直後などストア未作成の瞬間でも loadAll を落とさない（空配列で継続）
+  const db = await openDb();
+  if (!db.objectStoreNames.contains(store)) return [];
+  return wrap(db.transaction(store, 'readonly').objectStore(store).getAll());
+}
 export async function get(store, id) { return wrap((await tx(store, 'readonly')).get(id)); }
 export async function put(store, value) { return wrap((await tx(store, 'readwrite')).put(value)); }
 export async function del(store, id) { return wrap((await tx(store, 'readwrite')).delete(id)); }

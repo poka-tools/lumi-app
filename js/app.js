@@ -55,6 +55,15 @@ function hideSplash() {
     hideSplash(); // 何があってもスプラッシュは必ず閉じる
   }
   if ('serviceWorker' in navigator) {
+    // SW更新の反映漏れ（新旧アセット混在）を防ぐ：新しいSWが制御を取ったら一度だけ自動リロードして
+    // 全アセットを新版に揃える。初回登録時（もともと制御SWが無い）はリロードしない。
+    const hadController = !!navigator.serviceWorker.controller;
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
   }
 })();
