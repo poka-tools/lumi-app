@@ -131,7 +131,7 @@ function drawEventDetail(el, eventId, opts) {
     </div>`;
   }).join('') || '<p class="muted" style="margin:10px 0 0">まだ予約がありません。「＋予約を追加」から登録できます。</p>';
 
-  const custOptions = ['<option value="">リスト外（手入力）</option>']
+  const custOptions = ['<option value="">—</option>']
     .concat([...state.customers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'))
       .map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`)).join('');
   const timingOptions = TIMINGS.map((t) => `<option value="${t.key}">${t.label}</option>`).join('');
