@@ -368,8 +368,12 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .res-check { margin-top: 2px; }
 .res-main { flex: 1; min-width: 0; }
 .res-name { font-weight: 600; }
-.res-tag { font-size: 10px; color: var(--purple); background: var(--pink-soft);
-  border-radius: 6px; padding: 1px 5px; vertical-align: middle; font-weight: 600; margin-left: 6px; }
+.res-tag { display: inline-block; font-size: 10px; color: var(--purple); background: var(--pink-soft);
+  border-radius: 6px; padding: 1px 5px; vertical-align: middle; font-weight: 600; margin-left: 6px;
+  white-space: nowrap; }
+/* 名前＋タグは折り返しても各タグは崩れないように（タグ単位で改行） */
+.res-name { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.res-name > .res-tag { margin-left: 0; }
 /* 種別（当日/前祝い/後祝い）タグは塗りつぶしで目立たせる */
 .res-timing { color: #fff; background: var(--purple); }
 /* 予約フォームの商品アイテム行（複数商品） */
