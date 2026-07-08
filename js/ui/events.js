@@ -430,9 +430,9 @@ function resLi(r) {
       ${meta ? `<div class="muted res-meta">${meta}</div>` : ''}
     </div>
     <div class="res-actions">
-      <button class="res-dup" type="button" aria-label="複製">⧉</button>
-      <button class="res-edit" type="button" aria-label="編集">✎</button>
-      <button class="res-del" type="button" aria-label="削除">✕</button>
+      <button class="res-dup" type="button" aria-label="複製"><span class="ra-ico">⧉</span><span class="ra-txt">複製</span></button>
+      <button class="res-edit" type="button" aria-label="編集"><span class="ra-ico">✎</span><span class="ra-txt">編集</span></button>
+      <button class="res-del" type="button" aria-label="削除"><span class="ra-ico">✕</span><span class="ra-txt">削除</span></button>
     </div>
   </li>`;
 }

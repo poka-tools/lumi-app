@@ -380,9 +380,11 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .res-memo { font-size: 12px; margin-top: 2px; }
 .res-actions { flex: 0 0 auto; display: flex; gap: 2px; }
 .res-actions button { border: none; background: none; color: var(--muted);
-  font-size: 20px; min-width: 40px; min-height: 40px; padding: 6px; line-height: 1;
-  border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  min-width: 40px; padding: 4px 6px; line-height: 1; border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; }
 .res-actions button:active { background: var(--pink-soft); }
+.res-actions .ra-ico { font-size: 19px; }
+.res-actions .ra-txt { font-size: 10px; }
 
 /* 本日の予定カード内の「今月の来店予定」「今月お誕生日」 */
 .today-visits, .today-bday { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--pink-soft); }
