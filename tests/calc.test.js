@@ -140,6 +140,18 @@ test('backRanking: 降順＋対月収比', () => {
   assert.equal(r[0].count, 1); // 同伴×1
   assert.equal(r[1].count, 0); // 売上ベースは件数0
 });
+test('backRanking: ペナルティ項目はランキングから除外', () => {
+  const items = [
+    { id: 'd', name: 'ドリンクバック', kind: 'income', fixedValue: 1000, rateValue: 0 },
+    { id: 'p', name: '遅刻罰金', kind: 'penalty', fixedValue: 2000, rateValue: 0 },
+  ];
+  const shifts = [{ start: '20:00', end: '00:00', breakMin: 0,
+    entries: [{ backItemId: 'd', count: 3 }, { backItemId: 'p', count: 1 }] }];
+  const r = backRanking(2000, items, shifts);
+  assert.equal(r.length, 1); // 罰金は含まない
+  assert.equal(r[0].name, 'ドリンクバック');
+  assert.equal(r.some((x) => x.name === '遅刻罰金'), false);
+});
 test('monthOverMonth', () => {
   const m = monthOverMonth(23000, 20000);
   assert.equal(m.diff, 3000);

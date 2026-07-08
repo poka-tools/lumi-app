@@ -111,7 +111,8 @@ export function incomeBreakdown(hourlyWage, items, shifts) {
 }
 export function backRanking(hourlyWage, items, shifts) {
   const monthTotal = monthlyEstimate(hourlyWage, items, shifts);
-  const sums = (items || []).map((it) => {
+  // ペナルティ（罰金）項目はランキング対象外（収入の歩合のみを対象にする）
+  const sums = (items || []).filter((it) => it.kind !== 'penalty').map((it) => {
     let amount = 0, count = 0;
     for (const sh of (shifts || [])) {
       const e = (sh.entries || []).find((x) => x.backItemId === it.id);
