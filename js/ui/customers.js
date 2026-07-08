@@ -2,6 +2,7 @@ import { state, loadAll } from '../state.js';
 import { put, del, uid } from '../db.js';
 import { esc, shortDateJa, todayIso } from '../format.js';
 import { searchCustomers, sortCustomers, nextVisitDate, doneVisitCount } from '../customers-logic.js';
+import { drawEventsSection } from './events.js';
 
 let query = '';      // 検索文字列（再描画で保持）
 let sortKey = 'name'; // 並び替えキー（再描画で保持）
@@ -129,6 +130,10 @@ function drawList(el) {
   ).join('');
 
   el.innerHTML = `
+    <div class="seg cust-seg">
+      <button class="seg-btn active" type="button" data-sec="customers">顧客</button>
+      <button class="seg-btn" type="button" data-sec="events">イベント</button>
+    </div>
     <div class="row" style="justify-content:space-between;align-items:center">
       <h2 style="margin:0">顧客リスト</h2>
       <span class="muted">${state.customers.length}人</span>
@@ -155,6 +160,8 @@ function drawList(el) {
     b.onclick = () => drawDetail(el, b.dataset.id);
   });
   el.querySelector('#custAdd').onclick = () => openForm(el, null);
+  el.querySelector('.cust-seg [data-sec="events"]').onclick =
+    () => drawEventsSection(el, { goCustomers: () => drawList(el) });
   wireSheet(el);
 }
 

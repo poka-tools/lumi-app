@@ -8,6 +8,8 @@ export const state = {
   todos: [],
   customers: [],
   visits: [],
+  events: [],
+  reservations: [],
   month: monthIso(new Date()),
 };
 
@@ -24,6 +26,8 @@ export async function loadAll() {
   state.todos = (await getAll('todos')).sort((a, b) => (a.order || 0) - (b.order || 0));
   state.customers = await getAll('customers');
   state.visits = await getAll('visits');
+  state.events = await getAll('events');
+  state.reservations = await getAll('reservations');
 }
 
 export function shiftsOfMonth(month = state.month) {

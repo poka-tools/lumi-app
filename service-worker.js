@@ -1,14 +1,14 @@
-const CACHE = 'yashoku-v43';
+const CACHE = 'yashoku-v44';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',
   './assets/logo.png', './assets/icon-192.png', './assets/icon-512.png',
   './js/app.js', './js/state.js', './js/db.js', './js/calc.js', './js/format.js',
-  './js/customers-logic.js',
+  './js/customers-logic.js', './js/events-logic.js',
   './js/ui/home.js', './js/ui/calendar.js', './js/ui/record.js',
   './js/ui/report.js', './js/ui/settings.js', './js/ui/donut.js',
   './js/ui/backfields.js', './js/ui/todos.js', './js/ui/customers.js',
-  './js/ui/toast.js',
+  './js/ui/toast.js', './js/ui/events.js',
 ];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
