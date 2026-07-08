@@ -183,6 +183,7 @@ function drawEventDetail(el, eventId, opts) {
           <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;white-space:nowrap">
             <input id="rDateTBD" type="checkbox"> 未定（後祝いなど・売上前）
           </label>
+          <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約はインセンティブに計上されません。後日、計上日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
         </div>
         <div class="field"><label>シャンパン銘柄</label>
           <input id="rBottle" class="inline-input" type="text" maxlength="40" placeholder="モエ・アルマンド など" style="width:100%"></div>
@@ -240,9 +241,14 @@ function drawEventDetail(el, eventId, opts) {
   const rNameField = el.querySelector('#rNameField');
   const rDate = el.querySelector('#rDate');
   const rDateTBD = el.querySelector('#rDateTBD');
+  const rTBDNote = el.querySelector('#rTBDNote');
   const rBottle = el.querySelector('#rBottle');
-  // 未定チェック時は日付入力を無効化（見た目も薄く）
-  const syncDateTBD = () => { rDate.disabled = rDateTBD.checked; rDate.style.opacity = rDateTBD.checked ? '.4' : ''; };
+  // 未定チェック時は日付入力を無効化（見た目も薄く）＋注意書きを表示
+  const syncDateTBD = () => {
+    rDate.disabled = rDateTBD.checked;
+    rDate.style.opacity = rDateTBD.checked ? '.4' : '';
+    rTBDNote.hidden = !rDateTBD.checked;
+  };
   rDateTBD.onchange = syncDateTBD;
   const rCount = el.querySelector('#rCount');
   const rUnit = el.querySelector('#rUnit');
