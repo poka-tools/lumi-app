@@ -65,8 +65,10 @@ export function eventTotals(reservations, eventId) {
   }, { count: 0, bottles: 0, amount: 0, back: 0 });
 }
 
-// 予約の計上日：個別日付があればそれ、無ければ所属イベントの開催日にフォールバック。
+// 予約の計上日：未定(dateTBD)なら空（＝集計対象外）。個別日付があればそれ、
+// 無ければ所属イベントの開催日にフォールバック。
 export function reservationDate(res, events) {
+  if (res && res.dateTBD) return '';
   if (res && res.date) return res.date;
   const ev = (events || []).find((e) => e.id === (res && res.eventId));
   return ev ? (ev.date || '') : '';

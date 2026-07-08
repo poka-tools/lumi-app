@@ -176,11 +176,13 @@ function drawEventDetail(el, eventId, opts) {
           <select id="rCust" class="inline-input" style="width:100%">${custOptions}</select></div>
         <div class="field" id="rNameField"><label>名前（リスト外の場合）</label>
           <input id="rName" class="inline-input" type="text" maxlength="40" placeholder="源氏名・呼び名など" style="width:100%"></div>
-        <div class="row">
-          <div class="field" style="flex:1"><label>種別</label>
-            <select id="rTiming" class="inline-input" style="width:100%">${timingOptions}</select></div>
-          <div class="field" style="flex:1"><label>計上日</label>
-            <input id="rDate" type="date" class="inline-input" style="width:100%"></div>
+        <div class="field"><label>種別</label>
+          <select id="rTiming" class="inline-input" style="width:100%">${timingOptions}</select></div>
+        <div class="field"><label>計上日</label>
+          <input id="rDate" type="date" class="inline-input" style="width:100%">
+          <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;white-space:nowrap">
+            <input id="rDateTBD" type="checkbox"> 未定（後祝いなど・売上前）
+          </label>
         </div>
         <div class="field"><label>シャンパン銘柄</label>
           <input id="rBottle" class="inline-input" type="text" maxlength="40" placeholder="モエ・アルマンド など" style="width:100%"></div>
@@ -236,7 +238,12 @@ function drawEventDetail(el, eventId, opts) {
   const rCust = el.querySelector('#rCust');
   const rName = el.querySelector('#rName');
   const rNameField = el.querySelector('#rNameField');
+  const rDate = el.querySelector('#rDate');
+  const rDateTBD = el.querySelector('#rDateTBD');
   const rBottle = el.querySelector('#rBottle');
+  // 未定チェック時は日付入力を無効化（見た目も薄く）
+  const syncDateTBD = () => { rDate.disabled = rDateTBD.checked; rDate.style.opacity = rDateTBD.checked ? '.4' : ''; };
+  rDateTBD.onchange = syncDateTBD;
   const rCount = el.querySelector('#rCount');
   const rUnit = el.querySelector('#rUnit');
   const rAmount = el.querySelector('#rAmount');
@@ -285,7 +292,9 @@ function drawEventDetail(el, eventId, opts) {
     rCust.value = res ? (res.customerId || '') : '';
     rName.value = res ? (res.name || '') : '';
     el.querySelector('#rTiming').value = res ? (res.timing || 'day') : 'day';
-    el.querySelector('#rDate').value = (res && res.date) || ev.date || todayIso();
+    rDate.value = (res && res.date) || ev.date || todayIso();
+    rDateTBD.checked = !!(res && res.dateTBD);
+    syncDateTBD();
     rBottle.value = res ? (res.bottle || '') : '';
     el.querySelector('#rProduct').value = res ? (res.product || '') : '';
     rCount.value = res && res.count ? String(res.count) : '';
@@ -315,7 +324,8 @@ function drawEventDetail(el, eventId, opts) {
       customerId: custId,
       name, // 控えのスナップショット（顧客削除時のフォールバック）
       timing: el.querySelector('#rTiming').value || 'day',
-      date: el.querySelector('#rDate').value || '',
+      date: rDateTBD.checked ? '' : (rDate.value || ''),
+      dateTBD: rDateTBD.checked,
       bottle: rBottle.value.trim(),
       product: el.querySelector('#rProduct').value.trim(),
       count: Number(rCount.value) || 0,
@@ -378,7 +388,8 @@ function resLi(r) {
   const name = resolveResName(r, state.customers);
   const c = effectiveCount(r); // 銘柄あり・本数空欄は1本として表示
   const meta = [];
-  if (r.date) meta.push(shortDateJa(r.date));
+  if (r.dateTBD) meta.push('計上日未定');
+  else if (r.date) meta.push(shortDateJa(r.date));
   const goods = [r.bottle, r.product].filter((x) => x && x.trim()).map(esc);
   if (goods.length) meta.push(goods.join(' / ') + (c ? ` ×${c}` : ''));
   else if (c) meta.push(`×${c}本`);
