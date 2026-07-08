@@ -6,6 +6,7 @@ import {
   effectiveCount, autoAmount, reservationDate, eventIncomeByDate, eventIncomeInMonth,
   reservationBack, eventIncentiveDetail, reservationSummary,
   reservationItems, reservationSales, reservationCount, itemBack, itemCount,
+  eventIncomeByDateDetailed,
 } from '../js/events-logic.js';
 
 const customers = [
@@ -132,6 +133,22 @@ test('eventIncomeByDate: 対応済みのみ・計上日ごとにバック合計'
   const m = eventIncomeByDate(rs, events);
   assert.equal(m.get('2026-07-05'), 1600); // 1100+500
   assert.equal(m.get('2026-07-10'), 300);  // フォールバック分のバックのみ
+});
+
+test('eventIncomeByDateDetailed: 日付ごとにイベント別の歩合内訳（複数イベントは複数）', () => {
+  const events = [{ id: 'e1', name: '生誕祭', date: '2026-07-10' }, { id: 'e2', name: '周年', date: '2026-07-10' }];
+  const rs = [
+    { eventId: 'e1', date: '2026-07-10', amount: 11000, backRate: 10, done: true }, // 生誕祭 1100
+    { eventId: 'e1', date: '2026-07-10', amount: 9000, backRate: 10, done: true },  // 生誕祭 900 → 計2000
+    { eventId: 'e2', date: '2026-07-10', amount: 50000, backRate: 10, done: true }, // 周年 5000
+    { eventId: 'e1', date: '2026-07-11', amount: 4000, backRate: 10, done: false }, // 未対応→除外
+  ];
+  const m = eventIncomeByDateDetailed(rs, events);
+  assert.deepEqual(m.get('2026-07-10'), [
+    { eventId: 'e2', name: '周年', back: 5000 }, // 歩合大きい順
+    { eventId: 'e1', name: '生誕祭', back: 2000 },
+  ]);
+  assert.equal(m.has('2026-07-11'), false);
 });
 
 test('eventIncomeInMonth: 当月の対応済みバックを合計', () => {

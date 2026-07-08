@@ -122,6 +122,33 @@ export function eventIncomeByDate(reservations, events) {
   return m;
 }
 
+// 対応済み予約の歩合を「日付ごと・イベント別」に内訳で返す（カレンダー日別表示用）。
+// 返り値: Map<date, [{ eventId, name, back }]>（各日、歩合の大きいイベント順・歩合0は除外）。
+export function eventIncomeByDateDetailed(reservations, events) {
+  const byDate = new Map(); // date -> Map<eventId, back>
+  for (const r of (reservations || [])) {
+    if (!r.done) continue;
+    const d = reservationDate(r, events);
+    if (!d) continue;
+    const back = reservationBack(r);
+    if (!back) continue;
+    if (!byDate.has(d)) byDate.set(d, new Map());
+    const em = byDate.get(d);
+    em.set(r.eventId, (em.get(r.eventId) || 0) + back);
+  }
+  const out = new Map();
+  for (const [d, em] of byDate) {
+    const arr = [];
+    for (const [eventId, back] of em) {
+      const ev = (events || []).find((e) => e.id === eventId);
+      arr.push({ eventId, name: ev ? ev.name : '(削除済みイベント)', back });
+    }
+    arr.sort((a, b) => b.back - a.back);
+    out.set(d, arr);
+  }
+  return out;
+}
+
 // 指定月(YYYY-MM)の対応済み予約の歩合合計（レポートのイベント歩合用）。
 export function eventIncomeInMonth(reservations, events, month) {
   return (reservations || []).reduce((s, r) => {

@@ -6,7 +6,7 @@ import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './back
 import { renderTodos } from './todos.js';
 import { confirmModal } from './confirm.js';
 import { visitCountByDate, visitsOnDate, birthdaysByDate } from '../customers-logic.js';
-import { eventIncomeByDate } from '../events-logic.js';
+import { eventIncomeByDate, eventIncomeByDateDetailed } from '../events-logic.js';
 
 export async function renderCalendar(el) {
   const [y, m] = state.month.split('-').map(Number);
@@ -25,7 +25,8 @@ export async function renderCalendar(el) {
   }
   const visitsByDate = visitCountByDate(state.visits);
   const bdaysByDate = birthdaysByDate(state.customers, state.month);
-  const eventIncByDate = eventIncomeByDate(state.reservations, state.events); // 対応済み予約の日別収入
+  const eventIncByDate = eventIncomeByDate(state.reservations, state.events); // 対応済み予約の日別収入（合計）
+  const eventDetailByDate = eventIncomeByDateDetailed(state.reservations, state.events); // 日別×イベント別の内訳
   const today = todayIso();
 
   const cells = [];
@@ -129,8 +130,6 @@ export async function renderCalendar(el) {
     draft.end = q('#sEnd').value;
     draft.breakMin = Number(q('#sBreak').value) || 0;
     draft.confirmed = q('#sConfirmed').checked;
-    draft.nomination = q('#sNom').checked;
-    draft.douhan = q('#sDou').checked;
     const entries = [];
     for (const it of state.backItems) {
       const c = Number(counts[it.id]) || 0, s = Number(sales[it.id]) || 0;
@@ -195,9 +194,11 @@ export async function renderCalendar(el) {
       ? `<div class="sheet-bday">🎂 ${dayBdays.map((n) => esc(n)).join('・')} さんのお誕生日</div>`
       : '';
 
-    const dayEvAmt = eventIncByDate.get(draft.date) || 0;
-    const dayEventHtml = dayEvAmt
-      ? `<div class="sheet-bday">🎉 イベント歩合（対応済み） ${yen(dayEvAmt)}</div>`
+    // イベント歩合（対応済み）はイベント名ごとに表示。複数イベントなら複数行。
+    const dayEvents = eventDetailByDate.get(draft.date) || [];
+    const dayEventHtml = dayEvents.length
+      ? `<div class="sheet-bday">${dayEvents.map((e) =>
+          `<div>🎉 ${esc(e.name)}（対応済み） <strong>${yen(e.back)}</strong></div>`).join('')}</div>`
       : '';
 
     body.innerHTML = `
@@ -209,10 +210,6 @@ export async function renderCalendar(el) {
         <div class="field" style="flex:1"><label>開始</label><input id="sStart" type="time" value="${esc(draft.start || '20:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="sEnd" type="time" value="${esc(draft.end || '01:00')}"></div>
         <div class="field" style="flex:1"><label>休憩(分)</label><input id="sBreak" type="number" inputmode="numeric" value="${Number(draft.breakMin) || 0}"></div>
-      </div>
-      <div class="row" style="gap:16px;flex-wrap:wrap;margin-bottom:6px">
-        <label><input id="sNom" type="checkbox" ${draft.nomination ? 'checked' : ''}> 指名あり</label>
-        <label><input id="sDou" type="checkbox" ${draft.douhan ? 'checked' : ''}> 同伴あり</label>
       </div>
       <h4 style="margin:10px 0 4px">入った歩合</h4>
       <p class="muted" style="margin:0 0 8px;font-size:12px">タップで＋1／長押しで件数・売上を調整</p>
@@ -365,7 +362,7 @@ export async function renderCalendar(el) {
     };
     renderChipTabs();
 
-    sheet.querySelectorAll('#sStart,#sEnd,#sBreak,#sNom,#sDou').forEach((inp) => {
+    sheet.querySelectorAll('#sStart,#sEnd,#sBreak').forEach((inp) => {
       inp.oninput = recalc; inp.onchange = recalc;
     });
 

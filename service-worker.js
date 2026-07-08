@@ -1,4 +1,4 @@
-const CACHE = 'yashoku-v60';
+const CACHE = 'yashoku-v62';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',

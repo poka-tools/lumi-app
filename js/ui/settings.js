@@ -15,12 +15,6 @@ export async function renderSettings(el) {
       <div class="field"><label>表示名</label><input id="name" value="${esc(p.name)}"></div>
       <div class="field"><label>店名（任意）</label><input id="store" value="${esc(p.storeName)}"></div>
       <div class="field"><label>基本時給（円）</label><input id="wage" type="number" inputmode="numeric" value="${Number(p.hourlyWage) || 0}"></div>
-      <div class="row">
-        <div class="field" style="flex:1"><label>指名時の時給（任意）</label>
-          <input id="nomWage" type="number" inputmode="numeric" placeholder="基本給と同じ" value="${p.nominationWage ? Number(p.nominationWage) : ''}"></div>
-        <div class="field" style="flex:1"><label>同伴時の時給（任意）</label>
-          <input id="douWage" type="number" inputmode="numeric" placeholder="基本給と同じ" value="${p.douhanWage ? Number(p.douhanWage) : ''}"></div>
-      </div>
       <label><input id="npEnabled" type="checkbox" ${p.nightPremium && p.nightPremium.enabled ? 'checked' : ''}> 深夜手当（時間帯割増）を使う</label>
       <div class="row" style="margin-top:8px">
         <div class="field" style="flex:1"><label>開始</label><input id="npStart" type="time" value="${esc((p.nightPremium && p.nightPremium.start) || '22:00')}"></div>
@@ -65,8 +59,6 @@ export async function renderSettings(el) {
       name: el.querySelector('#name').value,
       storeName: el.querySelector('#store').value,
       hourlyWage: num('#wage'),
-      nominationWage: num('#nomWage'),
-      douhanWage: num('#douWage'),
       defaultStart: el.querySelector('#defStart').value || '20:00',
       defaultEnd: el.querySelector('#defEnd').value || '01:00',
       defaultBreakMin: num('#defBreak'),

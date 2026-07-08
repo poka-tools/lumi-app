@@ -34,8 +34,6 @@ export async function renderRecord(el) {
         <div class="field" style="flex:1"><label>休憩(分)</label><input id="break" type="number" value="${Number(s.breakMin) || 0}"></div>
       </div>
       <div class="row" style="gap:16px;flex-wrap:wrap">
-        <label><input id="nomination" type="checkbox" ${s.nomination ? 'checked' : ''}> 指名あり</label>
-        <label><input id="douhan" type="checkbox" ${s.douhan ? 'checked' : ''}> 同伴あり</label>
         <label><input id="confirmed" type="checkbox" ${s.confirmed ? 'checked' : ''}> 確定（実績）にする</label>
       </div>
     </div>
@@ -70,8 +68,6 @@ export async function renderRecord(el) {
     s.end = el.querySelector('#end').value;
     s.breakMin = Number(el.querySelector('#break').value) || 0;
     s.confirmed = el.querySelector('#confirmed').checked;
-    s.nomination = el.querySelector('#nomination').checked;
-    s.douhan = el.querySelector('#douhan').checked;
     // 同一項目の件数・売上を1エントリーにまとめる
     const byId = new Map();
     el.querySelectorAll('.entry').forEach((inp) => {
