@@ -83,11 +83,18 @@ export async function renderSettings(el) {
     </div>
 
     <div class="card">
-      <h3>データ</h3>
-      <button class="btn btn-ghost" id="exportBtn">エクスポート（JSON）</button>
+      <h3>データのバックアップ</h3>
+      <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
+        入力したデータは<b>お使いの端末の中だけ</b>に保存されます（サーバーには送っていません）。
+        機種変更・アプリの削除・ブラウザのデータ消去などで<b>消えてしまうことがある</b>ため、
+        ときどき<b>バックアップ</b>してファイルを保管しておくと安心です。
+        新しい端末に移すときは、そのファイルを読み込めば元に戻せます。<br>
+        <span style="color:#f08fb0">※バックアップには、設定・歩合項目・勤務記録・お知らせ・やること・顧客・来店予定・イベント予約の<b>すべてのデータ</b>が含まれます。</span>
+      </p>
+      <button class="btn btn-ghost" id="exportBtn">💾 バックアップを保存する（ファイル書き出し）</button>
       <div style="height:8px"></div>
-      <label class="btn btn-ghost" style="display:block;text-align:center">
-        インポート<input id="importFile" type="file" accept="application/json" hidden>
+      <label class="btn btn-ghost" style="display:block;text-align:center;cursor:pointer">
+        📂 バックアップから復元する（ファイル読み込み）<input id="importFile" type="file" accept="application/json" hidden>
       </label>
     </div>`;
 
@@ -336,6 +343,8 @@ export async function renderSettings(el) {
     const data = {
       profile: state.profile, backItems: state.backItems,
       shifts: state.shifts, announcements: state.announcements,
+      todos: state.todos, customers: state.customers, visits: state.visits,
+      events: state.events, reservations: state.reservations,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -347,14 +356,19 @@ export async function renderSettings(el) {
   el.querySelector('#importFile').onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!(await confirmModal('現在のデータに上書き追加します。よろしいですか？', { okLabel: 'インポート', danger: false }))) return;
+    if (!(await confirmModal('バックアップファイルの内容を、現在のデータに復元（上書き追加）します。よろしいですか？', { okLabel: '復元する', danger: false }))) return;
     const data = JSON.parse(await file.text());
     if (data.profile) await saveProfile(data.profile);
     for (const it of data.backItems || []) await put('backItems', it);
     for (const s of data.shifts || []) await put('shifts', s);
     for (const an of data.announcements || []) await put('announcements', an);
+    for (const t of data.todos || []) await put('todos', t);
+    for (const c of data.customers || []) await put('customers', c);
+    for (const v of data.visits || []) await put('visits', v);
+    for (const ev of data.events || []) await put('events', ev);
+    for (const r of data.reservations || []) await put('reservations', r);
     await loadAll();
-    toast('インポートしました');
+    toast('復元しました');
     navigate('settings');
   };
 }
