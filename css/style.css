@@ -34,7 +34,7 @@ body { margin: 0; font-family: -apple-system, "Hiragino Sans", sans-serif;
 .chips { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
 .chip { flex: 0 0 auto; background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
   padding: 12px 14px; text-align: center; min-width: 96px; }
-input, select, button { font: inherit; }
+input, select, button, textarea { font: inherit; }
 /* 入力欄を縮小可能に：time/number 等がフレックス枠から飛び出すのを防ぐ */
 input, select { min-width: 0; }
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
