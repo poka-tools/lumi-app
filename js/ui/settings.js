@@ -6,6 +6,14 @@ import { categoryList, itemCategory } from './backfields.js';
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
 
+// リマインダーの「何日前から」選択肢（当日〜1週間前）。
+const LEAD_OPTS = [[0, '当日'], [1, '1日前'], [2, '2日前'], [3, '3日前'], [7, '1週間前']];
+function leadSelect(id, val) {
+  const cur = Number(val);
+  return `<select id="${id}">${LEAD_OPTS.map(([v, label]) =>
+    `<option value="${v}" ${v === cur ? 'selected' : ''}>${label}</option>`).join('')}</select>`;
+}
+
 export async function renderSettings(el) {
   const p = state.profile;
   el.innerHTML = `
@@ -47,6 +55,21 @@ export async function renderSettings(el) {
     </div>
 
     <div class="card">
+      <h3>🔔 リマインダー通知</h3>
+      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">アプリを開いたとき、ホーム画面に念押しのお知らせを出します。設定した「何日前から」の範囲に入った予定を、開いた日ごとに表示します。<strong>アプリ内のみの表示で、端末の通知（プッシュ）は出ません。</strong></p>
+      <label><input id="shiftRemEnabled" type="checkbox" ${p.shiftReminder.enabled ? 'checked' : ''}> 出勤予定を忘れないよう通知する</label>
+      <div class="field" style="margin-top:6px"><label>何日前から通知</label>
+        ${leadSelect('shiftRemLead', p.shiftReminder.leadDays)}
+      </div>
+      <div style="height:10px"></div>
+      <label><input id="campRemEnabled" type="checkbox" ${p.campaignReminder.enabled ? 'checked' : ''}> キャンペーンお知らせの終了を通知する</label>
+      <div class="field" style="margin-top:6px"><label>終了の何日前から通知</label>
+        ${leadSelect('campRemLead', p.campaignReminder.leadDays)}
+      </div>
+      <button class="btn" id="saveReminders">保存</button>
+    </div>
+
+    <div class="card">
       <h3>データ</h3>
       <button class="btn btn-ghost" id="exportBtn">エクスポート（JSON）</button>
       <div style="height:8px"></div>
@@ -58,6 +81,7 @@ export async function renderSettings(el) {
   el.querySelector('#saveProfile').onclick = async () => {
     const num = (id) => Number(el.querySelector(id).value) || 0;
     await saveProfile({
+      ...state.profile,
       name: el.querySelector('#name').value,
       storeName: el.querySelector('#store').value,
       hourlyWage: num('#wage'),
@@ -73,6 +97,22 @@ export async function renderSettings(el) {
     });
     await loadAll();
     toast('保存しました');
+  };
+
+  el.querySelector('#saveReminders').onclick = async () => {
+    await saveProfile({
+      ...state.profile,
+      shiftReminder: {
+        enabled: el.querySelector('#shiftRemEnabled').checked,
+        leadDays: Number(el.querySelector('#shiftRemLead').value) || 0,
+      },
+      campaignReminder: {
+        enabled: el.querySelector('#campRemEnabled').checked,
+        leadDays: Number(el.querySelector('#campRemLead').value) || 0,
+      },
+    });
+    await loadAll();
+    toast('リマインダー設定を保存しました');
   };
 
   // 旧モデル(type/value)・新モデル(fixedValue/rateValue)の両方から値を読む。

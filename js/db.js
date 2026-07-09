@@ -51,7 +51,11 @@ export async function put(store, value) { return wrap((await tx(store, 'readwrit
 export async function del(store, id) { return wrap((await tx(store, 'readwrite')).delete(id)); }
 
 export async function getProfile() {
-  return (await get('profile', 'me')) || { id: 'me', name: '', hourlyWage: 0, storeName: '', defaultStart: '20:00', defaultEnd: '01:00', defaultBreakMin: 0 };
+  const p = (await get('profile', 'me')) || { id: 'me', name: '', hourlyWage: 0, storeName: '', defaultStart: '20:00', defaultEnd: '01:00', defaultBreakMin: 0 };
+  // リマインダー設定の既定値（未設定＝無効・出勤は前日から/キャンペーンは3日前から）
+  p.shiftReminder = { enabled: false, leadDays: 1, ...(p.shiftReminder || {}) };
+  p.campaignReminder = { enabled: false, leadDays: 3, ...(p.campaignReminder || {}) };
+  return p;
 }
 export async function saveProfile(p) { return put('profile', { ...p, id: 'me' }); }
 

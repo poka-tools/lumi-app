@@ -8,6 +8,7 @@ import { yen, signedYen, weekdayJa, esc, todayIso, shortDateJa } from '../format
 import { drawDonut } from './donut.js';
 import { setEditingShift } from './record.js';
 import { renderReminder } from './todos.js';
+import { renderReminders } from './reminders.js';
 import { navigate } from '../app.js';
 import { birthdaysInMonth, visitsInMonth } from '../customers-logic.js';
 
@@ -81,6 +82,7 @@ export async function renderHome(el) {
       ${bdayBlock}
     </div>
 
+    <div id="reminders"></div>
     <div id="reminder"></div>
 
     <div class="card estimate-card">
@@ -129,6 +131,7 @@ export async function renderHome(el) {
     };
   });
 
+  renderReminders(el.querySelector('#reminders'));
   renderReminder(el.querySelector('#reminder'));
 
   drawDonut(
