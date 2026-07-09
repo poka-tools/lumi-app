@@ -49,6 +49,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 /* お知らせの開始日/終了日ラベル（日付入力の上に小さく表示） */
 .ann-date { display: flex; flex-direction: column; }
 .ann-date-lbl { font-size: 11px; color: #999; margin-bottom: 3px; }
+/* バックアップのボタン下に添える補足（ファイル書き出し/読み込み） */
+.backup-hint { font-size: 11px; color: #999; text-align: center; margin-top: 4px; }
 .btn { background: var(--pink); color: #fff; border: none; border-radius: 14px;
   padding: 12px 16px; font-weight: 700; width: 100%; }
 .btn-ghost { background: var(--pink-soft); color: var(--pink); }

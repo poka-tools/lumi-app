@@ -91,11 +91,13 @@ export async function renderSettings(el) {
         新しい端末に移すときは、そのファイルを読み込めば元に戻せます。<br>
         <span style="color:#f08fb0">※バックアップには、設定・歩合項目・勤務記録・お知らせ・やること・顧客・来店予定・イベント予約の<b>すべてのデータ</b>が含まれます。</span>
       </p>
-      <button class="btn btn-ghost" id="exportBtn">💾 バックアップを保存する（ファイル書き出し）</button>
-      <div style="height:8px"></div>
+      <button class="btn btn-ghost" id="exportBtn">💾 バックアップを保存</button>
+      <div class="backup-hint">ファイルに書き出して保管します</div>
+      <div style="height:10px"></div>
       <label class="btn btn-ghost" style="display:block;text-align:center;cursor:pointer">
-        📂 バックアップから復元する（ファイル読み込み）<input id="importFile" type="file" accept="application/json" hidden>
+        📂 バックアップから復元<input id="importFile" type="file" accept="application/json" hidden>
       </label>
+      <div class="backup-hint">保存したファイルを読み込みます</div>
     </div>`;
 
   el.querySelector('#saveProfile').onclick = async () => {
