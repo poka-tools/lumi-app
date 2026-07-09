@@ -288,11 +288,21 @@ export async function renderSettings(el) {
   const renderAnns = () => {
     const box = el.querySelector('#annList');
     box.innerHTML = state.announcements.map((a) => `
-      <div class="row" style="align-items:center;margin-bottom:8px" data-id="${esc(a.id)}">
-        <input class="a-title" value="${esc(a.title)}" placeholder="タイトル" style="flex:2">
-        <input class="a-start" type="date" value="${esc(a.startDate)}" style="flex:1">
-        <input class="a-end" type="date" value="${esc(a.endDate)}" style="flex:1">
-        <button class="a-del" style="border:none;background:none;color:#f55">🗑</button>
+      <div class="ann-item" style="margin-bottom:12px" data-id="${esc(a.id)}">
+        <div class="row" style="align-items:center;gap:8px">
+          <input class="a-title" value="${esc(a.title)}" placeholder="タイトル" style="flex:1;min-width:0">
+          <button class="a-del" style="border:none;background:none;color:#f55;width:auto;flex:0 0 auto">🗑</button>
+        </div>
+        <div class="row" style="gap:8px;margin-top:6px">
+          <label class="ann-date" style="flex:1;min-width:0">
+            <span class="ann-date-lbl">開始日</span>
+            <input class="a-start" type="date" value="${esc(a.startDate)}">
+          </label>
+          <label class="ann-date" style="flex:1;min-width:0">
+            <span class="ann-date-lbl">終了日</span>
+            <input class="a-end" type="date" value="${esc(a.endDate)}">
+          </label>
+        </div>
       </div>`).join('');
     box.querySelectorAll('[data-id]').forEach((rowEl) => {
       const id = rowEl.dataset.id;
