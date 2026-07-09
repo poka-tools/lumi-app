@@ -45,7 +45,7 @@ export async function renderSettings(el) {
 
     <div class="card">
       <h3>歩合項目</h3>
-      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">シャンパンバック・ドリンクバック・指名料・同伴・ペナルティなど、時給以外の歩合を項目として登録します。「円/件」（1件あたりの額）や「％」（売上に対する割合）で設定でき、カレンダーの日別入力「入った歩合」にチップとして並んで、タップで件数・売上を記録できます。分類は下の「分類の管理」で先に登録し、各項目のプルダウンから選べます（分類でタブ絞り込みも可）。</p>
+      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">シャンパンバック・ドリンクバック・指名料・同伴・ペナルティなど、時給以外の歩合を項目として登録します。「円/件」（1件あたりの額）や「％」（売上に対する割合）で設定でき、カレンダーの日別入力「入った歩合」にチップとして並んで、タップで件数・売上を記録できます。種別は<b>収入</b>のほか、罰金は<b>ペナルティ</b>、送り代・厚生費などの天引きは<b>控除</b>を選ぶとレポートでマイナスとして別枠集計されます。分類は下の「分類の管理」で先に登録し、各項目のプルダウンから選べます（分類でタブ絞り込みも可）。</p>
       <div class="cat-manager">
         <div class="cat-manager-head">分類の管理</div>
         <p class="muted" style="font-size:12px;margin:2px 0 8px;line-height:1.6">先に分類を登録しておくと、各項目の「分類」欄からプルダウンで選べます（例: ドリンク／シャンパン／指名・同伴）。<strong>カンマ「,」や改行で区切ると、一度に複数まとめて追加できます。</strong>名前の変更・削除はその分類の項目にも反映されます。</p>
@@ -231,8 +231,9 @@ export async function renderSettings(el) {
         </div>
         <div class="row" style="margin-top:8px">
           <select class="i-kind inline-input" style="flex:1.3">
-            <option value="income" ${it.kind === 'penalty' ? '' : 'selected'}>収入</option>
+            <option value="income" ${!it.kind || it.kind === 'income' ? 'selected' : ''}>収入</option>
             <option value="penalty" ${it.kind === 'penalty' ? 'selected' : ''}>ペナルティ</option>
+            <option value="deduction" ${it.kind === 'deduction' ? 'selected' : ''}>控除</option>
           </select>
           <input class="i-fixed inline-input" type="number" inputmode="numeric" placeholder="円/件" title="円/件" value="${blankIfZero(itemFixed(it))}" style="flex:1">
           <input class="i-rate inline-input" type="number" inputmode="numeric" placeholder="％" title="売上の％" value="${blankIfZero(itemRate(it))}" style="flex:1">

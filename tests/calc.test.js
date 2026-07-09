@@ -208,6 +208,43 @@ test('plStatement: 収入合計と差引最終合計', () => {
   assert.equal(pl.net, 27000);         // 28000 - 1000
 });
 
+test('backAmount deduction: マイナス控除（罰金以外）', () => {
+  const item = { fixedValue: 1500, kind: 'deduction' };
+  assert.equal(backAmount(item, { count: 2 }), -3000);
+});
+
+test('plStatement: 控除(deduction)をペナルティと別枠に振り分け', () => {
+  const items = [
+    ..._items5,
+    { id: 'x', name: '送り代', kind: 'deduction', fixedValue: 800, rateValue: 0 },
+  ];
+  const shifts = [
+    { date: '2026-07-01', start: '20:00', end: '02:00', breakMin: 0, entries: [] },
+    { date: '2026-07-02', start: '20:00', end: '00:00', breakMin: 0, nomination: true,
+      entries: [{ backItemId: 'd', count: 1 }, { backItemId: 'p', count: 1 }, { backItemId: 'x', count: 1 }] },
+  ];
+  const pl = plStatement(_wage5, items, shifts);
+  // 罰金はペナルティ枠、送り代は控除枠に分かれる
+  assert.equal(pl.penaltyRows.length, 1);
+  assert.equal(pl.penaltyTotal, -1000);
+  assert.equal(pl.deductionRows.length, 1);
+  assert.equal(pl.deductionRows[0].label, '送り代');
+  assert.equal(pl.deductionTotal, -800);
+  // 差引最終 = 28000 - 1000 - 800
+  assert.equal(pl.net, 26200);
+});
+
+test('backRanking: 控除項目はランキング対象外', () => {
+  const items = [
+    { id: 'd', name: '同伴バック', kind: 'income', fixedValue: 3000, rateValue: 0 },
+    { id: 'x', name: '送り代', kind: 'deduction', fixedValue: 800, rateValue: 0 },
+  ];
+  const shifts = [{ date: '2026-07-02', start: '20:00', end: '00:00', breakMin: 0,
+    entries: [{ backItemId: 'd', count: 1 }, { backItemId: 'x', count: 1 }] }];
+  const rows = backRanking(_wage5, items, shifts);
+  assert.ok(!rows.some((r) => r.itemId === 'x'));
+});
+
 test('plStatement: シフト無しは全て0・行なし', () => {
   const pl = plStatement(_wage5, _items5, []);
   assert.equal(pl.wageRows.length, 0);

@@ -164,8 +164,10 @@ export async function renderCalendar(el) {
       const c = Number(counts[it.id]) || 0, s = Number(sales[it.id]) || 0;
       const active = c > 0 || s > 0;
       const badge = hasC ? (c > 0 ? '×' + c : '') : (s > 0 ? '✓' : '');
-      return `<button type="button" class="chip-inc${active ? ' active' : ''}${it.kind === 'penalty' ? ' penalty' : ''}" data-id="${esc(it.id)}">
-        <span class="chip-name">${it.kind === 'penalty' ? '⚠' : ''}${esc(it.name)}</span>
+      const mark = it.kind === 'penalty' ? '⚠' : it.kind === 'deduction' ? '➖' : '';
+      const neg = it.kind === 'penalty' || it.kind === 'deduction';
+      return `<button type="button" class="chip-inc${active ? ' active' : ''}${neg ? ' penalty' : ''}" data-id="${esc(it.id)}">
+        <span class="chip-name">${mark}${esc(it.name)}</span>
         ${badge ? `<span class="chip-badge">${badge}</span>` : ''}
       </button>`;
     };
@@ -268,7 +270,7 @@ export async function renderCalendar(el) {
     const openPop = (it) => {
       const hasC = hasFixed(it), hasR = hasRate(it);
       pop.innerHTML = `
-        <div class="chip-pop-title">${it.kind === 'penalty' ? '⚠' : ''}${esc(it.name)}
+        <div class="chip-pop-title">${it.kind === 'penalty' ? '⚠' : it.kind === 'deduction' ? '➖' : ''}${esc(it.name)}
           <span class="muted">${esc(itemLabel(it))}</span></div>
         ${hasC ? `<div class="row" style="align-items:center;gap:8px;margin:12px 0">
           <button class="bi-minus" type="button" id="popMinus" aria-label="減らす">−</button>

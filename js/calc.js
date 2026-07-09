@@ -20,7 +20,7 @@ export function workedHours(shift) {
 
 // 歩合額。後方互換: 旧 type:'fixed'/'rate'+value はそのまま。
 // 新モデル: fixedValue(円/件) と rateValue(％) の併用に対応。
-// kind:'penalty' の項目はマイナス（罰金）として扱う。
+// kind:'penalty'（罰金）/ 'deduction'（その他控除）の項目はマイナスとして扱う。
 export function backAmount(item, entry) {
   if (!item || !entry) return 0;
   let amt;
@@ -28,8 +28,10 @@ export function backAmount(item, entry) {
   else if (item.type === 'rate') amt = (entry.sales || 0) * (item.value || 0) / 100;
   else amt = (item.fixedValue || 0) * (entry.count || 0)
           + (entry.sales || 0) * (item.rateValue || 0) / 100;
-  return item.kind === 'penalty' ? -Math.abs(amt) : amt;
+  return isDeductionKind(item.kind) ? -Math.abs(amt) : amt;
 }
+// 収入以外（罰金・その他控除）＝マイナス計上・歩合ランキング対象外。
+export const isDeductionKind = (kind) => kind === 'penalty' || kind === 'deduction';
 
 // wage は数値（旧）でも時給設定オブジェクト（新）でも受ける。
 // 新オブジェクト: { hourlyWage, nominationWage, douhanWage,
@@ -111,8 +113,8 @@ export function incomeBreakdown(hourlyWage, items, shifts) {
 }
 export function backRanking(hourlyWage, items, shifts) {
   const monthTotal = monthlyEstimate(hourlyWage, items, shifts);
-  // ペナルティ（罰金）項目はランキング対象外（収入の歩合のみを対象にする）
-  const sums = (items || []).filter((it) => it.kind !== 'penalty').map((it) => {
+  // ペナルティ・控除項目はランキング対象外（収入の歩合のみを対象にする）
+  const sums = (items || []).filter((it) => !isDeductionKind(it.kind)).map((it) => {
     let amount = 0, count = 0;
     for (const sh of (shifts || [])) {
       const e = (sh.entries || []).find((x) => x.backItemId === it.id);
@@ -147,8 +149,8 @@ export function plStatement(wage, items, shifts) {
   if (night) wageRows.push({ label: '深夜手当', amount: night });
   const wageTotal = base + nom + dou + night;
 
-  // --- 歩合項目（収入=歩合 / ペナルティ=控除） ---
-  const incentiveRows = [], penaltyRows = [];
+  // --- 歩合項目（収入=歩合 / ペナルティ=罰金 / deduction=その他控除） ---
+  const incentiveRows = [], penaltyRows = [], deductionRows = [];
   for (const it of (items || [])) {
     let amount = 0, count = 0;
     for (const shift of sh) {
@@ -159,18 +161,21 @@ export function plStatement(wage, items, shifts) {
     }
     if (amount === 0) continue;
     const row = { label: it.name, amount, count };
-    if (it.kind === 'penalty' || amount < 0) penaltyRows.push(row);
+    if (it.kind === 'deduction') deductionRows.push(row);
+    else if (it.kind === 'penalty' || amount < 0) penaltyRows.push(row);
     else incentiveRows.push(row);
   }
   const incentiveTotal = incentiveRows.reduce((s, r) => s + r.amount, 0);
   const penaltyTotal = penaltyRows.reduce((s, r) => s + r.amount, 0);
+  const deductionTotal = deductionRows.reduce((s, r) => s + r.amount, 0);
   const grossIncome = wageTotal + incentiveTotal;
-  const net = grossIncome + penaltyTotal; // penaltyTotal は負値
+  const net = grossIncome + penaltyTotal + deductionTotal; // penalty/deduction は負値
 
   return {
     wageRows, wageTotal,
     incentiveRows, incentiveTotal,
     penaltyRows, penaltyTotal,
+    deductionRows, deductionTotal,
     grossIncome, net,
   };
 }

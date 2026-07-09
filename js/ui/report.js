@@ -44,7 +44,7 @@ export async function renderReport(el) {
       <span class="pl-amt">${amount < 0 ? signedYen(amount) : yen(amount)}</span>
     </div>`;
 
-  const hasData = pl.wageRows.length || pl.incentiveRows.length || pl.penaltyRows.length || eventInc;
+  const hasData = pl.wageRows.length || pl.incentiveRows.length || pl.penaltyRows.length || pl.deductionRows.length || eventInc;
   const incentiveCount = pl.incentiveRows.reduce((s, r) => s + (r.count || 0), 0);
   // イベント歩合の別枠：イベント名をタイトルに、配下へ 銘柄×本数・金額 を明細表示。
   const eventBlock = eventInc ? `
@@ -71,7 +71,12 @@ export async function renderReport(el) {
     ${pl.penaltyRows.length ? `
       <div class="pl-section-head" style="margin-top:14px">控除（ペナルティ）</div>
       ${pl.penaltyRows.map((r) => line(r.label, r.amount, 'pl-neg', r.count)).join('')}
-      ${subtotal('控除 小計', pl.penaltyTotal)}
+      ${subtotal('ペナルティ 小計', pl.penaltyTotal)}
+    ` : ''}
+    ${pl.deductionRows.length ? `
+      <div class="pl-section-head" style="margin-top:14px">控除（その他）</div>
+      ${pl.deductionRows.map((r) => line(r.label, r.amount, 'pl-neg', r.count)).join('')}
+      ${subtotal('その他控除 小計', pl.deductionTotal)}
     ` : ''}
     <div class="pl-net">
       <span>差引 最終合計</span>
