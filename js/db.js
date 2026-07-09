@@ -55,6 +55,8 @@ export async function getProfile() {
   // リマインダー設定の既定値（未設定＝無効・出勤は前日から/キャンペーンは3日前から）
   p.shiftReminder = { enabled: false, leadDays: 1, ...(p.shiftReminder || {}) };
   p.campaignReminder = { enabled: false, leadDays: 3, ...(p.campaignReminder || {}) };
+  // 歩合項目の分類マスター（事前登録して項目でプルダウン選択する）
+  p.backCategories = p.backCategories || [];
   return p;
 }
 export async function saveProfile(p) { return put('profile', { ...p, id: 'me' }); }

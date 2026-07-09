@@ -33,3 +33,14 @@ export function categoryList(items) {
   }
   return seen;
 }
+
+// 選択肢に出す分類の一覧。事前登録したマスター（profile.backCategories）を先頭に、
+// マスター未登録でも項目で使われている分類を後ろに補完（既存データの取りこぼし防止）。
+// 「未分類」は含めない（UI側で別途 未分類=空 を用意する）。
+export function allCategories(profile, items) {
+  const out = [...((profile && profile.backCategories) || [])];
+  for (const c of categoryList(items)) {
+    if (c !== UNCATEGORIZED && !out.includes(c)) out.push(c);
+  }
+  return out;
+}

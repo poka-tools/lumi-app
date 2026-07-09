@@ -2,7 +2,7 @@ import { state, loadAll } from '../state.js';
 import { put, del, uid, saveProfile } from '../db.js';
 import { esc } from '../format.js';
 import { navigate } from '../app.js';
-import { categoryList, itemCategory } from './backfields.js';
+import { categoryList, itemCategory, allCategories, UNCATEGORIZED } from './backfields.js';
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
 
@@ -15,6 +15,11 @@ function leadSelect(id, val) {
 }
 
 export async function renderSettings(el) {
+  // 既存ユーザーが今使っている分類を、初回だけ分類マスターへ取り込む（以後は編集可）。
+  if ((state.profile.backCategories || []).length === 0) {
+    const seed = categoryList(state.backItems).filter((c) => c !== UNCATEGORIZED);
+    if (seed.length) { await saveProfile({ ...state.profile, backCategories: seed }); await loadAll(); }
+  }
   const p = state.profile;
   el.innerHTML = `
     <h2>設定</h2>
@@ -40,9 +45,17 @@ export async function renderSettings(el) {
 
     <div class="card">
       <h3>歩合項目</h3>
-      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">シャンパンバック・ドリンクバック・指名料・同伴・ペナルティなど、時給以外の歩合を項目として登録します。「円/件」（1件あたりの額）や「％」（売上に対する割合）で設定でき、カレンダーの日別入力「入った歩合」にチップとして並んで、タップで件数・売上を記録できます。分類を付けるとタブで絞り込めます。</p>
+      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">シャンパンバック・ドリンクバック・指名料・同伴・ペナルティなど、時給以外の歩合を項目として登録します。「円/件」（1件あたりの額）や「％」（売上に対する割合）で設定でき、カレンダーの日別入力「入った歩合」にチップとして並んで、タップで件数・売上を記録できます。分類は下の「分類の管理」で先に登録し、各項目のプルダウンから選べます（分類でタブ絞り込みも可）。</p>
+      <div class="cat-manager">
+        <div class="cat-manager-head">分類の管理</div>
+        <p class="muted" style="font-size:12px;margin:2px 0 8px;line-height:1.6">先に分類を登録しておくと、各項目の「分類」欄からプルダウンで選べます（例: ドリンク／シャンパン／指名・同伴）。<strong>カンマ「,」や改行で区切ると、一度に複数まとめて追加できます。</strong>名前の変更・削除はその分類の項目にも反映されます。</p>
+        <div id="catList"></div>
+        <form class="row" id="catAdd" style="margin-top:6px;align-items:flex-start">
+          <textarea id="catInput" class="inline-input" rows="1" placeholder="新しい分類名…（例: シャンパン）" style="flex:1;resize:vertical"></textarea>
+          <button class="btn" type="submit" style="flex:0 0 auto;width:auto">追加</button>
+        </form>
+      </div>
       <div class="cat-tabs" id="itemTabs"></div>
-      <datalist id="catOptions"></datalist>
       <div id="itemList"></div>
       <button class="btn btn-ghost" id="addItem">＋ 項目を追加</button>
     </div>
@@ -121,14 +134,80 @@ export async function renderSettings(el) {
   // 0 は未入力とみなし空欄表示（プレースホルダーを見せる）。何を入力する欄か分かるように。
   const blankIfZero = (n) => n ? n : '';
 
+  // 分類マスターの管理（追加・リネーム・削除）。リネーム/削除は該当項目にも反映。
+  const renderCatManager = () => {
+    const cats = state.profile.backCategories || [];
+    const listEl = el.querySelector('#catList');
+    listEl.innerHTML = cats.length
+      ? cats.map((c) => `
+        <div class="cat-row" data-cat="${esc(c)}">
+          <input class="cat-name inline-input" value="${esc(c)}" maxlength="30" style="flex:1">
+          <button class="cat-del" type="button" aria-label="削除" style="border:none;background:none;color:#f55;font-size:16px;padding:4px 8px;flex:0 0 auto">🗑</button>
+        </div>`).join('')
+      : '<p class="muted" style="font-size:12px;margin:4px 0">まだ分類がありません。下の欄から追加できます。</p>';
+
+    listEl.querySelectorAll('.cat-row').forEach((rowEl) => {
+      const old = rowEl.dataset.cat;
+      rowEl.querySelector('.cat-name').onchange = async (e) => {
+        const next = e.target.value.trim();
+        if (!next || next === old) { e.target.value = old; return; }
+        if (next === UNCATEGORIZED) { toast('「未分類」は分類名に使えません'); e.target.value = old; return; }
+        const cats2 = (state.profile.backCategories || []).map((c) => (c === old ? next : c));
+        const uniq = cats2.filter((c, i) => cats2.indexOf(c) === i);
+        await saveProfile({ ...state.profile, backCategories: uniq });
+        for (const it of state.backItems) {
+          if (itemCategory(it) === old) { it.category = next; await put('backItems', it); }
+        }
+        await loadAll();
+        renderCatManager(); renderTabs(); renderItems();
+        toast('分類を変更しました');
+      };
+      rowEl.querySelector('.cat-del').onclick = async () => {
+        if (!(await confirmModal(`分類「${old}」を削除しますか？この分類の項目は「未分類」になります。`))) return;
+        await saveProfile({ ...state.profile, backCategories: (state.profile.backCategories || []).filter((c) => c !== old) });
+        for (const it of state.backItems) {
+          if (itemCategory(it) === old) { it.category = ''; await put('backItems', it); }
+        }
+        await loadAll();
+        renderCatManager(); renderTabs(); renderItems();
+        toast('分類を削除しました');
+      };
+    });
+  };
+
+  el.querySelector('#catAdd').onsubmit = async (e) => {
+    e.preventDefault();
+    const input = el.querySelector('#catInput');
+    // カンマ（半角/全角）・改行区切りで複数まとめて追加。重複・「未分類」はスキップ。
+    const names = input.value.split(/[,、\n]/).map((s) => s.trim()).filter(Boolean);
+    if (!names.length) return;
+    const next = [...(state.profile.backCategories || [])];
+    let added = 0, skipped = 0;
+    for (const name of names) {
+      if (name === UNCATEGORIZED || next.includes(name)) { skipped++; continue; }
+      next.push(name); added++;
+    }
+    if (added === 0) { toast('追加できる新しい分類がありませんでした'); input.value = ''; return; }
+    await saveProfile({ ...state.profile, backCategories: next });
+    await loadAll();
+    input.value = '';
+    renderCatManager(); renderTabs(); renderItems();
+    toast(`${added}件の分類を追加しました${skipped ? `（${skipped}件はスキップ）` : ''}`);
+  };
+
+  // 各項目の分類プルダウンの選択肢（未分類＝空 ＋ マスター分類）。
+  const catOptionsHtml = (cur) => {
+    const cats = allCategories(state.profile, state.backItems);
+    const list = cur && !cats.includes(cur) ? [cur, ...cats] : cats;
+    return `<option value="" ${!cur ? 'selected' : ''}>未分類</option>` +
+      list.map((c) => `<option value="${esc(c)}" ${c === cur ? 'selected' : ''}>${esc(c)}</option>`).join('');
+  };
+
   // 分類タブ（全て＋出現カテゴリ）。分類が実質1種類以下ならタブは隠す。
   let activeCat = '全て';
   const renderTabs = () => {
     const cats = categoryList(state.backItems);
     const tabsEl = el.querySelector('#itemTabs');
-    // datalist を最新のカテゴリで更新（自由入力の候補）
-    el.querySelector('#catOptions').innerHTML =
-      cats.filter((c) => c !== '未分類').map((c) => `<option value="${esc(c)}">`).join('');
     if (cats.length <= 1) { tabsEl.innerHTML = ''; activeCat = '全て'; return; }
     const all = ['全て', ...cats];
     if (!all.includes(activeCat)) activeCat = '全て';
@@ -158,8 +237,9 @@ export async function renderSettings(el) {
           <input class="i-fixed inline-input" type="number" inputmode="numeric" placeholder="円/件" title="円/件" value="${blankIfZero(itemFixed(it))}" style="flex:1">
           <input class="i-rate inline-input" type="number" inputmode="numeric" placeholder="％" title="売上の％" value="${blankIfZero(itemRate(it))}" style="flex:1">
         </div>
-        <div class="row" style="margin-top:8px">
-          <input class="i-cat inline-input" list="catOptions" value="${esc(it.category || '')}" placeholder="分類（例: ドリンク・指名/同伴）" style="flex:1">
+        <div class="row" style="margin-top:8px;align-items:center">
+          <label class="muted" style="flex:0 0 auto;font-size:12px">分類</label>
+          <select class="i-cat inline-input" style="flex:0 1 auto;min-width:120px;max-width:220px">${catOptionsHtml((it.category || '').trim())}</select>
         </div>
       </div>`).join('') || '<p class="muted">この分類の項目はありません。</p>';
     box.querySelectorAll('[data-id]').forEach((rowEl) => {
@@ -191,6 +271,7 @@ export async function renderSettings(el) {
       };
     });
   };
+  renderCatManager();
   renderTabs();
   renderItems();
 

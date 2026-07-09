@@ -292,6 +292,12 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
   white-space: nowrap; -webkit-tap-highlight-color: transparent; }
 .cat-tab.active { border-color: var(--pink); background: var(--pink-soft); color: var(--pink); }
 
+/* 分類の管理（設定・歩合項目カード内） */
+.cat-manager { border: 1px solid #f0e6ea; background: #fdfafb; border-radius: 10px;
+  padding: 10px 12px; margin: 4px 0 12px; }
+.cat-manager-head { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.cat-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+
 /* インセンティブ・チップ（カレンダー日別入力） */
 .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
 .chip-inc { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid #eadfe4;
