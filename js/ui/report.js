@@ -32,6 +32,7 @@ export async function renderReport(el) {
       ${dpRow('体験入店・全額 日払い', dp.trial)}
       <div class="pl-net"><span>受取済み 合計</span><strong>${yen(dp.received)}</strong></div>
       <div class="row" style="justify-content:space-between"><span>未受取（差額・後日支給）</span><strong>${yen(dp.remaining)}</strong></div>
+      <p class="muted" style="font-size:12px;margin:8px 0 0;line-height:1.6">「基本時給のみ 日払い」は歩合（インセンティブ）を含みません。当日受け取っていない歩合や差額は「未受取（後日支給）」に含まれます。</p>
     </div>` : '';
 
   // 歩合 TOP3 を金額順／数量順で並べ替えて描画する（同じ card 内でトグル）

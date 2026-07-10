@@ -189,9 +189,16 @@ export async function renderCalendar(el) {
     // 日払い：種別に応じて詳細（上限・受取/未受取）を表示
     const dpDetail = q('#dpDetail');
     if (dpDetail) {
-      const on = draft.dayPay && draft.dayPay.type && draft.dayPay.type !== 'none';
+      const type = draft.dayPay && draft.dayPay.type;
+      const on = type && type !== 'none';
       dpDetail.hidden = !on;
       if (on) {
+        const notes = {
+          full: '時給＋歩合（ペナルティ差引後）の純額を当日全額受け取ります。',
+          base: '基本時給＋深夜手当のみ当日受取。歩合（インセンティブ）は含まれず後日支給です。',
+          trial: '体験入店分の純額（歩合込み）を当日全額受け取ります。',
+        };
+        q('#dpNote').textContent = notes[type] || '';
         q('#dpReceived').textContent = yen(dayPayReceived(state.profile, state.backItems, draft));
         q('#dpRemaining').textContent = yen(dayPayRemaining(state.profile, state.backItems, draft));
       }
@@ -280,6 +287,7 @@ export async function renderCalendar(el) {
       </div>
       <div class="daypay-box">
         <label style="display:block;font-weight:600;margin-bottom:4px">日払い（当日その場で受取）</label>
+        <p class="muted" style="font-size:12px;margin:0 0 6px;line-height:1.6">その日に受け取った分を記録します。受け取っていない差額は「未受取（後日支給）」として集計されます。</p>
         <select id="sDayPay" class="inline-input" style="width:100%">
           <option value="none">なし</option>
           <option value="full">全額 当日日払い</option>
@@ -287,6 +295,7 @@ export async function renderCalendar(el) {
           <option value="trial">体験入店・全額 日払い</option>
         </select>
         <div id="dpDetail" hidden style="margin-top:8px">
+          <p class="muted" id="dpNote" style="font-size:12px;margin:0 0 8px;line-height:1.6"></p>
           <div class="field"><label>上限（円・空欄＝上限なし）</label><input id="sDayPayCap" type="number" inputmode="numeric" placeholder="上限なし"></div>
           <div class="sheet-sub" style="margin-top:6px">受取済み <strong id="dpReceived">¥0</strong> ／ 未受取(差額) <strong id="dpRemaining">¥0</strong></div>
         </div>
