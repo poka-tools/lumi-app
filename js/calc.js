@@ -89,10 +89,43 @@ export function shiftTotal(hourlyWage, items, shift) {
   return shiftWage(hourlyWage, shift) + shiftBackTotal(items, shift);
 }
 
+// 日払い（当日その場で受け取った額）。
+// type: 'full'(全額当日) / 'base'(基本時給のみ＝時給＋深夜手当) / 'trial'(体験入店・全額) / 'none'/未設定。
+// cap>0 のときは受取額をその上限で頭打ち（1日1万円まで 等）。full/trial は純額（歩合−ペナルティ込み）。
+export function dayPayReceived(wage, items, shift) {
+  const dp = shift && shift.dayPay;
+  if (!dp || !dp.type || dp.type === 'none') return 0;
+  const wagePart = shiftWage(wage, shift);              // 時給＋深夜手当
+  const net = wagePart + shiftBackTotal(items, shift);  // 純額（歩合−ペナルティ込み）
+  const gross = dp.type === 'base' ? wagePart : net;    // base は時給部分のみ
+  const cap = Number(dp.cap) || 0;
+  const received = cap > 0 ? Math.min(gross, cap) : gross;
+  return Math.max(0, received);                          // 負の受取はしない
+}
+// 未受取（後日支給される差額）＝ 純額 − 受取済み。
+export function dayPayRemaining(wage, items, shift) {
+  return shiftTotal(wage, items, shift) - dayPayReceived(wage, items, shift);
+}
+
 const round1 = (n) => Math.round(n * 10) / 10;
 
 export function monthlyEstimate(hourlyWage, items, shifts) {
   return (shifts || []).reduce((s, sh) => s + shiftTotal(hourlyWage, items, sh), 0);
+}
+// 日払いの集計。種別ごとの受取（full/base/trial）＋受取合計・未受取（差額）・純額総額。
+export function dayPaySummary(wage, items, shifts) {
+  let full = 0, base = 0, trial = 0;
+  for (const sh of (shifts || [])) {
+    const r = dayPayReceived(wage, items, sh);
+    if (!r) continue;
+    const t = sh.dayPay && sh.dayPay.type;
+    if (t === 'base') base += r;
+    else if (t === 'trial') trial += r;
+    else full += r; // 'full'
+  }
+  const received = full + base + trial;
+  const total = monthlyEstimate(wage, items, shifts);
+  return { full, base, trial, received, remaining: total - received, total };
 }
 export function monthlyWorkedHours(shifts) {
   return (shifts || []).reduce((s, sh) => s + workedHours(sh), 0);

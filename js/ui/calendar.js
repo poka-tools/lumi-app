@@ -1,6 +1,6 @@
 import { state, shiftsOfMonth, loadAll } from '../state.js';
 import { put, del, uid } from '../db.js';
-import { shiftTotal, shiftBackTotal, workedHours } from '../calc.js';
+import { shiftTotal, shiftBackTotal, workedHours, dayPayReceived, dayPayRemaining } from '../calc.js';
 import { yen, esc, weekdayJa, todayIso } from '../format.js';
 import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './backfields.js';
 import { renderTodos } from './todos.js';
@@ -164,6 +164,8 @@ export async function renderCalendar(el) {
     draft.breakMin = Number(q('#sBreak').value) || 0;
     draft.confirmed = q('#sConfirmed').checked;
     draft.absent = q('#sAbsent').checked;
+    const dpType = q('#sDayPay') ? q('#sDayPay').value : 'none';
+    draft.dayPay = { type: dpType, cap: (q('#sDayPayCap') && Number(q('#sDayPayCap').value)) || 0 };
     const entries = [];
     for (const it of state.backItems) {
       const c = Number(counts[it.id]) || 0, s = Number(sales[it.id]) || 0;
@@ -184,6 +186,16 @@ export async function renderCalendar(el) {
     q('#sheetTotal').textContent = yen(shiftTotal(state.profile, state.backItems, draft) + evAmt);
     q('#sheetInc').textContent = yen(shiftBackTotal(state.backItems, draft) + evAmt);
     q('#sheetHours').textContent = workedHours(draft) ? `実働 ${workedHours(draft)}h` : '';
+    // 日払い：種別に応じて詳細（上限・受取/未受取）を表示
+    const dpDetail = q('#dpDetail');
+    if (dpDetail) {
+      const on = draft.dayPay && draft.dayPay.type && draft.dayPay.type !== 'none';
+      dpDetail.hidden = !on;
+      if (on) {
+        q('#dpReceived').textContent = yen(dayPayReceived(state.profile, state.backItems, draft));
+        q('#dpRemaining').textContent = yen(dayPayRemaining(state.profile, state.backItems, draft));
+      }
+    }
   };
 
   const renderSheet = () => {
@@ -265,6 +277,19 @@ export async function renderCalendar(el) {
           <div class="sheet-sub">うち歩合 <strong id="sheetInc">¥0</strong></div>
         </div>
         <strong id="sheetTotal" style="font-size:26px;font-weight:800">¥0</strong>
+      </div>
+      <div class="daypay-box">
+        <label style="display:block;font-weight:600;margin-bottom:4px">日払い（当日その場で受取）</label>
+        <select id="sDayPay" class="inline-input" style="width:100%">
+          <option value="none">なし</option>
+          <option value="full">全額 当日日払い</option>
+          <option value="base">基本時給のみ 日払い</option>
+          <option value="trial">体験入店・全額 日払い</option>
+        </select>
+        <div id="dpDetail" hidden style="margin-top:8px">
+          <div class="field"><label>上限（円・空欄＝上限なし）</label><input id="sDayPayCap" type="number" inputmode="numeric" placeholder="上限なし"></div>
+          <div class="sheet-sub" style="margin-top:6px">受取済み <strong id="dpReceived">¥0</strong> ／ 未受取(差額) <strong id="dpRemaining">¥0</strong></div>
+        </div>
       </div>
       <label style="display:block;margin-bottom:12px">
         <input id="sConfirmed" type="checkbox" ${draft.confirmed ? 'checked' : ''}> 確定（実績）にする
@@ -411,6 +436,17 @@ export async function renderCalendar(el) {
       inp.oninput = recalc; inp.onchange = recalc;
     });
     q('#sAbsent').onchange = recalc;
+
+    // 日払い：初期値（種別・上限）をセットして変更で再計算
+    const dpSel = q('#sDayPay');
+    if (dpSel) {
+      dpSel.value = (draft.dayPay && draft.dayPay.type) || 'none';
+      const capIn = q('#sDayPayCap');
+      const capVal = (draft.dayPay && draft.dayPay.cap) || state.profile.dayPayCap || 0;
+      capIn.value = capVal > 0 ? capVal : '';
+      dpSel.onchange = recalc;
+      capIn.oninput = recalc;
+    }
 
     q('#sSave').onclick = async () => {
       await put('shifts', collectDraft());

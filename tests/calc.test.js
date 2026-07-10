@@ -121,6 +121,52 @@ test('欠勤: 時給0・深夜手当0だがペナルティは計上される', (
   assert.equal(shiftTotal(w, items, shift), -5000);
 });
 
+import { dayPayReceived, dayPayRemaining, dayPaySummary } from '../js/calc.js';
+
+// 時給2500×5h=12500、深夜3h×300=900 →時給部分13400。歩合 douhan 3000×2=6000。純額19400。
+const _dpWage = { hourlyWage: 2500, nightPremium: { enabled: true, start: '22:00', end: '05:00', addPerHour: 300 } };
+const _dpItems = [{ id: 'douhan', type: 'fixed', value: 3000 }, { id: 'fine', kind: 'penalty', fixedValue: 5000 }];
+const _dpShiftBase = { start: '20:00', end: '01:00', breakMin: 0, entries: [{ backItemId: 'douhan', count: 2 }] };
+
+test('日払い full: 純額を全額受取・差額0', () => {
+  const s = { ..._dpShiftBase, dayPay: { type: 'full', cap: 0 } };
+  assert.equal(dayPayReceived(_dpWage, _dpItems, s), 19400);
+  assert.equal(dayPayRemaining(_dpWage, _dpItems, s), 0);
+});
+test('日払い base: 時給＋深夜手当のみ受取・歩合は差額', () => {
+  const s = { ..._dpShiftBase, dayPay: { type: 'base', cap: 0 } };
+  assert.equal(dayPayReceived(_dpWage, _dpItems, s), 13400);
+  assert.equal(dayPayRemaining(_dpWage, _dpItems, s), 6000); // 歩合ぶんが後日
+});
+test('日払い cap: 上限1万で頭打ち・残りは差額', () => {
+  const s = { ..._dpShiftBase, dayPay: { type: 'full', cap: 10000 } };
+  assert.equal(dayPayReceived(_dpWage, _dpItems, s), 10000);
+  assert.equal(dayPayRemaining(_dpWage, _dpItems, s), 9400);
+});
+test('日払い full＋ペナルティ: 純額（差引後）を受取', () => {
+  const s = { ..._dpShiftBase, dayPay: { type: 'full', cap: 0 }, entries: [{ backItemId: 'douhan', count: 2 }, { backItemId: 'fine', count: 1 }] };
+  assert.equal(dayPayReceived(_dpWage, _dpItems, s), 14400); // 19400 − 5000
+  assert.equal(dayPayRemaining(_dpWage, _dpItems, s), 0);
+});
+test('日払い none/未設定: 受取0・全額が差額', () => {
+  assert.equal(dayPayReceived(_dpWage, _dpItems, _dpShiftBase), 0);
+  assert.equal(dayPayRemaining(_dpWage, _dpItems, _dpShiftBase), 19400);
+});
+test('dayPaySummary: 種別ごと集計・未受取', () => {
+  const shifts = [
+    { ..._dpShiftBase, dayPay: { type: 'full', cap: 0 } },   // 受取19400
+    { ..._dpShiftBase, dayPay: { type: 'base', cap: 0 } },   // 受取13400（差額6000）
+    { ..._dpShiftBase, dayPay: { type: 'trial', cap: 0 } },  // 受取19400
+  ];
+  const sm = dayPaySummary(_dpWage, _dpItems, shifts);
+  assert.equal(sm.full, 19400);
+  assert.equal(sm.base, 13400);
+  assert.equal(sm.trial, 19400);
+  assert.equal(sm.received, 52200);
+  assert.equal(sm.total, 19400 * 3); // 58200
+  assert.equal(sm.remaining, 58200 - 52200); // 6000
+});
+
 import {
   monthlyEstimate, monthlyWorkedHours, hourlyEquivalent,
   incomeBreakdown, backRanking, monthOverMonth,

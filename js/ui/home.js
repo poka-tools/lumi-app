@@ -2,7 +2,7 @@ import { state, shiftsOfMonth, prevMonth, loadAll } from '../state.js';
 import { put } from '../db.js';
 import {
   monthlyEstimate, monthlyWorkedHours,
-  incomeBreakdown, monthOverMonth, shiftTotal, workedHours,
+  incomeBreakdown, monthOverMonth, shiftTotal, workedHours, dayPaySummary,
 } from '../calc.js';
 import { yen, signedYen, weekdayJa, esc, todayIso, shortDateJa } from '../format.js';
 import { drawDonut } from './donut.js';
@@ -34,6 +34,10 @@ export async function renderHome(el) {
   // 前月にシフトもイベント歩合も無ければ比較対象なし（null）
   const prevAll = (prev.length || prevEventInc) ? (prevEstimate || 0) + prevEventInc : null;
   const mom = monthOverMonth(estimateAll, prevAll);
+  // 日払い：受取済み合計と未受取（＝日払いを抜いた額。イベント歩合は後日精算扱いで未受取に含める）
+  const dp = dayPaySummary(wage, items, cur);
+  const dpReceived = dp.received;
+  const dpUnpaid = estimateAll - dpReceived; // 総額から日払い受取済みを除いた額
   const hours = monthlyWorkedHours(cur);
   const today = todayIso();
   const todayShift = cur.find((s) => s.date === today);
@@ -100,6 +104,7 @@ export async function renderHome(el) {
       <div class="estimate-head">${esc(monthLabel)}の見込み <span class="badge">確定前</span></div>
       <div class="big-amount">${yen(estimateAll)}</div>
       ${mom ? `<div class="muted">前月比 <span style="color:var(--pink);font-weight:600">${signedYen(mom.diff)}（${mom.pct >= 0 ? '+' : ''}${mom.pct}%）</span></div>` : ''}
+      ${dpReceived > 0 ? `<div class="daypay-line">💴 日払い受取済 <strong>${yen(dpReceived)}</strong> ／ 日払いを抜いた額 <strong>${yen(dpUnpaid)}</strong></div>` : ''}
       <div class="metric-grid">
         <div><span class="muted">時給(基本給)</span><strong>${yen(bd.wage)}</strong></div>
         <div><span class="muted">歩合</span><strong>${yen(backAll)}</strong></div>

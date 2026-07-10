@@ -1,5 +1,5 @@
 import { state, shiftsOfMonth } from '../state.js';
-import { plStatement, annualSeries, monthlyWorkedHours, backRanking } from '../calc.js';
+import { plStatement, annualSeries, monthlyWorkedHours, backRanking, dayPaySummary } from '../calc.js';
 import { yen, signedYen, esc } from '../format.js';
 import { eventIncomeInMonth, eventIncentiveDetail } from '../events-logic.js';
 
@@ -18,6 +18,21 @@ export async function renderReport(el) {
   const series = annualSeries(wage, items, state.shifts, year);
   const rankingBase = backRanking(wage, items, cur);
   const medals = ['🥇', '🥈', '🥉'];
+
+  // 日払い集計（設定ONかつ日払い実績がある月だけ表示）
+  const dp = dayPaySummary(wage, items, cur);
+  const showDayPay = wage.showDayPayDiff && dp.received > 0;
+  const dpRow = (label, val) => val
+    ? `<div class="row" style="justify-content:space-between"><span>${label}</span><strong>${yen(val)}</strong></div>` : '';
+  const dayPayCard = showDayPay ? `
+    <div class="card" id="secDayPay">
+      <h3 style="margin:0 0 8px">日払い（当日その場で受取）</h3>
+      ${dpRow('全額 当日日払い', dp.full)}
+      ${dpRow('基本時給のみ 日払い', dp.base)}
+      ${dpRow('体験入店・全額 日払い', dp.trial)}
+      <div class="pl-net"><span>受取済み 合計</span><strong>${yen(dp.received)}</strong></div>
+      <div class="row" style="justify-content:space-between"><span>未受取（差額・後日支給）</span><strong>${yen(dp.remaining)}</strong></div>
+    </div>` : '';
 
   // 歩合 TOP3 を金額順／数量順で並べ替えて描画する（同じ card 内でトグル）
   const rankRows = (mode) => {
@@ -127,6 +142,8 @@ export async function renderReport(el) {
       ` : '<p class="muted">この月の実績がまだありません。</p>'}
     </div>
 
+    ${dayPayCard}
+
     <div class="card" id="secRank">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <h3 style="margin:0">歩合 TOP3</h3>
@@ -144,6 +161,7 @@ export async function renderReport(el) {
       <label class="pdf-opt"><input type="checkbox" data-sec="secSummary" checked> 勤務サマリー</label>
       <label class="pdf-opt"><input type="checkbox" data-sec="secAnnual" checked> 年間推移グラフ</label>
       <label class="pdf-opt"><input type="checkbox" data-sec="secPl" checked> 収支明細（P/L）</label>
+      ${showDayPay ? '<label class="pdf-opt"><input type="checkbox" data-sec="secDayPay" checked> 日払い</label>' : ''}
       <label class="pdf-opt"><input type="checkbox" data-sec="secRank" checked> 歩合 TOP3</label>
       <button id="pdfBtn" class="btn" style="margin-top:10px">PDFで保存</button>
     </div>`;

@@ -41,7 +41,10 @@ export async function renderSettings(el) {
         <div class="field" style="flex:1"><label>終了</label><input id="defEnd" type="time" value="${esc(p.defaultEnd || '01:00')}"></div>
         <div class="field" style="flex:1"><label>休憩(分)</label><input id="defBreak" type="number" inputmode="numeric" value="${Number(p.defaultBreakMin) || 0}"></div>
       </div>
-      <button class="btn" id="saveProfile">保存</button>
+      <div class="muted" style="margin:8px 0 6px">日払い設定</div>
+      <div class="field"><label>日払いの上限（円・既定／0＝上限なし）</label><input id="dayPayCap" type="number" inputmode="numeric" value="${Number(p.dayPayCap) || 0}"></div>
+      <label style="display:block;margin-top:4px"><input id="showDayPayDiff" type="checkbox" ${p.showDayPayDiff ? 'checked' : ''}> レポートに日払いの差額（未受取）を表示する</label>
+      <button class="btn" id="saveProfile" style="margin-top:10px">保存</button>
     </div>
 
     <div class="card">
@@ -130,6 +133,8 @@ export async function renderSettings(el) {
         end: el.querySelector('#npEnd').value || '05:00',
         addPerHour: num('#npAdd'),
       },
+      dayPayCap: num('#dayPayCap'),
+      showDayPayDiff: el.querySelector('#showDayPayDiff').checked,
     });
     await loadAll();
     toast('保存しました');
