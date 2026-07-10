@@ -5,8 +5,13 @@ import { yen, esc, weekdayJa, todayIso } from '../format.js';
 import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './backfields.js';
 import { renderTodos } from './todos.js';
 import { confirmModal } from './confirm.js';
+import { toast } from './toast.js';
 import { visitCountByDate, visitsOnDate, birthdaysByDate } from '../customers-logic.js';
 import { eventIncomeByDate, eventIncomeByDateDetailed } from '../events-logic.js';
+
+// まとめて入力（複数日選択）モードの状態。カレンダー再描画をまたいで保持する。
+let bulkMode = false;
+const bulkSelected = new Set();
 
 export async function renderCalendar(el) {
   const [y, m] = state.month.split('-').map(Number);
@@ -65,9 +70,26 @@ export async function renderCalendar(el) {
     const visitMark = vCount ? `<div class="cal-visit">👤${vCount > 1 ? vCount : ''}</div>` : '';
     const bdayNames = bdaysByDate.get(iso);
     const bdayMark = bdayNames ? `<div class="cal-bday">🎂${bdayNames.length > 1 ? bdayNames.length : ''}</div>` : '';
+    if (bulkMode && bulkSelected.has(iso)) cls += ' bulk-selected';
     cells.push(`<div class="cal-cell ${cls}" data-date="${esc(iso)}">
       <div class="cal-day">${d}</div>${body}${todoMark}${visitMark}${bdayMark}${evMark}</div>`);
   }
+
+  const p = state.profile;
+  const bulkPanelHtml = bulkMode ? `
+    <div class="bulk-panel">
+      <div class="bulk-head">🗓️ まとめて入力：出勤する日をタップで選択（<span id="bulkCount">${bulkSelected.size}</span>日）</div>
+      <div class="row">
+        <div class="field" style="flex:1"><label>開始</label><input id="bkStart" type="time" value="${esc(p.defaultStart || '20:00')}"></div>
+        <div class="field" style="flex:1"><label>終了</label><input id="bkEnd" type="time" value="${esc(p.defaultEnd || '01:00')}"></div>
+        <div class="field" style="flex:1"><label>休憩(分)</label><input id="bkBreak" type="number" inputmode="numeric" value="${Number(p.defaultBreakMin) || 0}"></div>
+      </div>
+      <label style="display:block;margin:8px 0"><input id="bkConfirmed" type="checkbox"> 確定（実績）にする　<span class="muted" style="font-size:12px">OFFは「出勤予定」</span></label>
+      <div class="row" style="gap:8px">
+        <button class="btn btn-ghost" id="bkCancel" style="flex:1">キャンセル</button>
+        <button class="btn" id="bkSave" style="flex:2">選択した日を保存</button>
+      </div>
+    </div>` : '';
 
   el.innerHTML = `
     <div class="row" style="justify-content:space-between;align-items:center">
@@ -75,9 +97,13 @@ export async function renderCalendar(el) {
       <h2>${y}年${m}月</h2>
       <button id="next" class="btn-ghost btn" style="width:auto;padding:6px 12px">›</button>
     </div>
+    ${bulkPanelHtml}
     <div class="cal-grid head">${['日','月','火','水','木','金','土'].map((w) => `<div>${w}</div>`).join('')}</div>
     <div class="cal-grid" id="grid">${cells.join('')}</div>
-    <p class="muted" style="text-align:center;margin-top:10px">日付をタップして記録・予定を入力</p>
+    ${bulkMode
+      ? '<p class="muted" style="text-align:center;margin-top:10px">タップで選択／もう一度タップで解除</p>'
+      : `<p class="muted" style="text-align:center;margin-top:10px">日付をタップして記録・予定を入力</p>
+         <button id="bulkStartBtn" class="btn btn-ghost" style="margin-top:4px">🗓️ まとめて入力（複数日）</button>`}
 
     <div id="todoSection" style="margin-top:16px"></div>
 
@@ -111,6 +137,7 @@ export async function renderCalendar(el) {
     const d = new Date(y, m - 1 + delta, 1);
     // ローカルの年月で組み立てる（toISOString だと UTC 変換で月がずれる）
     state.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (bulkMode) bulkSelected.clear(); // 月をまたいだ選択は混乱するのでクリア
     renderCalendar(el);
   };
   el.querySelector('#prev').onclick = () => shiftMonth(-1);
@@ -450,6 +477,65 @@ export async function renderCalendar(el) {
   handle.addEventListener('touchstart', dragStart, { passive: true });
   handle.addEventListener('mousedown', dragStart);
   el.querySelectorAll('.cal-cell').forEach((cell) => {
-    cell.onclick = () => openSheet(cell.dataset.date);
+    cell.onclick = () => {
+      const d = cell.dataset.date;
+      if (!bulkMode) { openSheet(d); return; }
+      // まとめ入力モード：タップで選択トグル（再描画せずクラスと件数だけ更新）
+      if (bulkSelected.has(d)) { bulkSelected.delete(d); cell.classList.remove('bulk-selected'); }
+      else { bulkSelected.add(d); cell.classList.add('bulk-selected'); }
+      const c = el.querySelector('#bulkCount');
+      if (c) c.textContent = bulkSelected.size;
+    };
   });
+
+  // ===== まとめて入力（複数日） =====
+  const bulkStartBtn = el.querySelector('#bulkStartBtn');
+  if (bulkStartBtn) bulkStartBtn.onclick = () => { bulkMode = true; bulkSelected.clear(); renderCalendar(el); };
+
+  if (bulkMode) {
+    el.querySelector('#bkCancel').onclick = () => { bulkMode = false; bulkSelected.clear(); renderCalendar(el); };
+    el.querySelector('#bkSave').onclick = async () => {
+      const dates = [...bulkSelected].sort();
+      if (dates.length === 0) { toast('保存する日を選んでください'); return; }
+      const start = el.querySelector('#bkStart').value || '20:00';
+      const end = el.querySelector('#bkEnd').value || '01:00';
+      const breakMin = Number(el.querySelector('#bkBreak').value) || 0;
+      const confirmed = el.querySelector('#bkConfirmed').checked;
+
+      const hasShift = (d) => state.shifts.some((s) => s.date === d);
+      const emptyDates = dates.filter((d) => !hasShift(d));
+      const existingDates = dates.filter(hasShift);
+
+      // 既存記録がある日は上書き可否を確認
+      let overwrite = true;
+      if (existingDates.length) {
+        const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`;
+        const list = existingDates.map((d) => {
+          const ex = state.shifts.find((s) => s.date === d);
+          return `・${md(d)}（${weekdayJa(d)}）${ex.start || ''}〜`;
+        }).join('\n');
+        overwrite = await confirmModal(
+          `次の日はすでに登録されています。上書きしますか？\n\n${list}`,
+          { okLabel: '上書きする', cancelLabel: '既存はそのまま' });
+      }
+
+      for (const d of emptyDates) {
+        await put('shifts', { id: uid(), date: d, start, end, breakMin, confirmed, entries: [] });
+      }
+      let ow = 0;
+      if (overwrite) {
+        for (const d of existingDates) {
+          const ex = state.shifts.find((s) => s.date === d);
+          // 時間帯・確定のみ更新。歩合（entries）は保持、欠勤は解除
+          await put('shifts', { ...ex, start, end, breakMin, confirmed, absent: false });
+          ow++;
+        }
+      }
+      await loadAll();
+      bulkMode = false; bulkSelected.clear();
+      renderCalendar(el);
+      const skipped = existingDates.length - ow;
+      toast(`${emptyDates.length + ow}日分を保存しました${skipped ? `（既存${skipped}日はそのまま）` : ''}`);
+    };
+  }
 }

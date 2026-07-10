@@ -84,6 +84,14 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .cal-tag { color: var(--purple); font-size: 9px; opacity: .85; }
 /* 欠勤：セルをグレー枠にし、金額の代わりに「欠勤」を淡色表示 */
 .cal-cell.has-absent { outline: 2px dashed #b0b0b8; }
+/* まとめ入力：選択中の日 */
+.cal-cell.bulk-selected { position: relative; outline: 3px solid var(--pink); background: var(--pink-soft); }
+.cal-cell.bulk-selected::after { content: '✓'; position: absolute; top: 1px; right: 4px;
+  color: var(--pink); font-weight: 800; font-size: 12px; }
+/* まとめ入力パネル */
+.bulk-panel { background: var(--pink-soft); border: 2px solid var(--pink); border-radius: 14px;
+  padding: 12px; margin: 10px 0; }
+.bulk-panel .bulk-head { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
 .cal-amt.absent { color: #8a8a92; }
 /* 欠勤チェック時：時給欄をグレーアウトして無効化 */
 #sTimeRow.is-absent { opacity: .45; pointer-events: none; }
