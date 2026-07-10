@@ -8,6 +8,7 @@ export function parseTimeToMinutes(hhmm) {
 }
 
 export function workedHours(shift) {
+  if (shift && shift.absent) return 0; // 欠勤：実働0h＝時給・深夜手当は付かない（ペナルティ等の歩合は別途計上）
   const start = parseTimeToMinutes(shift.start);
   const end = parseTimeToMinutes(shift.end);
   if (start === null || end === null) return 0;

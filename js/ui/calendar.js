@@ -37,7 +37,12 @@ export async function renderCalendar(el) {
     let body = '', cls = '';
     if (iso === today) cls = 'is-today';
     const evAmt = eventIncByDate.get(iso) || 0; // その日のイベント歩合（対応済み）
-    if (s && s.confirmed) {
+    if (s && s.absent) {
+      // 欠勤：時給は付かない。ペナルティ等（マイナス）やイベント歩合があれば併記
+      const amt = shiftTotal(wage, items, s) + evAmt;
+      body = `<div class="cal-amt absent">欠勤</div>` + (amt ? `<div class="cal-tag">${yen(amt)}</div>` : '');
+      cls += ' has-absent';
+    } else if (s && s.confirmed) {
       // 時給＋歩合＋イベント歩合を合算表示
       body = `<div class="cal-amt">${yen(shiftTotal(wage, items, s) + evAmt)}</div>`;
       cls += ' has-confirmed';
@@ -130,6 +135,7 @@ export async function renderCalendar(el) {
     draft.end = q('#sEnd').value;
     draft.breakMin = Number(q('#sBreak').value) || 0;
     draft.confirmed = q('#sConfirmed').checked;
+    draft.absent = q('#sAbsent').checked;
     const entries = [];
     for (const it of state.backItems) {
       const c = Number(counts[it.id]) || 0, s = Number(sales[it.id]) || 0;
@@ -141,6 +147,10 @@ export async function renderCalendar(el) {
 
   const recalc = () => {
     collectDraft();
+    // 欠勤日は時給欄をグレーアウトし、注意書きを表示（ペナルティは歩合項目から）
+    const timeRow = q('#sTimeRow'), absNote = q('#sAbsentNote');
+    if (timeRow) timeRow.classList.toggle('is-absent', !!draft.absent);
+    if (absNote) absNote.hidden = !draft.absent;
     // その日のイベント歩合（対応済み）も合計・歩合に含める
     const evAmt = eventIncByDate.get(draft.date) || 0;
     q('#sheetTotal').textContent = yen(shiftTotal(state.profile, state.backItems, draft) + evAmt);
@@ -208,11 +218,16 @@ export async function renderCalendar(el) {
       ${dayVisitsHtml}
       ${dayBdayHtml}
       ${dayEventHtml}
-      <div class="row">
+      <label class="absent-toggle" style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+        <input id="sAbsent" type="checkbox" ${draft.absent ? 'checked' : ''}> 欠勤（当日出勤しなかった）
+        <span class="muted" style="font-size:12px">時給は計上されません</span>
+      </label>
+      <div class="row" id="sTimeRow">
         <div class="field" style="flex:1"><label>開始</label><input id="sStart" type="time" value="${esc(draft.start || '20:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="sEnd" type="time" value="${esc(draft.end || '01:00')}"></div>
         <div class="field" style="flex:1"><label>休憩(分)</label><input id="sBreak" type="number" inputmode="numeric" value="${Number(draft.breakMin) || 0}"></div>
       </div>
+      <p class="muted" id="sAbsentNote" style="margin:0 0 8px;font-size:12px;color:var(--pink)" hidden>欠勤日です。ペナルティ（罰金）は下の歩合項目から加算してください。</p>
       <h4 style="margin:10px 0 4px">入った歩合</h4>
       <p class="muted" style="margin:0 0 8px;font-size:12px">タップで＋1／長押しで件数・売上を調整</p>
       ${itemsHtml}
@@ -367,6 +382,7 @@ export async function renderCalendar(el) {
     sheet.querySelectorAll('#sStart,#sEnd,#sBreak').forEach((inp) => {
       inp.oninput = recalc; inp.onchange = recalc;
     });
+    q('#sAbsent').onchange = recalc;
 
     q('#sSave').onclick = async () => {
       await put('shifts', collectDraft());

@@ -101,7 +101,7 @@ export async function renderReport(el) {
     <h2>収支レポート（${esc(state.month.replace('-', '年'))}月）</h2>
     <div class="card" id="secSummary">
       <div class="row" style="justify-content:space-between"><span>総勤務時間</span><strong>${monthlyWorkedHours(cur)}h</strong></div>
-      <div class="row" style="justify-content:space-between"><span>出勤日数</span><strong>${cur.length}日</strong></div>
+      <div class="row" style="justify-content:space-between"><span>出勤日数</span><strong>${cur.filter((s) => !s.absent).length}日</strong></div>
     </div>
 
     <div class="card" id="secAnnual">

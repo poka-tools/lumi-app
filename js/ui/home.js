@@ -43,7 +43,9 @@ export async function renderHome(el) {
 
   // 本日の予定：シフト出勤と今日締切のTodo
   let shiftLine;
-  if (todayShift && todayShift.confirmed)
+  if (todayShift && todayShift.absent)
+    shiftLine = `🚫 <strong>欠勤</strong>` + (todayAmount ? ` ・ ${yen(todayAmount)}` : '');
+  else if (todayShift && todayShift.confirmed)
     shiftLine = `🏢 <strong>出勤（実績）</strong> ${esc(todayShift.start || '')}〜${esc(todayShift.end || '')} ・ ${yen(todayAmount)}`;
   else if (todayShift)
     shiftLine = `🏢 <strong>出勤予定</strong> ${esc(todayShift.start || '')}〜${esc(todayShift.end || '')}`;
@@ -157,7 +159,7 @@ export async function renderHome(el) {
     <div class="chip" data-id="${esc(s.id)}">
       <div>${Number(s.date.slice(8))}日(${weekdayJa(s.date)})</div>
       <strong>${yen(shiftTotal(wage, items, s))}</strong>
-      <div class="muted">${s.confirmed ? workedHours(s) + 'h' : '未確定'}</div>
+      <div class="muted">${s.absent ? '欠勤' : (s.confirmed ? workedHours(s) + 'h' : '未確定')}</div>
     </div>`).join('') || '<span class="muted">記録がありません</span>';
 
   el.querySelectorAll('#recent .chip').forEach((c) => {

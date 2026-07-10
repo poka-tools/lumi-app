@@ -22,6 +22,11 @@ test('workedHours: end未入力は 0', () => {
   assert.equal(workedHours(shift), 0);
 });
 
+test('workedHours: 欠勤は時刻があっても 0', () => {
+  const shift = { start: '20:00', end: '01:00', breakMin: 0, absent: true };
+  assert.equal(workedHours(shift), 0);
+});
+
 import { backAmount } from '../js/calc.js';
 
 test('backAmount fixed: 単価×件数', () => {
@@ -105,6 +110,16 @@ const _shift3 = {
 test('shiftWage: 時給×実働', () => { assert.equal(shiftWage(2500, _shift3), 12500); });
 test('shiftBackTotal: 全バック合計', () => { assert.equal(shiftBackTotal(_items3, _shift3), 11000); });
 test('shiftTotal: 時給分＋バック', () => { assert.equal(shiftTotal(2500, _items3, _shift3), 23500); });
+
+test('欠勤: 時給0・深夜手当0だがペナルティは計上される', () => {
+  const w = { hourlyWage: 2500, nightPremium: { enabled: true, start: '22:00', end: '05:00', addPerHour: 300 } };
+  const items = [{ id: 'fine', kind: 'penalty', fixedValue: 5000 }];
+  const shift = { start: '20:00', end: '01:00', breakMin: 0, absent: true,
+    entries: [{ backItemId: 'fine', count: 1 }] };
+  assert.equal(shiftWage(w, shift), 0);            // 時給・深夜手当は付かない
+  assert.equal(shiftBackTotal(items, shift), -5000); // 罰金は加算（マイナス）
+  assert.equal(shiftTotal(w, items, shift), -5000);
+});
 
 import {
   monthlyEstimate, monthlyWorkedHours, hourlyEquivalent,
