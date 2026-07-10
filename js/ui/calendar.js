@@ -89,6 +89,7 @@ export async function renderCalendar(el) {
         <button class="btn btn-ghost" id="bkCancel" style="flex:1">キャンセル</button>
         <button class="btn" id="bkSave" style="flex:2">選択した日を保存</button>
       </div>
+      <button class="btn btn-ghost" id="bkDelete" style="margin-top:8px;color:#f55">🗑 選択した日の記録を削除</button>
     </div>` : '';
 
   el.innerHTML = `
@@ -536,6 +537,25 @@ export async function renderCalendar(el) {
       renderCalendar(el);
       const skipped = existingDates.length - ow;
       toast(`${emptyDates.length + ow}日分を保存しました${skipped ? `（既存${skipped}日はそのまま）` : ''}`);
+    };
+
+    el.querySelector('#bkDelete').onclick = async () => {
+      const targets = [...bulkSelected].filter((d) => state.shifts.some((s) => s.date === d)).sort();
+      if (targets.length === 0) { toast('削除できる記録がありません'); return; }
+      const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`;
+      const list = targets.map((d) => `・${md(d)}（${weekdayJa(d)}）`).join('\n');
+      const ok = await confirmModal(
+        `選択した ${targets.length}日分の記録を削除します。よろしいですか？（元に戻せません）\n\n${list}`,
+        { okLabel: '削除する', cancelLabel: 'やめる', danger: true });
+      if (!ok) return;
+      for (const d of targets) {
+        const ex = state.shifts.find((s) => s.date === d);
+        if (ex) await del('shifts', ex.id);
+      }
+      await loadAll();
+      bulkMode = false; bulkSelected.clear();
+      renderCalendar(el);
+      toast(`${targets.length}日分を削除しました`);
     };
   }
 }
