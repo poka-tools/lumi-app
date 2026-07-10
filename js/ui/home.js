@@ -85,10 +85,7 @@ export async function renderHome(el) {
     <div class="card">
       <div class="row" style="justify-content:space-between;align-items:center">
         <h3 style="margin:0">📅 本日の予定</h3>
-        <div style="display:flex;align-items:center;gap:12px">
-          <span class="muted">${shortDateJa(today)}</span>
-          <button id="homeSettings" type="button" aria-label="設定" style="border:none;background:none;font-size:20px;cursor:pointer;padding:0;line-height:1">⚙️</button>
-        </div>
+        <span class="muted">${shortDateJa(today)}</span>
       </div>
       <div style="margin-top:8px">${shiftLine}</div>
       ${todoBlock}
@@ -130,11 +127,14 @@ export async function renderHome(el) {
       <div class="chips" id="recent"></div>
     </div>
 
-    <button class="settings-cta" id="homeSettingsBtn" type="button">
-      <span class="sc-ico">⚙️</span>
-      <span class="sc-label">設定</span>
-      <span class="sc-arrow">›</span>
-    </button>`;
+    <div class="home-actions">
+      <button class="home-action" id="homeHelpBtn" type="button">
+        <span class="ha-ico">❓</span><span class="ha-label">ヘルプ</span>
+      </button>
+      <button class="home-action" id="homeSettingsBtn" type="button">
+        <span class="ha-ico">⚙️</span><span class="ha-label">設定</span>
+      </button>
+    </div>`;
 
   el.querySelectorAll('.today-todos li').forEach((li) => {
     const todo = state.todos.find((t) => t.id === li.dataset.id);
@@ -169,6 +169,6 @@ export async function renderHome(el) {
     };
   });
   el.querySelector('#toCal').onclick = () => navigate('calendar');
-  el.querySelector('#homeSettings').onclick = () => navigate('settings');
+  el.querySelector('#homeHelpBtn').onclick = () => navigate('help');
   el.querySelector('#homeSettingsBtn').onclick = () => navigate('settings');
 }

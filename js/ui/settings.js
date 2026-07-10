@@ -5,6 +5,7 @@ import { navigate } from '../app.js';
 import { categoryList, itemCategory, allCategories, UNCATEGORIZED } from './backfields.js';
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
+import { startTour } from './onboarding.js';
 
 // リマインダーの「何日前から」選択肢（当日〜1週間前）。
 const LEAD_OPTS = [[0, '当日'], [1, '1日前'], [2, '2日前'], [3, '3日前'], [7, '1週間前']];
@@ -98,7 +99,20 @@ export async function renderSettings(el) {
         📂 バックアップから復元<input id="importFile" type="file" accept="application/json" hidden>
       </label>
       <div class="backup-hint">保存したファイルを読み込みます</div>
+    </div>
+
+    <div class="card">
+      <h3>使い方・ヘルプ</h3>
+      <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
+        画面の目印つきで使い方をご案内します。よくある質問（ヘルプ）はホーム右上の ❓ からも開けます。
+      </p>
+      <button class="btn" id="showGuide">📖 使い方ガイドを見る</button>
+      <div style="height:10px"></div>
+      <button class="btn btn-ghost" id="openHelp">❓ ヘルプ（よくある質問）</button>
     </div>`;
+
+  el.querySelector('#showGuide').onclick = () => startTour();
+  el.querySelector('#openHelp').onclick = () => navigate('help');
 
   el.querySelector('#saveProfile').onclick = async () => {
     const num = (id) => Number(el.querySelector(id).value) || 0;

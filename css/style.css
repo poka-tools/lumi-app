@@ -409,13 +409,14 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .res-actions .ra-txt { font-size: 10px; }
 
 /* ホーム最下部の目立つ設定ボタン */
-.settings-cta { display: flex; align-items: center; gap: 12px; width: 100%;
+/* ホーム下部：ヘルプ・設定への入口（アイコン＋文字） */
+.home-actions { display: flex; gap: 12px; margin-top: 2px; }
+.home-action { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
   background: var(--card); border: 2px solid var(--pink); border-radius: 16px;
-  padding: 15px 18px; box-shadow: var(--shadow); cursor: pointer; margin-top: 2px; }
-.settings-cta:active { background: var(--pink-soft); }
-.settings-cta .sc-ico { font-size: 24px; line-height: 1; }
-.settings-cta .sc-label { flex: 1; text-align: left; font-weight: 700; font-size: 16px; color: var(--ink); }
-.settings-cta .sc-arrow { color: var(--pink); font-size: 22px; font-weight: 700; }
+  padding: 15px 12px; box-shadow: var(--shadow); cursor: pointer; }
+.home-action:active { background: var(--pink-soft); }
+.home-action .ha-ico { font-size: 22px; line-height: 1; }
+.home-action .ha-label { font-weight: 700; font-size: 16px; color: var(--ink); }
 
 /* 本日の予定カード内の「今月の来店予定」「今月お誕生日」 */
 .today-visits, .today-bday { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--pink-soft); }
@@ -466,3 +467,53 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .sort-chip { flex: 0 0 auto; background: var(--card); color: var(--muted); border: 1px solid #eee;
   border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .sort-chip.active { background: var(--pink); color: #fff; border-color: var(--pink); }
+
+/* ===== 初回ガイド（オンボーディング） ===== */
+.onb-overlay { position: fixed; inset: 0; z-index: 1200; display: flex;
+  align-items: center; justify-content: center; padding: 24px;
+  background: rgba(30, 20, 30, .55); opacity: 0; transition: opacity .24s ease; }
+.onb-overlay.show { opacity: 1; }
+.onb-card { position: relative; background: #fff; border-radius: 22px; padding: 30px 22px 20px;
+  width: 100%; max-width: 360px; text-align: center; box-shadow: var(--shadow);
+  transform: translateY(12px) scale(.97); transition: transform .24s ease; }
+.onb-overlay.show .onb-card { transform: translateY(0) scale(1); }
+.onb-skip { position: absolute; top: 12px; right: 14px; background: none; border: none;
+  color: var(--muted); font-size: 13px; font-weight: 600; padding: 4px 6px; cursor: pointer; }
+.onb-emoji { font-size: 52px; line-height: 1; margin: 4px 0 12px; }
+.onb-logo { width: 72px; height: 72px; object-fit: contain; border-radius: 18px; margin: 4px 0 12px; }
+.onb-title { font-size: 20px; margin: 0 0 6px; color: var(--ink); }
+.onb-hint { display: inline-block; background: var(--pink-soft); color: var(--pink);
+  font-size: 12px; font-weight: 700; border-radius: 999px; padding: 4px 12px; margin-bottom: 10px; }
+.onb-body { font-size: 14px; line-height: 1.75; color: var(--ink); margin: 0 0 18px; text-align: left; }
+.onb-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 16px; }
+.onb-dot { width: 7px; height: 7px; border-radius: 50%; background: #e6d6dd; transition: background .2s, width .2s; }
+.onb-dot.active { width: 18px; border-radius: 999px; background: var(--pink); }
+.onb-actions { display: flex; gap: 10px; }
+.onb-later { display: block; width: 100%; background: none; border: none; color: var(--muted);
+  font-size: 13px; font-weight: 600; margin-top: 12px; padding: 6px; cursor: pointer; }
+
+/* ===== 目印つきツアー（スポットライト＋吹き出し） ===== */
+.tour-overlay { position: fixed; inset: 0; z-index: 1200; opacity: 0; transition: opacity .24s ease; }
+.tour-overlay.show { opacity: 1; }
+/* 対象要素を照らす穴。box-shadow で周囲を暗くする */
+.tour-hole { position: fixed; z-index: 1; border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(20, 10, 20, .6);
+  transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease; }
+.tour-hole::after { content: ''; position: absolute; inset: -3px; border-radius: 16px;
+  border: 2px solid var(--pink); animation: tourPulse 1.4s ease-out infinite; }
+@keyframes tourPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 92, 138, .5); }
+  100% { box-shadow: 0 0 0 12px rgba(255, 92, 138, 0); } }
+/* 吹き出し（.onb-card を再利用しつつ固定配置に上書き） */
+.tour-callout { position: fixed; z-index: 2; transform: none; width: calc(100vw - 28px); }
+.tour-overlay.show .tour-callout { transform: none; }
+
+/* ===== 常設ヘルプ ===== */
+.help-item { border-bottom: 1px solid #f0e3e9; }
+.help-item:last-child { border-bottom: none; }
+.help-item summary { list-style: none; cursor: pointer; padding: 12px 24px 12px 2px; position: relative;
+  font-size: 14px; font-weight: 600; color: var(--ink); }
+.help-item summary::-webkit-details-marker { display: none; }
+.help-item summary::after { content: '＋'; position: absolute; right: 4px; top: 11px; color: var(--pink); font-weight: 700; }
+.help-item[open] summary::after { content: '−'; }
+.help-a { font-size: 13px; line-height: 1.8; color: var(--ink); padding: 0 2px 14px; }

@@ -5,12 +5,15 @@ import { renderRecord, setEditingShift } from './ui/record.js';
 import { renderReport } from './ui/report.js';
 import { renderSettings } from './ui/settings.js';
 import { renderCustomers } from './ui/customers.js';
+import { renderHelp } from './ui/help.js';
+import { maybeStartTour } from './ui/onboarding.js';
 import { esc } from './format.js';
 
 const screen = document.getElementById('screen');
 const renderers = {
   home: renderHome, calendar: renderCalendar, record: renderRecord,
   report: renderReport, customers: renderCustomers, settings: renderSettings,
+  help: renderHelp,
 };
 
 export async function navigate(tab) {
@@ -54,6 +57,7 @@ function hideSplash() {
     await minSplash;
     hideSplash(); // 何があってもスプラッシュは必ず閉じる
   }
+  maybeStartTour(); // 初回のみ目印つき使い方ツアーを表示（読み込み失敗時は profile が無いので出ない）
   if ('serviceWorker' in navigator) {
     // SW更新の反映漏れ（新旧アセット混在）を防ぐ：新しいSWが制御を取ったら一度だけ自動リロードして
     // 全アセットを新版に揃える。初回登録時（もともと制御SWが無い）はリロードしない。
