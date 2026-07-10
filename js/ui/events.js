@@ -166,7 +166,7 @@ function drawEventDetail(el, eventId, opts) {
         <h3 style="margin:0">予約名簿</h3>
         <button id="resAdd" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">＋予約を追加</button>
       </div>
-      <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6">誰が何を予約したかを管理する一覧です。各行は「名前＋種別（当日/前祝い/後祝い）」と「商品名×数量」を表示します。実際に対応できたら左の〇を ✓（対応済み）にすると、売上日にレポート／カレンダーの歩合へ計上されます。金額は上の集計・各予約の編集画面で確認できます。</p>
+      <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6">誰が何を予約したかを管理する一覧です。各行は「名前＋種別（当日/前祝い/後祝い）」と「商品名×数量」を表示します。決済が終わって左の〇を ✓（対応済み）にすると、決済日にレポート／カレンダーの歩合へ計上されます。金額は上の集計・各予約の編集画面で確認できます。</p>
       <form id="resForm" hidden style="margin-top:10px">
         <div class="field"><label>参加者（顧客リストから選択）</label>
           <select id="rCust" class="inline-input" style="width:100%">${custOptions}</select></div>
@@ -174,19 +174,19 @@ function drawEventDetail(el, eventId, opts) {
           <input id="rName" class="inline-input" type="text" maxlength="40" placeholder="源氏名・呼び名など" style="width:100%"></div>
         <div class="field"><label>種別</label>
           <select id="rTiming" class="inline-input" style="width:100%">${timingOptions}</select></div>
-        <div class="field"><label>売上日</label>
+        <div class="field"><label>決済日</label>
           <input id="rDate" type="date" class="inline-input" style="width:100%">
-          <div class="muted" style="font-size:12px;margin-top:4px;line-height:1.5">設定した売上日を含む月のレポートと、その日のカレンダーに、✓（対応済み）の予約がイベント歩合として計上されます。</div>
+          <div class="muted" style="font-size:12px;margin-top:4px;line-height:1.5">設定した決済日を含む月のレポートと、その日のカレンダーに、✓（対応済み）の予約がイベント歩合として計上されます。</div>
           <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;white-space:nowrap">
-            <input id="rDateTBD" type="checkbox"> 未定（後祝いなど・売上前）
+            <input id="rDateTBD" type="checkbox"> 未定（後祝いなど・決済前）
           </label>
-          <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約は歩合に計上されません。後日、売上日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
+          <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約は歩合に計上されません。後日、決済日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
         </div>
         <h4 style="margin:14px 0 4px">商品（複数追加できます）</h4>
         <div id="rItems"></div>
         <button type="button" class="btn btn-ghost" id="rAddItem" style="margin-top:4px">＋ 商品を追加</button>
         <div class="sheet-total" id="rResTotals" style="margin:12px 0"></div>
-        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ✓（対応済み）にすると、歩合の合計が売上日にレポート／カレンダーのイベント歩合へ加算されます。</div>
+        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ✓（対応済み）にすると、歩合の合計が決済日にレポート／カレンダーのイベント歩合へ加算されます。</div>
         <div class="field"><label>メモ（任意）</label><input id="rMemo" class="inline-input" type="text" maxlength="80" style="width:100%"></div>
         <div class="row" style="gap:8px;margin-top:8px">
           <button type="button" class="btn btn-ghost" id="rCancel" style="flex:1">キャンセル</button>

@@ -101,7 +101,7 @@ export function eventTotals(reservations, eventId) {
   }, { count: 0, bottles: 0, amount: 0, back: 0 });
 }
 
-// 予約の売上日：未定(dateTBD)なら空（＝集計対象外）。個別日付があればそれ、
+// 予約の決済日：未定(dateTBD)なら空（＝集計対象外）。個別日付があればそれ、
 // 無ければ所属イベントの開催日にフォールバック。
 export function reservationDate(res, events) {
   if (res && res.dateTBD) return '';
@@ -110,7 +110,7 @@ export function reservationDate(res, events) {
   return ev ? (ev.date || '') : '';
 }
 
-// 対応済み(done)の予約の歩合（取り分）を売上日ごとに合計（カレンダー用）Map<date, back>。
+// 対応済み(done)の予約の歩合（取り分）を決済日ごとに合計（カレンダー用）Map<date, back>。
 export function eventIncomeByDate(reservations, events) {
   const m = new Map();
   for (const r of (reservations || [])) {
