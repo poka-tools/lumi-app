@@ -1,7 +1,7 @@
 import { state, loadAll } from '../state.js';
 import { put, del, uid } from '../db.js';
 import { esc, shortDateJa, todayIso } from '../format.js';
-import { searchCustomers, sortCustomers, nextVisitDate, doneVisitCount } from '../customers-logic.js';
+import { searchCustomers, sortCustomers, nextVisitDate, doneVisitCount, notesForCustomer } from '../customers-logic.js';
 import { drawEventsSection } from './events.js';
 import { confirmModal } from './confirm.js';
 
@@ -24,6 +24,11 @@ export async function renderCustomers(el) {
 
 // ===== 顧客フォーム（ボトムシート）=====
 const pad2 = (n) => String(n).padStart(2, '0');
+// タイムスタンプ(ms)→ローカルISO日付("YYYY-MM-DD")。メモの表示日付に使う。
+function isoFromTs(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
 // from〜to の <option>（value はゼロ埋め、表示は数値＋suffix）
 function rangeOptions(from, to, suffix = '') {
   let s = '';
@@ -179,6 +184,16 @@ function drawDetail(el, id) {
     ? `<div class="cust-info-row"><span class="muted">${label}</span><span>${esc(val)}</span></div>` : '';
   const bdayLabel = c.birthday ? `${Number(c.birthday.slice(0, 2))}月${Number(c.birthday.slice(3, 5))}日` : '';
 
+  const noteRows = notesForCustomer(state.notes, id);
+  const noteLi = (n) => `
+    <li class="note-item" data-id="${esc(n.id)}">
+      <div class="note-main">
+        <span class="muted note-date">${shortDateJa(isoFromTs(n.createdAt))}</span>
+        <span class="note-text">${esc(n.text)}</span>
+      </div>
+      <button class="note-del" type="button" aria-label="削除">✕</button>
+    </li>`;
+
   const visitLi = (v) => `
     <li class="visit-item ${v.done ? 'done' : ''}" data-id="${esc(v.id)}">
       <button class="todo-check" type="button" aria-label="${v.done ? '未来店に戻す' : '来店済みにする'}">${v.done ? '✓' : ''}</button>
@@ -200,9 +215,20 @@ function drawDetail(el, id) {
         ${info('連絡先', c.contact)}
         ${info('誕生日', bdayLabel)}
         ${info('好みのボトル', c.favoriteBottle)}
-        ${info('メモ', c.memo)}
+        ${info('ひとこと', c.memo)}
         ${!c.contact && !bdayLabel && !c.favoriteBottle && !c.memo ? '<span class="muted">情報未登録</span>' : ''}
       </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px">📝 メモ</h3>
+      <form id="noteForm" class="row" style="gap:8px;align-items:flex-start">
+        <textarea id="noteText" class="inline-input" rows="1" maxlength="500"
+          placeholder="話した内容・好み・約束など…" style="width:100%;flex:1;resize:vertical;min-height:38px"></textarea>
+        <button type="submit" class="btn" style="width:auto;padding:8px 14px;flex:0 0 auto">＋追加</button>
+      </form>
+      ${noteRows.length ? `<ul class="note-list">${noteRows.map(noteLi).join('')}</ul>`
+        : '<p class="muted" style="margin:10px 0 0">まだメモはありません。</p>'}
     </div>
 
     <div class="card">
@@ -229,6 +255,25 @@ function drawDetail(el, id) {
 
   el.querySelector('#custBack').onclick = () => drawList(el);
   el.querySelector('#custEdit').onclick = () => openForm(el, c);
+
+  el.querySelector('#noteForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const ta = el.querySelector('#noteText');
+    const text = ta.value.trim();
+    if (!text) return;
+    await put('notes', { id: uid(), customerId: id, text, createdAt: Date.now() });
+    await loadAll();
+    drawDetail(el, id);
+  };
+  el.querySelectorAll('.note-item').forEach((li) => {
+    li.querySelector('.note-del').onclick = async () => {
+      const n = state.notes.find((x) => x.id === li.dataset.id);
+      if (!(await confirmModal('このメモを削除します。よろしいですか？'))) return;
+      await del('notes', n.id);
+      await loadAll();
+      drawDetail(el, id);
+    };
+  });
 
   const vForm = el.querySelector('#visitForm');
   el.querySelector('#visitAdd').onclick = () => { vForm.hidden = false; el.querySelector('#vDate').focus(); };
@@ -258,8 +303,9 @@ function drawDetail(el, id) {
   });
 
   el.querySelector('#custDelete').onclick = async () => {
-    if (!(await confirmModal(`「${c.name}」を削除します。よろしいですか？（来店予定も削除・元に戻せません）`))) return;
+    if (!(await confirmModal(`「${c.name}」を削除します。よろしいですか？（来店予定・メモも削除・元に戻せません）`))) return;
     await Promise.all(state.visits.filter((v) => v.customerId === id).map((v) => del('visits', v.id)));
+    await Promise.all(state.notes.filter((n) => n.customerId === id).map((n) => del('notes', n.id)));
     await del('customers', id);
     await loadAll();
     drawList(el);

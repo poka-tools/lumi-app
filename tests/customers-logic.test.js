@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   birthdaysInMonth, birthdaysByDate, addDaysIso, upcomingVisits,
   visitsOnDate, nextVisitDate, searchCustomers, visitCountByDate,
-  sortCustomers, doneVisitCount, visitsInMonth,
+  sortCustomers, doneVisitCount, visitsInMonth, notesForCustomer,
 } from '../js/customers-logic.js';
 
 const custs = [
@@ -100,4 +100,16 @@ test('sortCustomers: 各キーで並び替え（同点は名前順）', () => {
   assert.deepEqual(sortCustomers(cc, 'next', ctx).map((c) => c.id), ['b', 'a', 'c']);
   assert.deepEqual(sortCustomers(cc, 'new', ctx).map((c) => c.id), ['b', 'c', 'a']);
   assert.deepEqual(sortCustomers(cc, 'visits', ctx).map((c) => c.id), ['a', 'b', 'c']);
+});
+
+test('notesForCustomer: 対象顧客のみ新しい順（createdAt 降順）で返す', () => {
+  const notes = [
+    { id: 'n1', customerId: 'a', text: '古い', createdAt: 100 },
+    { id: 'n2', customerId: 'a', text: '新しい', createdAt: 300 },
+    { id: 'n3', customerId: 'b', text: '別人', createdAt: 200 },
+    { id: 'n4', customerId: 'a', text: '中間', createdAt: 200 },
+  ];
+  assert.deepEqual(notesForCustomer(notes, 'a').map((n) => n.id), ['n2', 'n4', 'n1']);
+  assert.deepEqual(notesForCustomer(notes, 'b').map((n) => n.id), ['n3']);
+  assert.deepEqual(notesForCustomer(notes, 'z'), []);
 });

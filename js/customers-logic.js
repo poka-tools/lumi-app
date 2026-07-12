@@ -100,3 +100,10 @@ export function visitCountByDate(visits) {
   for (const v of visits) m.set(v.date, (m.get(v.date) || 0) + 1);
   return m;
 }
+
+// 顧客のメモ（履歴型）を新しい順（createdAt 降順）で返す。
+export function notesForCustomer(notes, customerId) {
+  return notes
+    .filter((n) => n.customerId === customerId)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}

@@ -1,5 +1,5 @@
 const DB_NAME = 'yashoku-salary';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 let _db = null;
 
 export function openDb() {
@@ -26,6 +26,8 @@ export function openDb() {
         db.createObjectStore('events', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('reservations'))
         db.createObjectStore('reservations', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('notes'))
+        db.createObjectStore('notes', { keyPath: 'id' });
     };
     req.onsuccess = () => { _db = req.result; resolve(_db); };
     req.onerror = () => reject(req.error);
