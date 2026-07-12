@@ -82,7 +82,7 @@ export async function renderCalendar(el) {
       <div class="row">
         <div class="field" style="flex:1"><label>開始</label><input id="bkStart" type="time" value="${esc(p.defaultStart || '20:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="bkEnd" type="time" value="${esc(p.defaultEnd || '01:00')}"></div>
-        <div class="field" style="flex:1"><label>休憩(分)</label><input id="bkBreak" type="number" inputmode="numeric" value="${Number(p.defaultBreakMin) || 0}"></div>
+        <div class="field" style="flex:1"><label>休憩(分)</label><input id="bkBreak" type="number" inputmode="numeric" placeholder="0" value="${Number(p.defaultBreakMin) || ''}"></div>
       </div>
       <label style="display:block;margin:8px 0"><input id="bkConfirmed" type="checkbox"> 確定（実績）にする　<span class="muted" style="font-size:12px">OFFは「出勤予定」</span></label>
       <div class="row" style="gap:8px">
@@ -272,7 +272,7 @@ export async function renderCalendar(el) {
       <div class="row" id="sTimeRow">
         <div class="field" style="flex:1"><label>開始</label><input id="sStart" type="time" value="${esc(draft.start || '20:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="sEnd" type="time" value="${esc(draft.end || '01:00')}"></div>
-        <div class="field" style="flex:1"><label>休憩(分)</label><input id="sBreak" type="number" inputmode="numeric" value="${Number(draft.breakMin) || 0}"></div>
+        <div class="field" style="flex:1"><label>休憩(分)</label><input id="sBreak" type="number" inputmode="numeric" placeholder="0" value="${Number(draft.breakMin) || ''}"></div>
       </div>
       <p class="muted" id="sAbsentNote" style="margin:0 0 8px;font-size:12px;color:var(--pink)" hidden>欠勤日です。ペナルティ（罰金）は下の歩合項目から加算してください。</p>
       <h4 style="margin:10px 0 4px">入った歩合</h4>

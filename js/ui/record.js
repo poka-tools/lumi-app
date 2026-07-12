@@ -31,7 +31,7 @@ export async function renderRecord(el) {
       <div class="row">
         <div class="field" style="flex:1"><label>開始</label><input id="start" type="time" value="${esc(s.start)}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="end" type="time" value="${esc(s.end)}"></div>
-        <div class="field" style="flex:1"><label>休憩(分)</label><input id="break" type="number" value="${Number(s.breakMin) || 0}"></div>
+        <div class="field" style="flex:1"><label>休憩(分)</label><input id="break" type="number" placeholder="0" value="${Number(s.breakMin) || ''}"></div>
       </div>
       <div class="row" style="gap:16px;flex-wrap:wrap">
         <label><input id="confirmed" type="checkbox" ${s.confirmed ? 'checked' : ''}> 確定（実績）にする</label>

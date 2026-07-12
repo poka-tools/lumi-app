@@ -28,21 +28,21 @@ export async function renderSettings(el) {
       <h3>プロフィール・時給</h3>
       <div class="field"><label>表示名</label><input id="name" value="${esc(p.name)}"></div>
       <div class="field"><label>店名（任意）</label><input id="store" value="${esc(p.storeName)}"></div>
-      <div class="field"><label>基本時給（円）</label><input id="wage" type="number" inputmode="numeric" value="${Number(p.hourlyWage) || 0}"></div>
+      <div class="field"><label>基本時給（円）</label><input id="wage" type="number" inputmode="numeric" placeholder="0" value="${Number(p.hourlyWage) || ''}"></div>
       <label><input id="npEnabled" type="checkbox" ${p.nightPremium && p.nightPremium.enabled ? 'checked' : ''}> 深夜手当（時間帯割増）を使う</label>
       <div class="row" style="margin-top:8px">
         <div class="field" style="flex:1"><label>開始</label><input id="npStart" type="time" value="${esc((p.nightPremium && p.nightPremium.start) || '22:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="npEnd" type="time" value="${esc((p.nightPremium && p.nightPremium.end) || '05:00')}"></div>
-        <div class="field" style="flex:1"><label>割増(円/時)</label><input id="npAdd" type="number" inputmode="numeric" value="${(p.nightPremium && Number(p.nightPremium.addPerHour)) || 0}"></div>
+        <div class="field" style="flex:1"><label>割増(円/時)</label><input id="npAdd" type="number" inputmode="numeric" placeholder="0" value="${(p.nightPremium && Number(p.nightPremium.addPerHour)) || ''}"></div>
       </div>
       <div class="muted" style="margin:4px 0 6px">新規シフトの初期値</div>
       <div class="row">
         <div class="field" style="flex:1"><label>開始</label><input id="defStart" type="time" value="${esc(p.defaultStart || '20:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="defEnd" type="time" value="${esc(p.defaultEnd || '01:00')}"></div>
-        <div class="field" style="flex:1"><label>休憩(分)</label><input id="defBreak" type="number" inputmode="numeric" value="${Number(p.defaultBreakMin) || 0}"></div>
+        <div class="field" style="flex:1"><label>休憩(分)</label><input id="defBreak" type="number" inputmode="numeric" placeholder="0" value="${Number(p.defaultBreakMin) || ''}"></div>
       </div>
       <div class="muted" style="margin:8px 0 6px">日払い設定</div>
-      <div class="field"><label>日払いの上限（円・既定／0＝上限なし）</label><input id="dayPayCap" type="number" inputmode="numeric" value="${Number(p.dayPayCap) || 0}"></div>
+      <div class="field"><label>日払いの上限（円・既定／0＝上限なし）</label><input id="dayPayCap" type="number" inputmode="numeric" placeholder="0（上限なし）" value="${Number(p.dayPayCap) || ''}"></div>
       <label style="display:block;margin-top:4px"><input id="showDayPayDiff" type="checkbox" ${p.showDayPayDiff ? 'checked' : ''}> レポートに日払いの差額（未受取）を表示する</label>
       <button class="btn" id="saveProfile" style="margin-top:10px">保存</button>
     </div>
