@@ -6,7 +6,7 @@ import {
   effectiveCount, autoAmount, reservationDate, eventIncomeByDate, eventIncomeInMonth,
   reservationBack, eventIncentiveDetail, reservationSummary,
   reservationItems, reservationSales, reservationCount, itemBack, itemCount,
-  eventIncomeByDateDetailed,
+  eventIncomeByDateDetailed, eventBackRanking,
 } from '../js/events-logic.js';
 
 const customers = [
@@ -149,6 +149,24 @@ test('eventIncomeByDateDetailed: 日付ごとにイベント別の歩合内訳�
     { eventId: 'e1', name: '生誕祭', back: 2000 },
   ]);
   assert.equal(m.has('2026-07-11'), false);
+});
+
+test('eventBackRanking: 対応済み・当月の商品を商品名ごとに歩合合算（イベント横断で同名まとめ）', () => {
+  const events = [{ id: 'e1', date: '2026-07-10' }, { id: 'e2', date: '2026-07-10' }];
+  const rs = [
+    // モエ: e1で2本(円/件2000=4000)＋e2で1本(2000) → 計3本/6000
+    { eventId: 'e1', done: true, items: [{ label: 'モエ', count: 2, backFixed: 2000 }] },
+    { eventId: 'e2', done: true, items: [{ label: 'モエ', count: 1, backFixed: 2000 }] },
+    // アルマンド: 売上50000×10% = 5000 / 1本
+    { eventId: 'e1', done: true, items: [{ label: 'アルマンド', count: 1, amount: 50000, backRate: 10 }] },
+    { eventId: 'e1', done: false, items: [{ label: 'モエ', count: 5, backFixed: 2000 }] }, // 未対応→除外
+    { eventId: 'e1', date: '2026-06-30', done: true, items: [{ label: 'モエ', count: 9, backFixed: 2000 }] }, // 別月→除外
+  ];
+  const r = eventBackRanking(rs, events, '2026-07');
+  assert.deepEqual(r, [
+    { name: 'モエ', amount: 6000, count: 3 },
+    { name: 'アルマンド', amount: 5000, count: 1 },
+  ]);
 });
 
 test('eventIncomeInMonth: 当月の対応済みバックを合計', () => {

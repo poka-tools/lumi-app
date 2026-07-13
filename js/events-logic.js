@@ -187,6 +187,26 @@ export function eventIncentiveDetail(reservations, events, month) {
   return out.sort((a, b) => b.total - a.total);
 }
 
+// 指定月(YYYY-MM)の対応済み予約の歩合を「商品名ごと」に合算し歩合ランキング用に返す。
+// 返り値: [{ name, amount, count }]（イベント横断で同名商品はまとめる・歩合0は除外・金額降順）。
+export function eventBackRanking(reservations, events, month) {
+  const m = new Map();
+  for (const r of (reservations || [])) {
+    if (!r.done) continue;
+    if (reservationDate(r, events).slice(0, 7) !== month) continue;
+    for (const it of reservationItems(r)) {
+      const amount = itemBack(it);
+      if (!amount) continue;
+      const name = (it.label && String(it.label).trim()) || '商品';
+      const cur = m.get(name) || { name, amount: 0, count: 0 };
+      cur.amount += amount;
+      cur.count += itemCount(it);
+      m.set(name, cur);
+    }
+  }
+  return [...m.values()].filter((x) => x.amount !== 0 || x.count !== 0).sort((a, b) => b.amount - a.amount);
+}
+
 // イベントごとの予約件数 Map<eventId, count>（一覧バッジ用）。
 export function reservationCountByEvent(reservations) {
   const m = new Map();

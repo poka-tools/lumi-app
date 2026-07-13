@@ -1,7 +1,7 @@
 import { state, shiftsOfMonth } from '../state.js';
 import { plStatement, annualSeries, monthlyWorkedHours, backRanking, dayPaySummary } from '../calc.js';
 import { yen, signedYen, esc } from '../format.js';
-import { eventIncomeInMonth, eventIncentiveDetail } from '../events-logic.js';
+import { eventIncomeInMonth, eventIncentiveDetail, eventBackRanking } from '../events-logic.js';
 
 export async function renderReport(el) {
   const wage = state.profile, items = state.backItems;
@@ -16,7 +16,19 @@ export async function renderReport(el) {
   const netAll = pl.net + eventInc;
   const year = Number(state.month.slice(0, 4));
   const series = annualSeries(wage, items, state.shifts, year);
-  const rankingBase = backRanking(wage, items, cur);
+  // 歩合ランキングはシフト内の歩合項目＋イベント予約(対応済み)の商品を商品名で合算。
+  // 割合はイベントを含む総収入(grossIncomeAll)ベースで再計算する。
+  const rankMap = new Map();
+  for (const r of [...backRanking(wage, items, cur), ...eventBackRanking(state.reservations, state.events, state.month)]) {
+    const acc = rankMap.get(r.name) || { name: r.name, amount: 0, count: 0 };
+    acc.amount += r.amount;
+    acc.count += r.count;
+    rankMap.set(r.name, acc);
+  }
+  const rankingBase = [...rankMap.values()]
+    .filter((x) => x.amount !== 0 || x.count !== 0)
+    .map((x) => ({ ...x, pct: grossIncomeAll ? Math.round((x.amount / grossIncomeAll) * 1000) / 10 : 0 }))
+    .sort((a, b) => b.amount - a.amount);
   const medals = ['🥇', '🥈', '🥉'];
 
   // 日払い集計（設定ONかつ日払い実績がある月だけ表示）
@@ -153,6 +165,7 @@ export async function renderReport(el) {
           <button class="seg-btn" data-rank="count">数量順</button>
         </div>
       </div>
+      <p class="muted" style="font-size:12px;margin:0 0 8px">シフトの歩合とイベント予約（対応済み）の商品を、同じ商品名でまとめてランキングします。</p>
       <div id="rankList">${rankRows('amount')}</div>
     </div>
 
