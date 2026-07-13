@@ -206,49 +206,49 @@ function drawDetail(el, id) {
 
   el.innerHTML = `
     <button class="btn btn-ghost" id="custBack" type="button" style="width:auto;padding:6px 14px">‹ 一覧へ</button>
-    <div class="card" style="margin-top:12px">
+    <div class="card cust-profile" style="margin-top:12px">
       <div class="row" style="justify-content:space-between;align-items:center">
         <h2 style="margin:0">${esc(c.name)}</h2>
         <button id="custEdit" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">編集</button>
       </div>
-      <div style="margin-top:10px">
+      <div class="cust-info-block">
         ${info('連絡先', c.contact)}
         ${info('誕生日', bdayLabel)}
         ${info('好みのボトル', c.favoriteBottle)}
         ${info('ひとこと', c.memo)}
         ${!c.contact && !bdayLabel && !c.favoriteBottle && !c.memo ? '<span class="muted">情報未登録</span>' : ''}
       </div>
-    </div>
 
-    <div class="card">
-      <h3 style="margin:0 0 8px">📝 メモ</h3>
-      <form id="noteForm" class="row" style="gap:8px;align-items:flex-start">
-        <textarea id="noteText" class="inline-input" rows="1" maxlength="500"
-          placeholder="話した内容・好み・約束など…" style="width:100%;flex:1;resize:vertical;min-height:38px"></textarea>
-        <button type="submit" class="btn" style="width:auto;padding:8px 14px;flex:0 0 auto">＋追加</button>
-      </form>
-      ${noteRows.length ? `<ul class="note-list">${noteRows.map(noteLi).join('')}</ul>`
-        : '<p class="muted" style="margin:10px 0 0">まだメモはありません。</p>'}
-    </div>
-
-    <div class="card">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <h3 style="margin:0">来店予定</h3>
-        <button id="visitAdd" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">＋予定</button>
+      <div class="cust-sec">
+        <h3 class="cust-sec-title">📝 メモ</h3>
+        <form id="noteForm" class="row" style="gap:8px;align-items:flex-start">
+          <textarea id="noteText" class="inline-input" rows="1" maxlength="500"
+            placeholder="話した内容・好み・約束など…" style="width:100%;flex:1;resize:vertical;min-height:38px"></textarea>
+          <button type="submit" class="btn" style="width:auto;padding:8px 14px;flex:0 0 auto">＋追加</button>
+        </form>
+        ${noteRows.length ? `<ul class="note-list">${noteRows.map(noteLi).join('')}</ul>`
+          : '<p class="muted" style="margin:10px 0 0">まだメモはありません。</p>'}
       </div>
-      <p class="muted" style="font-size:12px;margin:6px 0 0">来店したら左の□にチェックを入れてください。</p>
-      <form id="visitForm" hidden style="margin-top:10px">
-        <div class="field"><label>来店日</label><input id="vDate" type="date" value="${today}"></div>
-        <div class="field"><label>メモ（任意）</label><input id="vNote" class="inline-input" type="text" maxlength="60" placeholder="同伴・イベント等" style="width:100%"></div>
-        <div class="row" style="gap:8px;margin-top:8px">
-          <button type="button" class="btn btn-ghost" id="vCancel" style="flex:1">キャンセル</button>
-          <button type="submit" class="btn" style="flex:1">追加</button>
+
+      <div class="cust-sec">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h3 class="cust-sec-title">📅 来店予定</h3>
+          <button id="visitAdd" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">＋予定</button>
         </div>
-      </form>
-      ${future.length ? `<ul class="visit-list">${future.map(visitLi).join('')}</ul>`
-        : '<p class="muted" style="margin:10px 0 0">今後の来店予定はありません。</p>'}
-      ${past.length ? `<div class="muted" style="margin:14px 0 4px">来店履歴</div>
-        <ul class="visit-list past">${past.map(visitLi).join('')}</ul>` : ''}
+        <p class="muted" style="font-size:12px;margin:6px 0 0">来店したら左の□にチェックを入れてください。</p>
+        <form id="visitForm" hidden style="margin-top:10px">
+          <div class="field"><label>来店日</label><input id="vDate" type="date" value="${today}"></div>
+          <div class="field"><label>メモ（任意）</label><input id="vNote" class="inline-input" type="text" maxlength="60" placeholder="同伴・イベント等" style="width:100%"></div>
+          <div class="row" style="gap:8px;margin-top:8px">
+            <button type="button" class="btn btn-ghost" id="vCancel" style="flex:1">キャンセル</button>
+            <button type="submit" class="btn" style="flex:1">追加</button>
+          </div>
+        </form>
+        ${future.length ? `<ul class="visit-list">${future.map(visitLi).join('')}</ul>`
+          : '<p class="muted" style="margin:10px 0 0">今後の来店予定はありません。</p>'}
+        ${past.length ? `<div class="muted" style="margin:14px 0 4px">来店履歴（通算${past.filter((v) => v.done).length}回）</div>
+          <ul class="visit-list past">${past.map(visitLi).join('')}</ul>` : ''}
+      </div>
     </div>
 
     <button class="btn btn-ghost" id="custDelete" type="button" style="color:#f55;margin-top:4px">この顧客を削除</button>
