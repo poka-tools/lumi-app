@@ -78,11 +78,11 @@ export async function renderCalendar(el) {
     const bdayNames = bdaysByDate.get(iso);
     const bdayMark = bdayNames ? `<div class="cal-bday">🎂${bdayNames.length > 1 ? bdayNames.length : ''}</div>` : '';
     const evTitles = eventTitlesByDate.get(iso) || [];
-    const evTitleMark = evTitles.length
-      ? `<div class="cal-evtitle">🎪 ${evTitles.map((n) => esc(n)).join('・')}</div>` : '';
+    const evHeldMark = evTitles.length
+      ? `<div class="cal-evheld">🎪${evTitles.length > 1 ? evTitles.length : ''}</div>` : '';
     if (bulkMode && bulkSelected.has(iso)) cls += ' bulk-selected';
     cells.push(`<div class="cal-cell ${cls}" data-date="${esc(iso)}">
-      <div class="cal-day">${d}</div>${body}${evTitleMark}${todoMark}${visitMark}${bdayMark}${evMark}</div>`);
+      <div class="cal-day">${d}</div>${body}${todoMark}${visitMark}${bdayMark}${evHeldMark}${evMark}</div>`);
   }
 
   const p = state.profile;
