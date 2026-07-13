@@ -242,9 +242,10 @@ export async function renderCalendar(el) {
     const dayVisits = visitsOnDate(state.visits, state.customers, draft.date);
     const dayVisitsHtml = dayVisits.length ? `
       <div class="sheet-visits">
-        <div class="muted" style="margin-bottom:4px">👤 この日の来店予定</div>
+        <div class="muted" style="margin-bottom:2px">👤 この日の来店予定</div>
+        <div class="muted" style="font-size:12px;margin-bottom:6px">来店したら□にチェックを入れてください</div>
         <ul>${dayVisits.map((v) => `<li class="visit-line ${v.done ? 'done' : ''}" data-id="${esc(v.id)}">
-          <button class="todo-check" type="button" aria-label="${v.done ? '未来店に戻す' : '来店済みにする'}">${v.done ? '✓' : ''}</button>
+          <button class="todo-check visit-check" type="button" aria-label="${v.done ? '未来店に戻す' : '来店済みにする'}">${v.done ? '✓' : ''}</button>
           <span>${esc(v.customerName)}${v.note ? ' ・ ' + esc(v.note) : ''}</span></li>`).join('')}</ul>
       </div>` : '';
 
