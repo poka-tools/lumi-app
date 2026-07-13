@@ -1,6 +1,7 @@
 import { state, loadAll } from '../state.js';
 import { put, del, uid, saveProfile } from '../db.js';
 import { esc, yen, shortDateJa, todayIso } from '../format.js';
+import { isDeductionKind } from '../calc.js';
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
 import {
@@ -135,6 +136,20 @@ function drawEventDetail(el, eventId, opts) {
   const countOptions = ['<option value="">—</option>']
     .concat(Array.from({ length: 30 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`)).join('');
 
+  // 商品名の候補＝設定の歩合項目（収入のみ）＋入力履歴。同名は履歴優先（単価も保持するため）。
+  const backItemChoice = (it) => ({
+    label: it.name, unitPrice: 0,
+    backFixed: it.type === 'fixed' ? (Number(it.value) || 0) : (Number(it.fixedValue) || 0),
+    backRate: it.type === 'rate' ? (Number(it.value) || 0) : (Number(it.rateValue) || 0),
+  });
+  const productChoiceMap = new Map();
+  for (const it of (state.backItems || [])) {
+    if (!it.name || isDeductionKind(it.kind)) continue;
+    productChoiceMap.set(it.name, backItemChoice(it));
+  }
+  for (const p of (state.profile.productPresets || [])) productChoiceMap.set(p.label, p);
+  const productChoices = [...productChoiceMap.values()];
+
   el.innerHTML = `
     ${sectionSeg('events', opts.goCustomers)}
     <button class="btn btn-ghost" id="evBack" type="button" style="width:auto;padding:6px 14px">‹ イベント一覧へ</button>
@@ -182,8 +197,8 @@ function drawEventDetail(el, eventId, opts) {
           <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約は歩合に計上されません。後日、決済日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
         </div>
         <h4 style="margin:14px 0 4px">商品（複数追加できます）</h4>
-        <p class="muted" style="font-size:12px;margin:0 0 6px">一度入力した商品名は履歴に残ります。名前を選ぶと単価・歩合が自動で入ります。</p>
-        <datalist id="riProducts">${(state.profile.productPresets || []).map((p) => `<option value="${esc(p.label)}"></option>`).join('')}</datalist>
+        <p class="muted" style="font-size:12px;margin:0 0 6px">設定の歩合項目や、一度入力した商品名を選べます。選ぶと単価・歩合が自動で入ります。</p>
+        <datalist id="riProducts">${productChoices.map((p) => `<option value="${esc(p.label)}"></option>`).join('')}</datalist>
         <div id="rItems"></div>
         <button type="button" class="btn btn-ghost" id="rAddItem" style="margin-top:4px">＋ 商品を追加</button>
         <div class="sheet-total" id="rResTotals" style="margin:12px 0"></div>
@@ -293,7 +308,7 @@ function drawEventDetail(el, eventId, opts) {
     };
     // 履歴から商品名を選んだら単価・歩合を自動補完（空欄のみ・入力済みは上書きしない）
     const applyPreset = () => {
-      const preset = (state.profile.productPresets || []).find((p) => p.label === label.value.trim());
+      const preset = productChoices.find((p) => p.label === label.value.trim());
       if (!preset) return;
       if (!unit.value && preset.unitPrice) unit.value = preset.unitPrice;
       if (!bfixed.value && preset.backFixed) bfixed.value = preset.backFixed;
