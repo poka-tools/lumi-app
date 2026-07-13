@@ -236,6 +236,7 @@ function drawDetail(el, id) {
         <h3 style="margin:0">来店予定</h3>
         <button id="visitAdd" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">＋予定</button>
       </div>
+      <p class="muted" style="font-size:12px;margin:6px 0 0">来店したら左の□にチェックを入れてください。</p>
       <form id="visitForm" hidden style="margin-top:10px">
         <div class="field"><label>来店日</label><input id="vDate" type="date" value="${today}"></div>
         <div class="field"><label>メモ（任意）</label><input id="vNote" class="inline-input" type="text" maxlength="60" placeholder="同伴・イベント等" style="width:100%"></div>

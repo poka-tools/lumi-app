@@ -58,7 +58,8 @@ export async function renderHome(el) {
 
   const todayTodos = state.todos.filter((t) => t.due === today);
   const todoBlock = todayTodos.length
-    ? `<ul class="today-todos">${todayTodos.map((t) => `
+    ? `<div class="muted" style="font-size:12px;margin-top:6px">終わったら左の□にチェック。</div>
+      <ul class="today-todos">${todayTodos.map((t) => `
         <li class="${t.done ? 'done' : ''}" data-id="${esc(t.id)}">
           <button class="todo-check" type="button" aria-label="${t.done ? '未完了に戻す' : '完了にする'}">${t.done ? '✓' : ''}</button>
           <span>${esc(t.text)}</span>

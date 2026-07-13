@@ -245,7 +245,7 @@ export async function renderCalendar(el) {
         <div class="muted" style="margin-bottom:2px">👤 この日の来店予定</div>
         <div class="muted" style="font-size:12px;margin-bottom:6px">来店したら□にチェックを入れてください</div>
         <ul>${dayVisits.map((v) => `<li class="visit-line ${v.done ? 'done' : ''}" data-id="${esc(v.id)}">
-          <button class="todo-check visit-check" type="button" aria-label="${v.done ? '未来店に戻す' : '来店済みにする'}">${v.done ? '✓' : ''}</button>
+          <button class="todo-check" type="button" aria-label="${v.done ? '未来店に戻す' : '来店済みにする'}">${v.done ? '✓' : ''}</button>
           <span>${esc(v.customerName)}${v.note ? ' ・ ' + esc(v.note) : ''}</span></li>`).join('')}</ul>
       </div>` : '';
 

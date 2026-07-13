@@ -56,6 +56,7 @@ export function renderTodos(el) {
           <h3 style="margin:0">やることリスト</h3>
           <span class="muted">${remaining > 0 ? `残り ${remaining} 件` : todos.length ? 'すべて完了 🎉' : ''}</span>
         </div>
+        <p class="muted" style="font-size:12px;margin:0 0 8px">終わったら左の□にチェックを入れましょう。</p>
         <form class="todo-add" id="todoAdd">
           <input id="todoInput" class="inline-input" type="text" placeholder="やることを入力…"
             maxlength="120" autocomplete="off" style="width:100%">
@@ -133,6 +134,7 @@ export function renderReminder(el) {
     el.innerHTML = `
       <div class="card remind-card">
         <div class="remind-head">🔔 期限切れのやること</div>
+        <div class="muted" style="font-size:12px;margin:0 0 6px">終わったら左の□にチェックを入れましょう。</div>
         <ul class="remind-list">
           ${overdue.map((t) => line(t)).join('')}
         </ul>

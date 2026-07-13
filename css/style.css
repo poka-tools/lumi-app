@@ -143,9 +143,10 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .todo-empty { text-align: center; padding: 10px 0; margin: 0; }
 .todo-item { display: flex; align-items: center; gap: 10px;
   background: var(--bg); border-radius: 12px; padding: 8px 10px; }
-.todo-check { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%;
+.todo-check { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 6px;
   border: 2px solid var(--pink); background: #fff; color: #fff; font-size: 14px;
   line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.done > .todo-check, .done > .res-check,
 .todo-item.done .todo-check, .visit-item.done .todo-check, .res-item.done .res-check { background: var(--pink); }
 .todo-text { flex: 1; cursor: pointer; word-break: break-word; }
 .todo-item.done .todo-text { text-decoration: line-through; color: var(--muted); }
@@ -480,8 +481,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .sheet-visits ul { list-style: none; padding: 0; margin: 0; }
 .visit-line { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
 .visit-line.done span { text-decoration: line-through; color: var(--muted); }
-.visit-check { border-radius: 6px; }
-.visit-line.done .visit-check { background: var(--pink); }
+.visit-line.done .todo-check { background: var(--pink); }
 .cal-bday { color: #d17a00; font-size: 10px; font-weight: 700; margin-top: 1px; }
 .cal-ev { font-size: 10px; margin-top: 1px; }
 .sheet-bday { background: #fff4e0; border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; font-weight: 600; }

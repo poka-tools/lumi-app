@@ -166,7 +166,7 @@ function drawEventDetail(el, eventId, opts) {
         <h3 style="margin:0">予約名簿</h3>
         <button id="resAdd" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">＋予約を追加</button>
       </div>
-      <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6">誰が何を予約したかを管理する一覧です。各行は「名前＋種別（当日/前祝い/後祝い）」と「商品名×数量」を表示します。決済が終わって左の〇を ✓（対応済み）にすると、決済日にレポート／カレンダーの歩合へ計上されます。金額は上の集計・各予約の編集画面で確認できます。</p>
+      <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6">誰が何を予約したかを管理する一覧です。各行は「名前＋種別（当日/前祝い/後祝い）」と「商品名×数量」を表示します。決済が終わったら左の□に ✓（対応済み）を入れると、決済日にレポート／カレンダーの歩合へ計上されます。金額は上の集計・各予約の編集画面で確認できます。</p>
       <form id="resForm" hidden style="margin-top:10px">
         <div class="field"><label>参加者（顧客リストから選択）</label>
           <select id="rCust" class="inline-input" style="width:100%">${custOptions}</select></div>
