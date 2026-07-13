@@ -138,7 +138,7 @@ function drawEventDetail(el, eventId, opts) {
   el.innerHTML = `
     ${sectionSeg('events', opts.goCustomers)}
     <button class="btn btn-ghost" id="evBack" type="button" style="width:auto;padding:6px 14px">‹ イベント一覧へ</button>
-    <div class="card" style="margin-top:12px">
+    <div class="card cust-profile" style="margin-top:12px">
       <div class="row" style="justify-content:space-between;align-items:center">
         <h2 style="margin:0">${esc(ev.name)}</h2>
         <div class="row" style="gap:6px;width:auto">
@@ -146,7 +146,7 @@ function drawEventDetail(el, eventId, opts) {
           <button id="evEdit" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">編集</button>
         </div>
       </div>
-      <div style="margin-top:6px">
+      <div class="cust-info-block">
         ${ev.date ? `<div class="cust-info-row"><span class="muted">開催日</span><span>${shortDateJa(ev.date)}</span></div>` : ''}
         ${ev.memo ? `<div class="cust-info-row"><span class="muted">メモ</span><span>${esc(ev.memo)}</span></div>` : ''}
       </div>
@@ -159,11 +159,10 @@ function drawEventDetail(el, eventId, opts) {
         <span>歩合合計 <span class="muted">（対応済み分を計上）</span></span>
         <strong>${yen(totals.back)}</strong>
       </div>
-    </div>
 
-    <div class="card">
+      <div class="cust-sec">
       <div class="row" style="justify-content:space-between;align-items:center">
-        <h3 style="margin:0">予約名簿</h3>
+        <h3 class="cust-sec-title">📋 予約名簿</h3>
         <button id="resAdd" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">＋予約を追加</button>
       </div>
       <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6">誰が何を予約したかを管理する一覧です。各行は「名前＋種別（当日/前祝い/後祝い）」と「商品名×数量」を表示します。決済が終わったら左の□に ✓（対応済み）を入れると、決済日にレポート／カレンダーの歩合へ計上されます。金額は上の集計・各予約の編集画面で確認できます。</p>
@@ -194,6 +193,7 @@ function drawEventDetail(el, eventId, opts) {
         </div>
       </form>
       <div id="resGroups" style="margin-top:10px">${groupHtml}</div>
+      </div>
     </div>
 
     <button class="btn btn-ghost" id="evDelete" type="button" style="color:#f55;margin-top:4px">このイベントを削除</button>`;
