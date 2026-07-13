@@ -1,5 +1,5 @@
 import { state, loadAll } from '../state.js';
-import { put, del, uid } from '../db.js';
+import { put, del, uid, saveProfile } from '../db.js';
 import { esc, yen, shortDateJa, todayIso } from '../format.js';
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
@@ -182,6 +182,8 @@ function drawEventDetail(el, eventId, opts) {
           <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約は歩合に計上されません。後日、決済日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
         </div>
         <h4 style="margin:14px 0 4px">商品（複数追加できます）</h4>
+        <p class="muted" style="font-size:12px;margin:0 0 6px">一度入力した商品名は履歴に残ります。名前を選ぶと単価・歩合が自動で入ります。</p>
+        <datalist id="riProducts">${(state.profile.productPresets || []).map((p) => `<option value="${esc(p.label)}"></option>`).join('')}</datalist>
         <div id="rItems"></div>
         <button type="button" class="btn btn-ghost" id="rAddItem" style="margin-top:4px">＋ 商品を追加</button>
         <div class="sheet-total" id="rResTotals" style="margin:12px 0"></div>
@@ -245,7 +247,7 @@ function drawEventDetail(el, eventId, opts) {
   const itemRowHtml = (it, i) => `
     <div class="res-item-row" data-idx="${i}">
       <div class="row" style="align-items:center;gap:8px">
-        <input class="ri-label inline-input" type="text" maxlength="40" placeholder="商品名（オリシャン・フードセット 等）" value="${esc(it.label || '')}" style="flex:1">
+        <input class="ri-label inline-input" type="text" list="riProducts" maxlength="40" placeholder="商品名（オリシャン・フードセット 等）" value="${esc(it.label || '')}" style="flex:1">
         <button type="button" class="ri-del" aria-label="この商品を削除">✕</button>
       </div>
       <div class="row" style="margin-top:6px">
@@ -289,7 +291,18 @@ function drawEventDetail(el, eventId, opts) {
       formItems[i].amount = Number(amount.value) || 0;
       showBack(); updateResTotals();
     };
+    // 履歴から商品名を選んだら単価・歩合を自動補完（空欄のみ・入力済みは上書きしない）
+    const applyPreset = () => {
+      const preset = (state.profile.productPresets || []).find((p) => p.label === label.value.trim());
+      if (!preset) return;
+      if (!unit.value && preset.unitPrice) unit.value = preset.unitPrice;
+      if (!bfixed.value && preset.backFixed) bfixed.value = preset.backFixed;
+      if (!brate.value && preset.backRate) brate.value = preset.backRate;
+      formItems[i].amountEdited = false; // 単価が入るので売上を再計算させる
+      recalc();
+    };
     label.oninput = recalc;
+    label.onchange = applyPreset;
     count.onchange = recalc;
     unit.oninput = recalc;
     bfixed.oninput = recalc;
@@ -370,6 +383,17 @@ function drawEventDetail(el, eventId, opts) {
       done: base ? !!base.done : false,
       createdAt: base ? base.createdAt : Date.now(),
     });
+    // 商品名・単価・歩合を履歴に保存（同名は最新の値で更新・次回の新規入力で選べる）
+    if (items.length) {
+      const presets = [...(state.profile.productPresets || [])];
+      for (const it of items) {
+        if (!it.label) continue;
+        const entry = { label: it.label, unitPrice: it.unitPrice, backFixed: it.backFixed, backRate: it.backRate };
+        const idx = presets.findIndex((p) => p.label === it.label);
+        if (idx >= 0) presets[idx] = entry; else presets.push(entry);
+      }
+      await saveProfile({ ...state.profile, productPresets: presets });
+    }
     editingResId = null;
     await loadAll();
     toast('保存しました');

@@ -59,6 +59,8 @@ export async function getProfile() {
   p.campaignReminder = { enabled: false, leadDays: 3, ...(p.campaignReminder || {}) };
   // 歩合項目の分類マスター（事前登録して項目でプルダウン選択する）
   p.backCategories = p.backCategories || [];
+  // 予約商品の履歴（商品名→単価・歩合）。新規入力時に名前で呼び出して自動補完する
+  p.productPresets = p.productPresets || [];
   // 日払いの既定上限（円・0＝上限なし）とレポートで日払い差額を表示するか
   if (p.dayPayCap === undefined) p.dayPayCap = 0;
   if (p.showDayPayDiff === undefined) p.showDayPayDiff = true;
