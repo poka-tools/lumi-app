@@ -32,6 +32,13 @@ export async function renderCalendar(el) {
   const bdaysByDate = birthdaysByDate(state.customers, state.month);
   const eventIncByDate = eventIncomeByDate(state.reservations, state.events); // 対応済み予約の日別収入（合計）
   const eventDetailByDate = eventIncomeByDateDetailed(state.reservations, state.events); // 日別×イベント別の内訳
+  // 開催日が確定しているイベントを日付ごとに（カレンダーにタイトル表示）
+  const eventTitlesByDate = new Map();
+  for (const ev of state.events) {
+    if (!ev.date) continue;
+    if (!eventTitlesByDate.has(ev.date)) eventTitlesByDate.set(ev.date, []);
+    eventTitlesByDate.get(ev.date).push(ev.name || '(無題)');
+  }
   const today = todayIso();
 
   const cells = [];
@@ -70,9 +77,12 @@ export async function renderCalendar(el) {
     const visitMark = vCount ? `<div class="cal-visit">👤${vCount > 1 ? vCount : ''}</div>` : '';
     const bdayNames = bdaysByDate.get(iso);
     const bdayMark = bdayNames ? `<div class="cal-bday">🎂${bdayNames.length > 1 ? bdayNames.length : ''}</div>` : '';
+    const evTitles = eventTitlesByDate.get(iso) || [];
+    const evTitleMark = evTitles.length
+      ? `<div class="cal-evtitle">🎪 ${evTitles.map((n) => esc(n)).join('・')}</div>` : '';
     if (bulkMode && bulkSelected.has(iso)) cls += ' bulk-selected';
     cells.push(`<div class="cal-cell ${cls}" data-date="${esc(iso)}">
-      <div class="cal-day">${d}</div>${body}${todoMark}${visitMark}${bdayMark}${evMark}</div>`);
+      <div class="cal-day">${d}</div>${body}${evTitleMark}${todoMark}${visitMark}${bdayMark}${evMark}</div>`);
   }
 
   const p = state.profile;
@@ -254,6 +264,13 @@ export async function renderCalendar(el) {
       ? `<div class="sheet-bday">🎂 ${dayBdays.map((n) => esc(n)).join('・')} さんのお誕生日</div>`
       : '';
 
+    // この日に開催予定のイベント（開催日が確定しているもの）のタイトルを表示。
+    const dayEventTitles = eventTitlesByDate.get(draft.date) || [];
+    const dayEventTitleHtml = dayEventTitles.length
+      ? `<div class="sheet-bday">${dayEventTitles.map((n) =>
+          `<div>🎪 ${esc(n)}（開催）</div>`).join('')}</div>`
+      : '';
+
     // イベント歩合（対応済み）はイベント名ごとに表示。複数イベントなら複数行。
     const dayEvents = eventDetailByDate.get(draft.date) || [];
     const dayEventHtml = dayEvents.length
@@ -265,6 +282,7 @@ export async function renderCalendar(el) {
       ${dayTodosHtml}
       ${dayVisitsHtml}
       ${dayBdayHtml}
+      ${dayEventTitleHtml}
       ${dayEventHtml}
       <label class="absent-toggle" style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
         <input id="sAbsent" type="checkbox" ${draft.absent ? 'checked' : ''}> 欠勤（当日出勤しなかった）
