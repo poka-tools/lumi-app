@@ -1,5 +1,7 @@
+import { describeChange } from './audit-logic.js';
+
 const DB_NAME = 'yashoku-salary';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 let _db = null;
 
 export function openDb() {
@@ -28,6 +30,8 @@ export function openDb() {
         db.createObjectStore('reservations', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('notes'))
         db.createObjectStore('notes', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('auditLog'))
+        db.createObjectStore('auditLog', { keyPath: 'id' });
     };
     req.onsuccess = () => { _db = req.result; resolve(_db); };
     req.onerror = () => reject(req.error);
@@ -49,8 +53,55 @@ export async function getAll(store) {
   return wrap(db.transaction(store, 'readonly').objectStore(store).getAll());
 }
 export async function get(store, id) { return wrap((await tx(store, 'readonly')).get(id)); }
-export async function put(store, value) { return wrap((await tx(store, 'readwrite')).put(value)); }
-export async function del(store, id) { return wrap((await tx(store, 'readwrite')).delete(id)); }
+export async function put(store, value) {
+  const r = await wrap((await tx(store, 'readwrite')).put(value));
+  logChange(store, 'put', value); // ベストエフォート（await しない＝本処理を遅らせない）
+  return r;
+}
+export async function del(store, id) {
+  // 削除前に内容を取得しておく（ログの見出しに顧客名・日付を残すため）
+  let prior = null;
+  try { prior = await get(store, id); } catch { /* 取得失敗は無視 */ }
+  const r = await wrap((await tx(store, 'readwrite')).delete(id));
+  logChange(store, 'del', prior || { id });
+  return r;
+}
+
+// --- 操作ログ（監査ログ）---------------------------------------------------
+// import 復元のような一括処理中はログを止め、まとめて1件だけ残す。
+let _auditSuppressed = false;
+export function suppressAudit(v) { _auditSuppressed = !!v; }
+
+// 変更を auditLog ストアへ記録する。記録の失敗は本処理に影響させない（握りつぶす）。
+// auditLog 自身の操作は記録しない（無限ループ防止）。
+function logChange(store, op, value) {
+  if (_auditSuppressed || store === 'auditLog') return;
+  const entry = {
+    id: uid(),
+    ts: Date.now(),
+    store, op,
+    label: describeChange(store, op, value),
+  };
+  openDb()
+    .then((db) => {
+      if (!db.objectStoreNames.contains('auditLog')) return;
+      db.transaction('auditLog', 'readwrite').objectStore('auditLog').put(entry);
+    })
+    .catch(() => { /* 記録失敗は無視 */ });
+}
+
+// 復元など、任意の文言で1件だけログを残したいとき用（op は 'put'|'del'|'info'）
+export async function logNote(label, op = 'info') {
+  try { await put('auditLog', { id: uid(), ts: Date.now(), store: '', op, label: String(label) }); }
+  catch { /* 無視 */ }
+}
+
+// 操作ログを全消去する（auditLog 自身の操作なので記録されない）
+export async function clearAuditLog() {
+  const db = await openDb();
+  if (!db.objectStoreNames.contains('auditLog')) return;
+  await wrap(db.transaction('auditLog', 'readwrite').objectStore('auditLog').clear());
+}
 
 export async function getProfile() {
   const p = (await get('profile', 'me')) || { id: 'me', name: '', hourlyWage: 0, storeName: '', defaultStart: '20:00', defaultEnd: '01:00', defaultBreakMin: 0 };

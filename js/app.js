@@ -39,6 +39,11 @@ function hideSplash() {
 }
 
 (async () => {
+  // 端末のストレージを「永続」に昇格させる（best-effort ストレージだと容量逼迫時に消えるため）。
+  // 失敗・非対応でもアプリ動作には影響しないので握りつぶす。
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
+  }
   const minSplash = new Promise((r) => setTimeout(r, 1100)); // 最低表示時間
   try {
     await loadAll();

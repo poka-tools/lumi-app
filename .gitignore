@@ -5,4 +5,5 @@ _verify.mjs
 _*.mjs
 _*.mjs.tmp
 _seed.html
+scratchpad_*.mjs
 *.tmp

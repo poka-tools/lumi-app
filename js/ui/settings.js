@@ -1,6 +1,7 @@
 import { state, loadAll } from '../state.js';
-import { put, del, uid, saveProfile } from '../db.js';
+import { put, del, uid, saveProfile, getAll, clearAuditLog, suppressAudit, logNote } from '../db.js';
 import { esc } from '../format.js';
+import { groupLogsByDay, logTime, logsToPrune } from '../audit-logic.js';
 import { navigate } from '../app.js';
 import { categoryList, itemCategory, allCategories, UNCATEGORIZED } from './backfields.js';
 import { toast } from './toast.js';
@@ -105,6 +106,18 @@ export async function renderSettings(el) {
     </div>
 
     <div class="card">
+      <h3>操作ログ</h3>
+      <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
+        データを<b>追加・保存・削除した記録</b>です（この端末の中だけに保存され、外部には送られません）。
+        「あれ、消えた？」というときに、いつ何を変更したかを確認できます。
+      </p>
+      <div id="auditLogBox"></div>
+      <div style="height:10px"></div>
+      <button class="btn btn-ghost" id="clearLog" style="color:#f55">🗑 操作ログを消去</button>
+      <div class="backup-hint">記録だけを消します（データ本体は消えません）</div>
+    </div>
+
+    <div class="card">
       <h3>使い方・ヘルプ</h3>
       <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
         画面の目印つきで使い方をご案内します。よくある質問（ヘルプ）はホーム右上の ❓ からも開けます。
@@ -116,6 +129,42 @@ export async function renderSettings(el) {
 
   el.querySelector('#showGuide').onclick = () => startTour();
   el.querySelector('#openHelp').onclick = () => navigate('help');
+
+  const AUDIT_MAX = 500; // これを超えた古いログは表示時に自動で間引く
+  const opBadge = { put: '保存', del: '削除', info: '' };
+  const opClass = { put: 'log-put', del: 'log-del', info: 'log-info' };
+  async function renderLog() {
+    const box = el.querySelector('#auditLogBox');
+    if (!box) return;
+    let logs = await getAll('auditLog');
+    const stale = logsToPrune(logs, AUDIT_MAX);
+    if (stale.length) {
+      for (const id of stale) await del('auditLog', id);
+      logs = logs.filter((l) => !stale.includes(l.id));
+    }
+    if (!logs.length) {
+      box.innerHTML = '<p class="muted" style="font-size:13px">まだ記録はありません。</p>';
+      return;
+    }
+    const groups = groupLogsByDay(logs).slice(0, 60); // 直近60日ぶんまで表示
+    box.innerHTML = groups.map((g) => `
+      <div class="log-day">${esc(g.day)}</div>
+      ${g.items.map((l) => `
+        <div class="log-row">
+          <span class="log-time">${esc(logTime(l.ts))}</span>
+          ${opBadge[l.op] ? `<span class="log-badge ${opClass[l.op] || ''}">${esc(opBadge[l.op])}</span>` : ''}
+          <span class="log-label">${esc(l.label)}</span>
+        </div>`).join('')}
+    `).join('');
+  }
+  renderLog();
+
+  el.querySelector('#clearLog').onclick = async () => {
+    if (!(await confirmModal('操作ログをすべて消去します。よろしいですか？（データ本体は消えません）', { okLabel: '消去する', danger: true }))) return;
+    await clearAuditLog();
+    toast('操作ログを消去しました');
+    renderLog();
+  };
 
   el.querySelector('#saveProfile').onclick = async () => {
     const num = (id) => Number(el.querySelector(id).value) || 0;
@@ -377,19 +426,42 @@ export async function renderSettings(el) {
   el.querySelector('#importFile').onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    e.target.value = ''; // 同じファイルを再選択できるようにリセット
     if (!(await confirmModal('バックアップファイルの内容を、現在のデータに復元（上書き追加）します。よろしいですか？', { okLabel: '復元する', danger: false }))) return;
-    const data = JSON.parse(await file.text());
-    if (data.profile) await saveProfile(data.profile);
-    for (const it of data.backItems || []) await put('backItems', it);
-    for (const s of data.shifts || []) await put('shifts', s);
-    for (const an of data.announcements || []) await put('announcements', an);
-    for (const t of data.todos || []) await put('todos', t);
-    for (const c of data.customers || []) await put('customers', c);
-    for (const v of data.visits || []) await put('visits', v);
-    for (const ev of data.events || []) await put('events', ev);
-    for (const r of data.reservations || []) await put('reservations', r);
+
+    // 復元データの検証：壊れた/別物のファイルでアプリを壊さない
+    let data;
+    try {
+      data = JSON.parse(await file.text());
+    } catch {
+      toast('ファイルを読み込めませんでした（JSON形式ではありません）');
+      return;
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      toast('バックアップファイルの形式が正しくありません');
+      return;
+    }
+    // 各ストアは「id を持つオブジェクトの配列」のみ受け入れる（不正な要素はスキップ）
+    const validRecords = (arr) => (Array.isArray(arr) ? arr : [])
+      .filter((r) => r && typeof r === 'object' && !Array.isArray(r)
+        && (typeof r.id === 'string' || typeof r.id === 'number'));
+
+    let restored = 0;
+    suppressAudit(true); // 一括復元は1件ずつログせず、最後にまとめて1件だけ残す
+    try {
+      if (data.profile && typeof data.profile === 'object' && !Array.isArray(data.profile)) {
+        await saveProfile(data.profile);
+      }
+      const stores = ['backItems', 'shifts', 'announcements', 'todos', 'customers', 'visits', 'events', 'reservations'];
+      for (const store of stores) {
+        for (const rec of validRecords(data[store])) { await put(store, rec); restored++; }
+      }
+    } finally {
+      suppressAudit(false);
+    }
+    await logNote(`バックアップから復元（${restored}件）`, 'put');
     await loadAll();
-    toast('復元しました');
+    toast(`復元しました（${restored}件）`);
     navigate('settings');
   };
 }
