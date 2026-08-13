@@ -80,10 +80,12 @@ export function shiftWage(wage, shift) {
 }
 export function shiftBackTotal(items, shift) {
   const byId = new Map((items || []).map((it) => [it.id, it]));
-  return (shift.entries || []).reduce((sum, e) => {
+  const entriesBack = (shift.entries || []).reduce((sum, e) => {
     const item = byId.get(e.backItemId);
     return sum + backAmount(item, e);
   }, 0);
+  // eventBack: 削除したイベントから引き継いだ「計上済みイベント歩合」を記録として保持する額。
+  return entriesBack + (Number(shift.eventBack) || 0);
 }
 export function shiftTotal(hourlyWage, items, shift) {
   return shiftWage(hourlyWage, shift) + shiftBackTotal(items, shift);

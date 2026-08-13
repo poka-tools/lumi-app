@@ -335,3 +335,12 @@ test('annualSeries: 年の12ヶ月分・該当月に集計', () => {
   assert.equal(s[0].total, 0);         // 1月は実績なし
   assert.equal(s[11].total, 0);        // 12月も0
 });
+
+test('shiftBackTotal: eventBack（削除イベントから残した歩合）を加算する', () => {
+  const items = [{ id: 'x', kind: 'income', fixedValue: 1000 }];
+  const shift = { date: '2026-08-20', entries: [{ backItemId: 'x', count: 2, sales: 0 }], eventBack: 5000 };
+  // 通常歩合 1000*2=2000 ＋ eventBack 5000 = 7000
+  assert.equal(shiftBackTotal(items, shift), 7000);
+  // eventBack が無ければ従来どおり
+  assert.equal(shiftBackTotal(items, { entries: [{ backItemId: 'x', count: 1, sales: 0 }] }), 1000);
+});

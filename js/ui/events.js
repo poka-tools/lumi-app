@@ -8,14 +8,38 @@ import { confirmModal } from './confirm.js';
 import {
   TIMINGS, timingLabel, resolveResName, reservationsOfEvent,
   eventTotals, reservationCountByEvent, sortEvents, buildEventClone, cloneReservation,
-  autoAmount, reservationBack, reservationItems, reservationSales, reservationSummary, itemBack,
+  autoAmount, reservationBack, reservationDate, reservationItems, reservationSales, reservationSummary, itemBack,
 } from '../events-logic.js';
 
-// イベントと配下の予約名簿をまとめて削除（一覧・詳細で共用）
+// イベントと配下の予約名簿をまとめて削除する。
+// 削除しても「対応済み（計上済み）の歩合」は記録として残すため、日付ごとに合算して
+// その日のシフトの eventBack へ焼き込んでから予約を消す。戻り値＝残した歩合の合計。
 async function deleteEventById(id) {
-  await Promise.all(state.reservations.filter((r) => r.eventId === id).map((r) => del('reservations', r.id)));
+  const evReservations = state.reservations.filter((r) => r.eventId === id);
+  // 対応済み(done)＋決済日ありの予約の歩合を日付ごとに集計
+  const byDate = new Map();
+  for (const r of evReservations) {
+    if (!r.done) continue;
+    const d = reservationDate(r, state.events);
+    if (!d) continue;
+    byDate.set(d, (byDate.get(d) || 0) + reservationBack(r));
+  }
+  let kept = 0;
+  for (const [date, amt] of byDate) {
+    if (!amt) continue;
+    kept += amt;
+    const sh = state.shifts.find((s) => s.date === date);
+    if (sh) {
+      await put('shifts', { ...sh, eventBack: (Number(sh.eventBack) || 0) + amt });
+    } else {
+      // その日に勤務記録が無い場合は、記録保持用の最小シフトを作成（出勤日数には数えない recordOnly）
+      await put('shifts', { id: uid(), date, start: '', end: '', breakMin: 0, confirmed: true, entries: [], eventBack: amt, recordOnly: true });
+    }
+  }
+  await Promise.all(evReservations.map((r) => del('reservations', r.id)));
   await del('events', id);
   await loadAll();
+  return kept;
 }
 
 // 顧客タブ上部の「顧客 / イベント」切替セグメント（顧客側から渡される goCustomers で顧客へ戻る）
@@ -490,8 +514,13 @@ function drawEventDetail(el, eventId, opts) {
   });
 
   el.querySelector('#evDelete').onclick = async () => {
-    if (!(await confirmModal(`「${ev.name}」を削除します。予約名簿もすべて削除されます。よろしいですか？（元に戻せません）`))) return;
-    await deleteEventById(eventId);
+    if (!(await confirmModal(
+      `「${ev.name}」を削除します。予約名簿は削除されますが、対応済み（計上済み）の歩合はカレンダー・レポートに記録として残ります。よろしいですか？`,
+      { okLabel: '削除する', danger: true }))) return;
+    const kept = await deleteEventById(eventId);
+    toast(kept > 0
+      ? `イベントを削除しました。計上済みの歩合 ${yen(kept)} は記録として残りました。`
+      : 'イベントを削除しました。');
     drawEventList(el, opts);
   };
 }
