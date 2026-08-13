@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   birthdaysInMonth, birthdaysByDate, addDaysIso, upcomingVisits,
-  visitsOnDate, nextVisitDate, searchCustomers, visitCountByDate,
+  visitsOnDate, nextVisitDate, searchCustomers, visitCountByDate, kanaRow,
   sortCustomers, doneVisitCount, visitsInMonth, notesForCustomer,
 } from '../js/customers-logic.js';
 
@@ -112,4 +112,12 @@ test('notesForCustomer: 対象顧客のみ新しい順（createdAt 降順）で�
   assert.deepEqual(notesForCustomer(notes, 'a').map((n) => n.id), ['n2', 'n4', 'n1']);
   assert.deepEqual(notesForCustomer(notes, 'b').map((n) => n.id), ['n3']);
   assert.deepEqual(notesForCustomer(notes, 'z'), []);
+});
+
+test('kanaRow: 読みの先頭から五十音の行を返す', () => {
+  assert.equal(kanaRow('タナカ'), 'た');
+  assert.equal(kanaRow('やまだ'), 'や');
+  assert.equal(kanaRow('ガブリエル'), 'か'); // 濁点は清音の行
+  assert.equal(kanaRow('test'), '#');       // 英字はその他
+  assert.equal(kanaRow(''), '#');
 });

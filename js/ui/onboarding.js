@@ -1,6 +1,7 @@
 // 初回起動時の使い方ツアー。実際の画面要素（設定・各タブ）を目印でハイライトしながら案内する。
-// いつでもスキップ可能・ホームの ❓（ヘルプ）や設定からいつでも再表示できる。
+// いつでもスキップ可能・ホームのヘルプや設定からいつでも再表示できる。
 import { state } from '../state.js';
+import { icon } from './icons.js';
 import { saveProfile } from '../db.js';
 import { navigate } from '../app.js';
 
@@ -9,20 +10,20 @@ import { navigate } from '../app.js';
 const STEPS = [
   { img: 'assets/icon-192.png', title: 'Lumiへようこそ',
     body: 'お給料・歩合・出勤日をまるっと管理できるアプリです。画面の<b>目印</b>に沿って、使い方をかんたんにご案内します。データはあなたのスマホの中だけに保存され、外部には送信されません。' },
-  { target: '#homeSettingsBtn', emoji: '⚙️', title: 'まず時給を設定',
-    body: 'ホーム下の <b>⚙️ 設定</b> から、基本時給・深夜手当・歩合項目を登録できます。設定しておくと、記録するだけで金額が自動計算されます。' },
-  { target: '#tabbar button[data-tab="calendar"]', emoji: '📅', title: 'カレンダーで出勤を記録',
-    body: '<b>📅 カレンダー</b>では、日付をタップして勤務時間・歩合・イベントを入力します。<b>当日欠勤</b>もチェックひとつで記録でき、時給は付かず、ペナルティがある場合のみ計上できます。' },
-  { target: '#tabbar button[data-tab="record"]', emoji: '➕', title: '＋ ですばやく記録',
+  { target: '#homeSettingsBtn', emoji: icon('gear', { size: '46px' }), title: 'まず時給を設定',
+    body: 'ホーム下の <b>設定</b> から、基本時給・深夜手当・歩合項目を登録できます。設定しておくと、記録するだけで金額が自動計算されます。' },
+  { target: '#tabbar button[data-tab="calendar"]', emoji: icon('calendar', { size: '46px' }), title: 'カレンダーで出勤を記録',
+    body: '<b>カレンダー</b>では、日付をタップして勤務時間・歩合・イベントを入力します。<b>当日欠勤</b>もチェックひとつで記録でき、時給は付かず、ペナルティがある場合のみ計上できます。' },
+  { target: '#tabbar button[data-tab="record"]', emoji: icon('plus', { size: '46px' }), title: '＋ ですばやく記録',
     body: '中央の <b>＋</b> から、その日の勤務をすぐに追加できます。急いでいるときに便利です。' },
-  { target: '#tabbar button[data-tab="report"]', emoji: '📊', title: 'レポートで収支を確認',
-    body: '<b>📊 レポート</b>で、月ごとの収入・歩合・出勤日数をまとめて確認。PDFに書き出して保管することもできます。' },
-  { target: '#tabbar button[data-tab="customers"]', emoji: '👤', title: '顧客・イベントを管理',
-    body: '<b>👤 顧客</b>では、来店予定やお誕生日を管理。上部の「イベント」でシャンパン予約の名簿も作れます。' },
-  { target: '#homeHelpBtn', emoji: '❓', title: '困ったときはヘルプ',
-    body: '使い方に迷ったら、ホーム下の <b>❓ ヘルプ</b> から、この案内やよくある質問をいつでも確認できます。' },
-  { emoji: '💾', title: '準備OK！',
-    body: 'データは端末内だけに保存されます。機種変更などに備えて、設定の<b>「バックアップ」</b>でときどき保存しておくと安心です。<br>この案内は、ホーム下の <b>❓ ヘルプ</b> からいつでも見返せます。', final: true },
+  { target: '#tabbar button[data-tab="report"]', emoji: icon('chart', { size: '46px' }), title: 'レポートで収支を確認',
+    body: '<b>レポート</b>で、月ごとの収入・歩合・出勤日数をまとめて確認。PDFに書き出して保管することもできます。' },
+  { target: '#tabbar button[data-tab="customers"]', emoji: icon('person', { size: '46px' }), title: '顧客・イベントを管理',
+    body: '<b>顧客</b>では、来店予定やお誕生日を管理。上部の「イベント」でシャンパン予約の名簿も作れます。' },
+  { target: '#homeHelpBtn', emoji: icon('help', { size: '46px' }), title: '困ったときはヘルプ',
+    body: '使い方に迷ったら、ホーム下の <b>ヘルプ</b> から、この案内やよくある質問をいつでも確認できます。' },
+  { emoji: icon('save', { size: '46px' }), title: '準備OK！',
+    body: 'データは端末内だけに保存されます。機種変更などに備えて、設定の<b>「バックアップ」</b>でときどき保存しておくと安心です。<br>この案内は、ホーム下の <b>ヘルプ</b> からいつでも見返せます。', final: true },
 ];
 
 let overlay = null, hole = null, callout = null, idx = 0, onResize = null;
@@ -117,7 +118,7 @@ function render() {
 
 export async function startTour() {
   if (overlay) return;
-  await navigate('home'); // 目印の対象（⚙️・各タブ）が存在するホームで開始
+  await navigate('home'); // 目印の対象（設定・各タブ）が存在するホームで開始
   idx = 0;
   overlay = document.createElement('div');
   overlay.className = 'tour-overlay';

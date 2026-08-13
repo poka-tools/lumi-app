@@ -92,13 +92,21 @@ export function shiftTotal(hourlyWage, items, shift) {
 // 日払い（当日その場で受け取った額）。
 // type: 'full'(全額当日) / 'base'(基本時給のみ＝時給＋深夜手当) / 'trial'(体験入店・全額) / 'none'/未設定。
 // cap>0 のときは受取額をその上限で頭打ち（1日1万円まで 等）。full/trial は純額（歩合−ペナルティ込み）。
-export function dayPayReceived(wage, items, shift) {
+// 実際に適用される日払い設定を解決する。
+// シフト個別に none 以外の指定があればそれを優先（過去データの後方互換）、
+// 無ければ設定のグローバル値（wage.dayPayType / wage.dayPayCap）を使う。
+export function effectiveDayPay(wage, shift) {
   const dp = shift && shift.dayPay;
-  if (!dp || !dp.type || dp.type === 'none') return 0;
+  if (dp && dp.type && dp.type !== 'none') return { type: dp.type, cap: Number(dp.cap) || 0 };
+  return { type: (wage && wage.dayPayType) || 'none', cap: Number(wage && wage.dayPayCap) || 0 };
+}
+export function dayPayReceived(wage, items, shift) {
+  const dp = effectiveDayPay(wage, shift);
+  if (!dp.type || dp.type === 'none') return 0;
   const wagePart = shiftWage(wage, shift);              // 時給＋深夜手当
   const net = wagePart + shiftBackTotal(items, shift);  // 純額（歩合−ペナルティ込み）
   const gross = dp.type === 'base' ? wagePart : net;    // base は時給部分のみ
-  const cap = Number(dp.cap) || 0;
+  const cap = dp.cap;
   const received = cap > 0 ? Math.min(gross, cap) : gross;
   return Math.max(0, received);                          // 負の受取はしない
 }
@@ -118,7 +126,7 @@ export function dayPaySummary(wage, items, shifts) {
   for (const sh of (shifts || [])) {
     const r = dayPayReceived(wage, items, sh);
     if (!r) continue;
-    const t = sh.dayPay && sh.dayPay.type;
+    const t = effectiveDayPay(wage, sh).type;
     if (t === 'base') base += r;
     else if (t === 'trial') trial += r;
     else full += r; // 'full'

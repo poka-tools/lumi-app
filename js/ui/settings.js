@@ -7,6 +7,7 @@ import { categoryList, itemCategory, allCategories, UNCATEGORIZED } from './back
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
 import { startTour } from './onboarding.js';
+import { icon } from './icons.js';
 
 // リマインダーの「何日前から」選択肢（当日〜1週間前）。
 const LEAD_OPTS = [[0, '当日'], [1, '1日前'], [2, '2日前'], [3, '3日前'], [7, '1週間前']];
@@ -24,29 +25,85 @@ export async function renderSettings(el) {
   }
   const p = state.profile;
   el.innerHTML = `
-    <h2>設定</h2>
-    <div class="card">
-      <h3>プロフィール・時給</h3>
-      <div class="field"><label>表示名</label><input id="name" value="${esc(p.name)}"></div>
-      <div class="field"><label>店名（任意）</label><input id="store" value="${esc(p.storeName)}"></div>
-      <div class="field"><label>基本時給（円）</label><input id="wage" type="number" inputmode="numeric" placeholder="0" value="${Number(p.hourlyWage) || ''}"></div>
-      <label><input id="npEnabled" type="checkbox" ${p.nightPremium && p.nightPremium.enabled ? 'checked' : ''}> 深夜手当（時間帯割増）を使う</label>
-      <div class="row" style="margin-top:8px">
-        <div class="field" style="flex:1"><label>開始</label><input id="npStart" type="time" value="${esc((p.nightPremium && p.nightPremium.start) || '22:00')}"></div>
-        <div class="field" style="flex:1"><label>終了</label><input id="npEnd" type="time" value="${esc((p.nightPremium && p.nightPremium.end) || '05:00')}"></div>
-        <div class="field" style="flex:1"><label>割増(円/時)</label><input id="npAdd" type="number" inputmode="numeric" placeholder="0" value="${(p.nightPremium && Number(p.nightPremium.addPerHour)) || ''}"></div>
+    <div class="set-group">
+      <div class="set-group-title"><span>プロフィール・時給設定</span></div>
+      <div class="set-rows">
+        <div class="set-row"><span class="set-ico">${icon('person')}</span><span class="set-label">表示名</span>
+          <input class="set-val" id="name" value="${esc(p.name)}" placeholder="Lumi"></div>
+        <div class="set-row"><span class="set-ico">${icon('home')}</span><span class="set-label">店舗名（任意）</span>
+          <input class="set-val" id="store" value="${esc(p.storeName)}" placeholder="—"></div>
+        <div class="set-row"><span class="set-ico">${icon('yen')}</span><span class="set-label">基本時給（円）</span>
+          <input class="set-val" id="wage" type="number" inputmode="numeric" placeholder="0" value="${Number(p.hourlyWage) || ''}"></div>
       </div>
-      <div class="muted" style="margin:4px 0 6px">新規シフトの初期値</div>
-      <div class="row">
-        <div class="field" style="flex:1"><label>開始</label><input id="defStart" type="time" value="${esc(p.defaultStart || '20:00')}"></div>
-        <div class="field" style="flex:1"><label>終了</label><input id="defEnd" type="time" value="${esc(p.defaultEnd || '01:00')}"></div>
-        <div class="field" style="flex:1"><label>休憩(分)</label><input id="defBreak" type="number" inputmode="numeric" placeholder="0" value="${Number(p.defaultBreakMin) || ''}"></div>
-      </div>
-      <div class="muted" style="margin:8px 0 6px">日払い設定</div>
-      <div class="field"><label>日払いの上限（円・既定／0＝上限なし）</label><input id="dayPayCap" type="number" inputmode="numeric" placeholder="0（上限なし）" value="${Number(p.dayPayCap) || ''}"></div>
-      <label style="display:block;margin-top:4px"><input id="showDayPayDiff" type="checkbox" ${p.showDayPayDiff ? 'checked' : ''}> レポートに日払いの差額（未受取）を表示する</label>
-      <button class="btn" id="saveProfile" style="margin-top:10px">保存</button>
     </div>
+
+    <div class="set-group">
+      <div class="set-group-title"><span>深夜手当（時間帯割増）</span>
+        <label class="switch"><input id="npEnabled" type="checkbox" ${p.nightPremium && p.nightPremium.enabled ? 'checked' : ''}><span class="switch-slider"></span></label>
+      </div>
+      <div class="set-rows" id="npRows">
+        <div class="set-row"><span class="set-ico">${icon('moon')}</span><span class="set-label">開始時間</span>
+          <input class="set-val" id="npStart" type="time" value="${esc((p.nightPremium && p.nightPremium.start) || '22:00')}"></div>
+        <div class="set-row"><span class="set-ico">${icon('moon')}</span><span class="set-label">終了時間</span>
+          <input class="set-val" id="npEnd" type="time" value="${esc((p.nightPremium && p.nightPremium.end) || '05:00')}"></div>
+        <div class="set-row"><span class="set-ico">％</span><span class="set-label">割増率（円/時）</span>
+          <input class="set-val" id="npAdd" type="number" inputmode="numeric" placeholder="0" value="${(p.nightPremium && Number(p.nightPremium.addPerHour)) || ''}"></div>
+      </div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-group-title"><span>新規シフトの初期値</span></div>
+      <div class="set-rows">
+        <div class="set-row"><span class="set-ico">${icon('clock')}</span><span class="set-label">開始時間</span>
+          <input class="set-val" id="defStart" type="time" value="${esc(p.defaultStart || '20:00')}"></div>
+        <div class="set-row"><span class="set-ico">${icon('clock')}</span><span class="set-label">終了時間</span>
+          <input class="set-val" id="defEnd" type="time" value="${esc(p.defaultEnd || '01:00')}"></div>
+        <div class="set-row"><span class="set-ico">${icon('clock')}</span><span class="set-label">休憩（分）</span>
+          <input class="set-val" id="defBreak" type="number" inputmode="numeric" placeholder="0" value="${Number(p.defaultBreakMin) || ''}"></div>
+      </div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-group-title"><span>日払い設定</span></div>
+      <p class="set-desc">出勤したその日にお店で受け取る分の設定です。ここで選ぶと、すべての出勤日にこの受け取り方が適用されます（受け取っていない差額は「未受取（後日支給）」として集計されます）。</p>
+      <div class="set-rows">
+        <div class="set-row"><span class="set-ico">${icon('yen')}</span><span class="set-label">受け取り方</span>
+          <span class="set-val-wrap"><select id="dayPayType">
+            <option value="none" ${(p.dayPayType || 'none') === 'none' ? 'selected' : ''}>なし</option>
+            <option value="full" ${p.dayPayType === 'full' ? 'selected' : ''}>全額 当日日払い</option>
+            <option value="base" ${p.dayPayType === 'base' ? 'selected' : ''}>基本時給のみ 日払い</option>
+            <option value="trial" ${p.dayPayType === 'trial' ? 'selected' : ''}>体験入店・全額 日払い</option>
+          </select></span></div>
+        <div class="set-row"><span class="set-ico">${icon('yen')}</span><span class="set-label">日払いの上限（円）</span>
+          <input class="set-val" id="dayPayCap" type="number" inputmode="numeric" placeholder="0" value="${Number(p.dayPayCap) || ''}"></div>
+      </div>
+      <div class="set-hint">※上限は0または空欄で上限なし</div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-group-title"><span>${icon('bell')} リマインダー通知</span></div>
+      <p class="set-desc">アプリを開いたとき、ホーム画面に念押しのお知らせを出します（端末のプッシュ通知は出ません）。</p>
+      <div class="set-rows">
+        <div class="set-row"><span class="set-label">出勤予定を通知する</span>
+          <label class="switch"><input id="shiftRemEnabled" type="checkbox" ${p.shiftReminder.enabled ? 'checked' : ''}><span class="switch-slider"></span></label></div>
+        <div class="set-row"><span class="set-label">何日前から通知</span>
+          <span class="set-val-wrap">${leadSelect('shiftRemLead', p.shiftReminder.leadDays)}</span></div>
+        <div class="set-row"><span class="set-label">キャンペーン終了を通知する</span>
+          <label class="switch"><input id="campRemEnabled" type="checkbox" ${p.campaignReminder.enabled ? 'checked' : ''}><span class="switch-slider"></span></label></div>
+        <div class="set-row"><span class="set-label">終了の何日前から通知</span>
+          <span class="set-val-wrap">${leadSelect('campRemLead', p.campaignReminder.leadDays)}</span></div>
+      </div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-group-title"><span>表示・その他の設定</span></div>
+      <div class="set-rows">
+        <div class="set-row"><span class="set-ico">${icon('checkbox')}</span><span class="set-label">レポートに日払いの差額を表示する</span>
+          <label class="switch"><input id="showDayPayDiff" type="checkbox" ${p.showDayPayDiff ? 'checked' : ''}><span class="switch-slider"></span></label></div>
+      </div>
+    </div>
+
+    <button class="btn btn-save" id="saveProfile">保存する</button>
 
     <div class="card">
       <h3>歩合項目</h3>
@@ -62,32 +119,17 @@ export async function renderSettings(el) {
       </div>
       <div class="cat-tabs" id="itemTabs"></div>
       <div id="itemList"></div>
-      <button class="btn btn-ghost" id="addItem">＋ 項目を追加</button>
+      <button class="btn btn-ghost" id="addItem">${icon('plus')} 項目を追加</button>
     </div>
 
     <div class="card">
       <h3>キャンペーンお知らせ</h3>
-      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">期間を決めてホーム画面に表示されるメモです（例：今月のバック増額キャンペーン）。開始日〜終了日の間だけホームに📣で表示されます。空欄なら常時表示します。</p>
+      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">期間を決めてホーム画面に表示されるメモです（例：今月のバック増額キャンペーン）。開始日〜終了日の間だけホームにお知らせとして表示されます。空欄なら常時表示します。</p>
       <div id="annList"></div>
-      <button class="btn btn-ghost" id="addAnn">＋ お知らせを追加</button>
+      <button class="btn btn-ghost" id="addAnn">${icon('plus')} お知らせを追加</button>
     </div>
 
-    <div class="card">
-      <h3>🔔 リマインダー通知</h3>
-      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">アプリを開いたとき、ホーム画面に念押しのお知らせを出します。設定した「何日前から」の範囲に入った予定を、開いた日ごとに表示します。<strong>アプリ内のみの表示で、端末の通知（プッシュ）は出ません。</strong></p>
-      <label><input id="shiftRemEnabled" type="checkbox" ${p.shiftReminder.enabled ? 'checked' : ''}> 出勤予定を忘れないよう通知する</label>
-      <div class="field" style="margin-top:6px"><label>何日前から通知</label>
-        ${leadSelect('shiftRemLead', p.shiftReminder.leadDays)}
-      </div>
-      <div style="height:10px"></div>
-      <label><input id="campRemEnabled" type="checkbox" ${p.campaignReminder.enabled ? 'checked' : ''}> キャンペーンお知らせの終了を通知する</label>
-      <div class="field" style="margin-top:6px"><label>終了の何日前から通知</label>
-        ${leadSelect('campRemLead', p.campaignReminder.leadDays)}
-      </div>
-      <button class="btn" id="saveReminders">保存</button>
-    </div>
-
-    <div class="card">
+    <div class="card" id="backupCard">
       <h3>データのバックアップ</h3>
       <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
         入力したデータは<b>お使いの端末の中だけ</b>に保存されます（サーバーには送っていません）。
@@ -96,11 +138,11 @@ export async function renderSettings(el) {
         新しい端末に移すときは、そのファイルを読み込めば元に戻せます。<br>
         <span style="color:#f08fb0">※バックアップには、設定・歩合項目・勤務記録・お知らせ・やること・顧客・来店予定・イベント予約の<b>すべてのデータ</b>が含まれます。</span>
       </p>
-      <button class="btn btn-ghost" id="exportBtn">💾 バックアップを保存</button>
+      <button class="btn btn-ghost" id="exportBtn">${icon('save')} バックアップを保存</button>
       <div class="backup-hint">ファイルに書き出して保管します</div>
       <div style="height:10px"></div>
       <label class="btn btn-ghost" style="display:block;text-align:center;cursor:pointer">
-        📂 バックアップから復元<input id="importFile" type="file" accept="application/json" hidden>
+        ${icon('upload')} バックアップから復元<input id="importFile" type="file" accept="application/json" hidden>
       </label>
       <div class="backup-hint">保存したファイルを読み込みます</div>
     </div>
@@ -113,18 +155,18 @@ export async function renderSettings(el) {
       </p>
       <div id="auditLogBox"></div>
       <div style="height:10px"></div>
-      <button class="btn btn-ghost" id="clearLog" style="color:#f55">🗑 操作ログを消去</button>
+      <button class="btn btn-ghost" id="clearLog" style="color:#f55">${icon('trash')} 操作ログを消去</button>
       <div class="backup-hint">記録だけを消します（データ本体は消えません）</div>
     </div>
 
     <div class="card">
       <h3>使い方・ヘルプ</h3>
       <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
-        画面の目印つきで使い方をご案内します。よくある質問（ヘルプ）はホーム右上の ❓ からも開けます。
+        画面の目印つきで使い方をご案内します。よくある質問（ヘルプ）はメニューからも開けます。
       </p>
-      <button class="btn" id="showGuide">📖 使い方ガイドを見る</button>
+      <button class="btn" id="showGuide">${icon('book')} 使い方ガイドを見る</button>
       <div style="height:10px"></div>
-      <button class="btn btn-ghost" id="openHelp">❓ ヘルプ（よくある質問）</button>
+      <button class="btn btn-ghost" id="openHelp">${icon('help')} ヘルプ（よくある質問）</button>
     </div>`;
 
   el.querySelector('#showGuide').onclick = () => startTour();
@@ -166,6 +208,15 @@ export async function renderSettings(el) {
     renderLog();
   };
 
+  // 深夜手当トグルOFFのときは配下の入力欄を淡色・操作不可に。
+  const npRows = el.querySelector('#npRows');
+  const npToggle = el.querySelector('#npEnabled');
+  const syncNp = () => npRows.classList.toggle('is-off', !npToggle.checked);
+  npToggle.onchange = syncNp;
+  syncNp();
+
+  // 「保存する」はプロフィール・時給・深夜手当・初期値・日払い・リマインダー・表示設定を一括保存。
+  // 歩合項目／お知らせ／操作ログは変更時に即保存されるためこのボタンの対象外。
   el.querySelector('#saveProfile').onclick = async () => {
     const num = (id) => Number(el.querySelector(id).value) || 0;
     await saveProfile({
@@ -183,15 +234,8 @@ export async function renderSettings(el) {
         addPerHour: num('#npAdd'),
       },
       dayPayCap: num('#dayPayCap'),
+      dayPayType: el.querySelector('#dayPayType').value,
       showDayPayDiff: el.querySelector('#showDayPayDiff').checked,
-    });
-    await loadAll();
-    toast('保存しました');
-  };
-
-  el.querySelector('#saveReminders').onclick = async () => {
-    await saveProfile({
-      ...state.profile,
       shiftReminder: {
         enabled: el.querySelector('#shiftRemEnabled').checked,
         leadDays: Number(el.querySelector('#shiftRemLead').value) || 0,
@@ -202,7 +246,7 @@ export async function renderSettings(el) {
       },
     });
     await loadAll();
-    toast('リマインダー設定を保存しました');
+    toast('保存しました');
   };
 
   // 旧モデル(type/value)・新モデル(fixedValue/rateValue)の両方から値を読む。
@@ -219,7 +263,7 @@ export async function renderSettings(el) {
       ? cats.map((c) => `
         <div class="cat-row" data-cat="${esc(c)}">
           <input class="cat-name inline-input" value="${esc(c)}" maxlength="30" style="flex:1">
-          <button class="cat-del" type="button" aria-label="削除" style="border:none;background:none;color:#f55;font-size:16px;padding:4px 8px;flex:0 0 auto">🗑</button>
+          <button class="cat-del" type="button" aria-label="削除" style="border:none;background:none;color:#f55;font-size:16px;padding:4px 8px;flex:0 0 auto">${icon('trash')}</button>
         </div>`).join('')
       : '<p class="muted" style="font-size:12px;margin:4px 0">まだ分類がありません。下の欄から追加できます。</p>';
 
@@ -304,7 +348,7 @@ export async function renderSettings(el) {
       <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f3f3f3" data-id="${esc(it.id)}">
         <div class="row" style="align-items:center">
           <input class="i-name inline-input" value="${esc(it.name)}" placeholder="項目名" style="flex:1">
-          <button class="i-del" style="border:none;background:none;color:#f55;font-size:18px;padding:4px 8px;flex:0 0 auto">🗑</button>
+          <button class="i-del" style="border:none;background:none;color:#f55;font-size:18px;padding:4px 8px;flex:0 0 auto">${icon('trash')}</button>
         </div>
         <div class="row" style="margin-top:8px">
           <select class="i-kind inline-input" style="flex:1.3">
@@ -369,7 +413,7 @@ export async function renderSettings(el) {
       <div class="ann-item" style="margin-bottom:12px" data-id="${esc(a.id)}">
         <div class="row" style="align-items:center;gap:8px">
           <input class="a-title" value="${esc(a.title)}" placeholder="タイトル" style="flex:1;min-width:0">
-          <button class="a-del" style="border:none;background:none;color:#f55;width:auto;flex:0 0 auto">🗑</button>
+          <button class="a-del" style="border:none;background:none;color:#f55;width:auto;flex:0 0 auto">${icon('trash')}</button>
         </div>
         <div class="row" style="gap:8px;margin-top:6px">
           <label class="ann-date" style="flex:1;min-width:0">

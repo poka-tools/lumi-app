@@ -1,4 +1,5 @@
 import { state, loadAll } from '../state.js';
+import { icon } from './icons.js';
 import { put, del, uid } from '../db.js';
 import { esc, todayIso, shortDateJa } from '../format.js';
 
@@ -39,22 +40,22 @@ export function renderTodos(el) {
       ? '<p class="muted todo-empty">やることを追加すると、ここに表示されます。</p>'
       : todos.map((t) => `
         <li class="todo-item ${t.done ? 'done' : ''}" data-id="${esc(t.id)}">
-          <button class="todo-check" type="button" aria-label="${t.done ? '未完了に戻す' : '完了にする'}">${t.done ? '✓' : ''}</button>
+          <button class="todo-check" type="button" aria-label="${t.done ? '未完了に戻す' : '完了にする'}">${t.done ? icon('check') : ''}</button>
           <div class="todo-main">
             <span class="todo-text">${esc(t.text)}</span>
             ${dueChip(t)}
           </div>
-          <label class="todo-date-btn" aria-label="期限を設定">📅
+          <label class="todo-date-btn" aria-label="期限を設定">${icon('calendar')}
             <input class="todo-due-input" type="date" value="${esc(t.due || '')}">
           </label>
-          <button class="todo-del" type="button" aria-label="削除">✕</button>
+          <button class="todo-del" type="button" aria-label="削除">${icon('close')}</button>
         </li>`).join('');
 
     el.innerHTML = `
       <section class="card todo-card">
         <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
           <h3 style="margin:0">やることリスト</h3>
-          <span class="muted">${remaining > 0 ? `残り ${remaining} 件` : todos.length ? 'すべて完了 🎉' : ''}</span>
+          <span class="muted">${remaining > 0 ? `残り ${remaining} 件` : todos.length ? ('すべて完了 ' + icon('party')) : ''}</span>
         </div>
         <p class="muted" style="font-size:12px;margin:0 0 8px">終わったら左の□にチェックを入れましょう。</p>
         <form class="todo-add" id="todoAdd">
@@ -133,7 +134,7 @@ export function renderReminder(el) {
 
     el.innerHTML = `
       <div class="card remind-card">
-        <div class="remind-head">🔔 期限切れのやること</div>
+        <div class="remind-head">${icon('bell')} 期限切れのやること</div>
         <div class="muted" style="font-size:12px;margin:0 0 6px">終わったら左の□にチェックを入れましょう。</div>
         <ul class="remind-list">
           ${overdue.map((t) => line(t)).join('')}

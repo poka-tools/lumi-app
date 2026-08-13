@@ -1,4 +1,5 @@
 import { state } from '../state.js';
+import { icon } from './icons.js';
 import { esc, weekdayJa, shortDateJa, todayIso } from '../format.js';
 import { navigate } from '../app.js';
 import { shiftReminders, campaignReminders } from '../reminders-logic.js';
@@ -23,7 +24,7 @@ export function renderReminders(el) {
       const tagCls = s.daysUntil === 0 ? 'today' : 'soon';
       items.push(`
         <li class="remind-item" data-go="calendar">
-          <span class="remind-ico">🔔</span>
+          <span class="remind-ico">${icon('bell')}</span>
           <span class="remind-text"><strong>${when}</strong> ${label}${time}</span>
           <span class="remind-tag ${tagCls}">${tag}</span>
         </li>`);
@@ -35,7 +36,7 @@ export function renderReminders(el) {
       const left = a.daysUntil === 0 ? '本日まで' : `あと${a.daysUntil}日`;
       items.push(`
         <li class="remind-item" data-go="settings">
-          <span class="remind-ico">⏰</span>
+          <span class="remind-ico">${icon('alarm')}</span>
           <span class="remind-text">「${esc(a.title)}」は ${shortDateJa(a.endDate)} で終了</span>
           <span class="remind-tag overdue">${left}</span>
         </li>`);
@@ -46,7 +47,7 @@ export function renderReminders(el) {
 
   el.innerHTML = `
     <div class="card remind-card">
-      <div class="remind-head">🔔 リマインダー</div>
+      <div class="remind-head">${icon('bell')} リマインダー</div>
       <ul class="remind-list">${items.join('')}</ul>
     </div>`;
 

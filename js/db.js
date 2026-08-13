@@ -114,6 +114,7 @@ export async function getProfile() {
   p.productPresets = p.productPresets || [];
   // 日払いの既定上限（円・0＝上限なし）とレポートで日払い差額を表示するか
   if (p.dayPayCap === undefined) p.dayPayCap = 0;
+  if (p.dayPayType === undefined) p.dayPayType = 'none'; // 日払いの受け取り方（全シフト共通）
   if (p.showDayPayDiff === undefined) p.showDayPayDiff = true;
   return p;
 }

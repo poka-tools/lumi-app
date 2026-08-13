@@ -15,7 +15,7 @@ export function birthdaysInMonth(customers, month) {
     .sort((a, b) => a.birthday.localeCompare(b.birthday));
 }
 
-// 指定月(YYYY-MM)の誕生日を ISO日付 -> 顧客名[] のMapで（カレンダー🎂用）
+// 指定月(YYYY-MM)の誕生日を ISO日付 -> 顧客名[] のMapで（カレンダーの誕生日表示用）
 export function birthdaysByDate(customers, month) {
   const m = new Map();
   for (const c of birthdaysInMonth(customers, month)) {
@@ -62,12 +62,44 @@ export function nextVisitDate(visits, customerId, today) {
   return future[0] || '';
 }
 
+// ===== フリガナ索引（五十音の行分け）=====
+// 各行の代表となる かな（濁点・半濁点・小書きを含む）。
+const KANA_ROWS = [
+  ['あ', 'ぁあぃいぅうぇえぉおゔ'],
+  ['か', 'かがきぎくぐけげこご'],
+  ['さ', 'さざしじすずせぜそぞ'],
+  ['た', 'ただちぢっつづてでとど'],
+  ['な', 'なにぬねの'],
+  ['は', 'はばぱひびぴふぶぷへべぺほぼぽ'],
+  ['ま', 'まみむめも'],
+  ['や', 'ゃやゅゆょよ'],
+  ['ら', 'らりるれろ'],
+  ['わ', 'わゐゑをんゎ'],
+];
+// 索引に並べる行の順序（最後の '#' は英数・記号・漢字など五十音に載らないもの）。
+export const KANA_ORDER = ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ', '#'];
+
+// 読み（フリガナ優先／無ければ名前）の先頭文字から、属する行ラベルを返す。
+export function kanaRow(reading) {
+  const s = (reading || '').trim();
+  if (!s) return '#';
+  let ch = s[0];
+  const code = ch.charCodeAt(0);
+  // カタカナ（U+30A1..U+30F6）はひらがなへ寄せて判定
+  if (code >= 0x30A1 && code <= 0x30F6) ch = String.fromCharCode(code - 0x60);
+  for (const [label, set] of KANA_ROWS) if (set.includes(ch)) return label;
+  return '#';
+}
+
 // 名前で顧客を絞り込み（部分一致・大文字小文字無視）。名前昇順で返す
 export function searchCustomers(customers, query) {
   const q = (query || '').trim().toLowerCase();
   const sorted = [...customers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
   if (!q) return sorted;
-  return sorted.filter((c) => (c.name || '').toLowerCase().includes(q));
+  return sorted.filter((c) =>
+    (c.name || '').toLowerCase().includes(q) ||
+    (c.furigana || '').toLowerCase().includes(q) ||
+    (c.memo || '').toLowerCase().includes(q));
 }
 
 // 顧客の来店実績（done=true）の件数

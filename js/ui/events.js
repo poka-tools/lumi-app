@@ -1,4 +1,5 @@
 import { state, loadAll } from '../state.js';
+import { icon } from './icons.js';
 import { put, del, uid, saveProfile } from '../db.js';
 import { esc, yen, shortDateJa, todayIso } from '../format.js';
 import { isDeductionKind } from '../calc.js';
@@ -22,8 +23,8 @@ function sectionSeg(active, goCustomers) {
   const wrap = document.createElement('div');
   wrap.className = 'seg cust-seg';
   wrap.innerHTML = `
-    <button class="seg-btn${active === 'customers' ? ' active' : ''}" type="button" data-sec="customers">顧客</button>
-    <button class="seg-btn${active === 'events' ? ' active' : ''}" type="button" data-sec="events">イベント</button>`;
+    <button class="seg-btn${active === 'customers' ? ' active' : ''}" type="button" data-sec="customers">${icon('person')} 顧客</button>
+    <button class="seg-btn${active === 'events' ? ' active' : ''}" type="button" data-sec="events">${icon('party')} イベント</button>`;
   wrap.querySelector('[data-sec="customers"]').onclick = () => goCustomers && goCustomers();
   return wrap.outerHTML;
 }
@@ -36,30 +37,37 @@ export function drawEventsSection(el, opts = {}) {
 let editingEventId = null; // イベント編集中のid（新規は null）
 let editingResId = null;   // 予約編集中のid（新規は null）
 
+// 開催状況バッジ（開催日が過去なら「終了」、それ以外＝未来/当日/日付なしは「開催中」）
+function statusBadge(ev, today) {
+  const ended = ev.date && ev.date < today;
+  return `<span class="ev-badge ${ended ? 'ev-badge-end' : 'ev-badge-live'}">${ended ? '終了' : '開催中'}</span>`;
+}
+
 // ===== イベント一覧 =====
 function drawEventList(el, opts) {
+  const today = todayIso();
   const events = sortEvents(state.events);
   const countByEvent = reservationCountByEvent(state.reservations);
 
-  const cards = events.length === 0
-    ? '<p class="muted" style="text-align:center;margin-top:24px">「＋イベントを作成」から生誕祭などの予約名簿を作れます。</p>'
-    : events.map((ev) => {
-        const t = eventTotals(state.reservations, ev.id);
-        const n = countByEvent.get(ev.id) || 0;
-        return `<div class="ev-row" data-id="${esc(ev.id)}">
-          <button class="cust-card ev-open" type="button">
-            <div class="cust-name">${esc(ev.name)}${ev.date ? ` <span class="ev-date">${shortDateJa(ev.date)}</span>` : ''}</div>
-            <div class="muted cust-sub">予約${n}件${t.bottles ? ` ・ ${t.bottles}本` : ''}${t.amount ? ` ・ ${yen(t.amount)}` : ''}</div>
-          </button>
-          <button class="ev-del" type="button" aria-label="削除">🗑</button>
-        </div>`;
-      }).join('');
+  const cards = events.map((ev) => {
+    const t = eventTotals(state.reservations, ev.id);
+    const n = countByEvent.get(ev.id) || 0;
+    return `<div class="ev-card2" data-id="${esc(ev.id)}" role="button" tabindex="0">
+      <div class="ev-avatar">${icon('cake')}</div>
+      <div class="ev-card-body">
+        <div class="ev-card-name">${esc(ev.name)} ${statusBadge(ev, today)}</div>
+        ${ev.date ? `<div class="ev-card-date">${icon('calendar')} ${shortDateJa(ev.date)}</div>` : ''}
+        <div class="ev-card-stats">予約 ${n}件 <span class="ev-sep">|</span> 歩合 ${yen(t.back)}</div>
+      </div>
+      <span class="cc-chev">›</span>
+    </div>`;
+  }).join('');
 
   el.innerHTML = `
     ${sectionSeg('events', opts.goCustomers)}
-    <div class="row" style="justify-content:space-between;align-items:center">
-      <h2 style="margin:0">イベント</h2>
-      <span class="muted">${events.length}件</span>
+    <div class="row" style="justify-content:space-between;align-items:baseline">
+      <h2 style="margin:0">イベント一覧</h2>
+      <span class="cust-count">${events.length}件</span>
     </div>
     <form id="evForm" hidden style="margin-top:12px" class="card">
       <div class="field"><label>イベント名</label><input id="eName" class="inline-input" type="text" maxlength="40" placeholder="生誕祭2026 など" required style="width:100%"></div>
@@ -70,8 +78,15 @@ function drawEventList(el, opts) {
         <button type="submit" class="btn" style="flex:1">保存</button>
       </div>
     </form>
-    <div class="cust-list" style="margin-top:12px">${cards}</div>
-    <button class="btn" id="evAdd" type="button" style="margin-top:14px">＋イベントを作成</button>`;
+    <button class="ev-cta" id="evAdd" type="button">
+      <span class="ev-cta-ico">${icon('calPlus')}</span>
+      <span class="ev-cta-body">
+        <span class="ev-cta-title">イベントを作成する</span>
+        <span class="ev-cta-sub">新しいイベントを登録して売上・予約を管理しましょう</span>
+      </span>
+      <span class="cc-chev">›</span>
+    </button>
+    <div class="ev-list">${cards}</div>`;
 
   wireSeg(el, opts);
 
@@ -82,6 +97,7 @@ function drawEventList(el, opts) {
     el.querySelector('#eDate').value = ev ? (ev.date || '') : '';
     el.querySelector('#eMemo').value = ev ? (ev.memo || '') : '';
     form.hidden = false;
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el.querySelector('#eName').focus();
   };
   el.querySelector('#evAdd').onclick = () => openForm(null);
@@ -104,15 +120,10 @@ function drawEventList(el, opts) {
     drawEventList(el, opts);
   };
 
-  el.querySelectorAll('.ev-row').forEach((row) => {
+  el.querySelectorAll('.ev-card2').forEach((row) => {
     const id = row.dataset.id;
-    row.querySelector('.ev-open').onclick = () => drawEventDetail(el, id, opts);
-    row.querySelector('.ev-del').onclick = async () => {
-      const ev = state.events.find((x) => x.id === id);
-      if (!(await confirmModal(`「${ev.name}」を削除します。予約名簿もすべて削除されます。よろしいですか？（元に戻せません）`))) return;
-      await deleteEventById(id);
-      drawEventList(el, opts);
-    };
+    row.onclick = () => drawEventDetail(el, id, opts);
+    row.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); drawEventDetail(el, id, opts); } };
   });
 }
 
@@ -122,11 +133,20 @@ function drawEventDetail(el, eventId, opts) {
   if (!ev) { drawEventList(el, opts); return; }
   const rows = reservationsOfEvent(state.reservations, eventId);
   const totals = eventTotals(state.reservations, eventId);
+  const today = todayIso();
+  // 表示用のイベントID（作成順の連番）。EVT-0001 形式。
+  const evNo = [...state.events].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+    .findIndex((e) => e.id === eventId) + 1;
+  const displayId = 'EVT-' + String(evNo).padStart(4, '0');
 
-  // 名簿は種別順のフラットリスト（種別は名前の横にタグ表示）
+  // 名簿は種別順のフラットリスト（種別は名前の横にタグ表示）。空のときは案内を表示。
   const groupHtml = rows.length
     ? `<ul class="res-list">${rows.map(resLi).join('')}</ul>`
-    : '<p class="muted" style="margin:10px 0 0">まだ予約がありません。「＋予約を追加」から登録できます。</p>';
+    : `<div class="res-empty">
+        <span class="res-empty-ico">${icon('clipboard', { size: '40px' })}</span>
+        <div class="res-empty-title">まだ予約がありません</div>
+        <div class="res-empty-sub">「＋予約を追加」から登録すると<br>ここに表示されます</div>
+      </div>`;
 
   const custOptions = ['<option value="">—</option>']
     .concat([...state.customers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'))
@@ -152,35 +172,38 @@ function drawEventDetail(el, eventId, opts) {
 
   el.innerHTML = `
     ${sectionSeg('events', opts.goCustomers)}
-    <button class="btn btn-ghost" id="evBack" type="button" style="width:auto;padding:6px 14px">‹ イベント一覧へ</button>
-    <div class="card cust-profile" style="margin-top:12px">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <h2 style="margin:0">${esc(ev.name)}</h2>
-        <div class="row" style="gap:6px;width:auto">
-          <button id="evDup" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">複製</button>
-          <button id="evEdit" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">編集</button>
+    <button class="ev-back" id="evBack" type="button">${icon('arrowLeft')}<span>イベント一覧へ</span></button>
+
+    <div class="card ev-detail-card">
+      <div class="ev-detail-head">
+        <div class="ev-avatar lg">${icon('cake')}</div>
+        <div class="ev-detail-title">
+          <div class="ev-name-row"><h2>${esc(ev.name)}</h2>${statusBadge(ev, today)}</div>
+          ${ev.date ? `<div class="ev-card-date">${icon('calendar')} ${shortDateJa(ev.date)}</div>` : ''}
+          <div class="ev-id">イベントID：${esc(displayId)}</div>
+        </div>
+        <div class="ev-detail-actions">
+          <button id="evDup" class="btn btn-outline sm" type="button">${icon('copy')} 複製</button>
+          <button id="evEdit" class="btn btn-outline sm" type="button">${icon('edit')} 編集</button>
         </div>
       </div>
-      <div class="cust-info-block">
-        ${ev.date ? `<div class="cust-info-row"><span class="muted">開催日</span><span>${shortDateJa(ev.date)}</span></div>` : ''}
-        ${ev.memo ? `<div class="cust-info-row"><span class="muted">メモ</span><span>${esc(ev.memo)}</span></div>` : ''}
-      </div>
-      <div class="metric-grid" style="margin-top:12px;text-align:center">
+      ${ev.memo ? `<div class="ev-memo">${esc(ev.memo)}</div>` : ''}
+      <div class="metric-grid" style="margin-top:14px;text-align:center">
         <div><span class="muted">予約</span><strong>${totals.count}件</strong></div>
         <div><span class="muted">数量</span><strong>${totals.bottles}</strong></div>
         <div><span class="muted">売上</span><strong>${yen(totals.amount)}</strong></div>
       </div>
-      <div class="sheet-total" style="margin:10px 0 0">
+      <div class="ev-back-row">
         <span>歩合合計 <span class="muted">（対応済み分を計上）</span></span>
         <strong>${yen(totals.back)}</strong>
       </div>
+    </div>
 
-      <div class="cust-sec">
+    <div class="card">
       <div class="row" style="justify-content:space-between;align-items:center">
-        <h3 class="cust-sec-title">📋 予約名簿</h3>
-        <button id="resAdd" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">＋予約を追加</button>
+        <h3 class="cust-sec-title">予約名簿</h3>
+        <button id="resAdd" class="btn btn-outline sm" type="button">${icon('plus')} 予約を追加</button>
       </div>
-      <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6">誰が何を予約したかを管理する一覧です。各行は「名前＋種別（当日/前祝い/後祝い）」と「商品名×数量」を表示します。決済が終わったら左の□に ✓（対応済み）を入れると、決済日にレポート／カレンダーの歩合へ計上されます。金額は上の集計・各予約の編集画面で確認できます。</p>
       <form id="resForm" hidden style="margin-top:10px">
         <div class="field"><label>参加者（顧客リストから選択）</label>
           <select id="rCust" class="inline-input" style="width:100%">${custOptions}</select></div>
@@ -190,19 +213,19 @@ function drawEventDetail(el, eventId, opts) {
           <select id="rTiming" class="inline-input" style="width:100%">${timingOptions}</select></div>
         <div class="field"><label>決済日</label>
           <input id="rDate" type="date" class="inline-input" style="width:100%">
-          <div class="muted" style="font-size:12px;margin-top:4px;line-height:1.5">設定した決済日を含む月のレポートと、その日のカレンダーに、✓（対応済み）の予約がイベント歩合として計上されます。</div>
+          <div class="muted" style="font-size:12px;margin-top:4px;line-height:1.5">設定した決済日を含む月のレポートと、その日のカレンダーに、${icon('check')}（対応済み）の予約がイベント歩合として計上されます。</div>
           <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;white-space:nowrap">
             <input id="rDateTBD" type="checkbox"> 未定（後祝いなど・決済前）
           </label>
-          <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>⚠ 未定の予約は歩合に計上されません。後日、決済日を入れて未定を外し ✓（対応済み）にすると計上されます。</div>
+          <div id="rTBDNote" style="font-size:12px;margin-top:6px;color:var(--pink);line-height:1.5" hidden>${icon('warning')} 未定の予約は歩合に計上されません。後日、決済日を入れて未定を外し ${icon('check')}（対応済み）にすると計上されます。</div>
         </div>
         <h4 style="margin:14px 0 4px">商品（複数追加できます）</h4>
         <p class="muted" style="font-size:12px;margin:0 0 6px">設定の歩合項目や、一度入力した商品名を選べます。選ぶと単価・歩合が自動で入ります。</p>
         <datalist id="riProducts">${productChoices.map((p) => `<option value="${esc(p.label)}"></option>`).join('')}</datalist>
         <div id="rItems"></div>
-        <button type="button" class="btn btn-ghost" id="rAddItem" style="margin-top:4px">＋ 商品を追加</button>
+        <button type="button" class="btn btn-ghost" id="rAddItem" style="margin-top:4px">${icon('plus')} 商品を追加</button>
         <div class="sheet-total" id="rResTotals" style="margin:12px 0"></div>
-        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ✓（対応済み）にすると、歩合の合計が決済日にレポート／カレンダーのイベント歩合へ加算されます。</div>
+        <div class="muted" style="font-size:12px;margin-bottom:4px">予約を ${icon('check')}（対応済み）にすると、歩合の合計が決済日にレポート／カレンダーのイベント歩合へ加算されます。</div>
         <div class="field"><label>メモ（任意）</label><input id="rMemo" class="inline-input" type="text" maxlength="80" style="width:100%"></div>
         <div class="row" style="gap:8px;margin-top:8px">
           <button type="button" class="btn btn-ghost" id="rCancel" style="flex:1">キャンセル</button>
@@ -210,10 +233,19 @@ function drawEventDetail(el, eventId, opts) {
         </div>
       </form>
       <div id="resGroups" style="margin-top:10px">${groupHtml}</div>
+    </div>
+
+    <div class="card">
+      <h3 class="cust-sec-title" style="margin-bottom:10px">予約サマリー</h3>
+      <div class="ev-summary">
+        <div class="ev-sum-tile"><span class="ev-sum-ico">${icon('calCheck')}</span><span class="ev-sum-label">予約件数</span><strong>${totals.count}件</strong></div>
+        <div class="ev-sum-tile"><span class="ev-sum-ico">${icon('bag')}</span><span class="ev-sum-label">商品数</span><strong>${totals.bottles}個</strong></div>
+        <div class="ev-sum-tile"><span class="ev-sum-ico">${icon('yen')}</span><span class="ev-sum-label">売上</span><strong>${yen(totals.amount)}</strong></div>
+        <div class="ev-sum-tile"><span class="ev-sum-ico">${icon('percent')}</span><span class="ev-sum-label">歩合合計</span><strong>${yen(totals.back)}</strong></div>
       </div>
     </div>
 
-    <button class="btn btn-ghost" id="evDelete" type="button" style="color:#f55;margin-top:4px">このイベントを削除</button>`;
+    <button class="btn btn-delete" id="evDelete" type="button">${icon('trash')} このイベントを削除する</button>`;
 
   wireSeg(el, opts);
   el.querySelector('#evBack').onclick = () => drawEventList(el, opts);
@@ -263,7 +295,7 @@ function drawEventDetail(el, eventId, opts) {
     <div class="res-item-row" data-idx="${i}">
       <div class="row" style="align-items:center;gap:8px">
         <input class="ri-label inline-input" type="text" list="riProducts" maxlength="40" placeholder="商品名（オリシャン・フードセット 等）" value="${esc(it.label || '')}" style="flex:1">
-        <button type="button" class="ri-del" aria-label="この商品を削除">✕</button>
+        <button type="button" class="ri-del" aria-label="この商品を削除">${icon('close')}</button>
       </div>
       <div class="row" style="margin-top:6px">
         <div class="field" style="flex:1"><label>数量</label>
@@ -463,15 +495,15 @@ function resLi(r) {
   const timingTag = r.timing ? `<span class="res-tag res-timing">${esc(timingLabel(r.timing))}</span>` : '';
   const outTag = r.customerId ? '' : '<span class="res-tag">未登録顧客</span>';
   return `<li class="res-item ${r.done ? 'done' : ''}" data-id="${esc(r.id)}">
-    <button class="res-check todo-check" type="button" aria-label="${r.done ? '未対応に戻す' : '対応済みにする'}">${r.done ? '✓' : ''}</button>
+    <button class="res-check todo-check" type="button" aria-label="${r.done ? '未対応に戻す' : '対応済みにする'}">${r.done ? icon('check') : ''}</button>
     <div class="res-main">
       <div class="res-name">${esc(name)}${timingTag}${outTag}</div>
       ${meta ? `<div class="muted res-meta">${meta}</div>` : ''}
     </div>
     <div class="res-actions">
-      <button class="res-dup" type="button" aria-label="複製"><span class="ra-ico">⧉</span><span class="ra-txt">複製</span></button>
-      <button class="res-edit" type="button" aria-label="編集"><span class="ra-ico">✎</span><span class="ra-txt">編集</span></button>
-      <button class="res-del" type="button" aria-label="削除"><span class="ra-ico">✕</span><span class="ra-txt">削除</span></button>
+      <button class="res-dup" type="button" aria-label="複製"><span class="ra-ico">${icon('copy')}</span><span class="ra-txt">複製</span></button>
+      <button class="res-edit" type="button" aria-label="編集"><span class="ra-ico">${icon('edit')}</span><span class="ra-txt">編集</span></button>
+      <button class="res-del" type="button" aria-label="削除"><span class="ra-ico">${icon('close')}</span><span class="ra-txt">削除</span></button>
     </div>
   </li>`;
 }

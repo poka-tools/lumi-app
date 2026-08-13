@@ -17,8 +17,8 @@ export function itemLabel(it) {
     if (Number(it.rateValue) > 0) parts.push(it.rateValue + '%');
   }
   const desc = parts.join(' + ') || '0';
-  if (it.kind === 'penalty') return `⚠️罰金 ${desc}`;
-  if (it.kind === 'deduction') return `➖控除 ${desc}`;
+  if (it.kind === 'penalty') return `罰金 ${desc}`;
+  if (it.kind === 'deduction') return `控除 ${desc}`;
   return desc;
 }
 

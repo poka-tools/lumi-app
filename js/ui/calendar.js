@@ -1,6 +1,7 @@
 import { state, shiftsOfMonth, loadAll } from '../state.js';
+import { icon } from './icons.js';
 import { put, del, uid } from '../db.js';
-import { shiftTotal, shiftBackTotal, workedHours, dayPayReceived, dayPayRemaining } from '../calc.js';
+import { shiftTotal, shiftBackTotal, workedHours } from '../calc.js';
 import { yen, esc, weekdayJa, todayIso } from '../format.js';
 import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './backfields.js';
 import { renderTodos } from './todos.js';
@@ -67,19 +68,19 @@ export async function renderCalendar(el) {
       body = `<div class="cal-amt">${yen(evAmt)}</div>`;
       cls += ' has-confirmed';
     }
-    const evMark = evAmt ? '<div class="cal-ev">🎉</div>' : '';
+    const evMark = evAmt ? `<div class="cal-ev">${icon('party')}</div>` : '';
     const dueT = todosByDate.get(iso) || [];
     const pend = dueT.filter((t) => !t.done).length;
     const todoMark = dueT.length
-      ? `<div class="cal-todo${pend ? '' : ' done'}">${pend ? '📌' + (pend > 1 ? pend : '') : '✓'}</div>`
+      ? `<div class="cal-todo${pend ? '' : ' done'}">${pend ? icon('pin') + (pend > 1 ? pend : '') : icon('check')}</div>`
       : '';
     const vCount = visitsByDate.get(iso) || 0;
-    const visitMark = vCount ? `<div class="cal-visit">👤${vCount > 1 ? vCount : ''}</div>` : '';
+    const visitMark = vCount ? `<div class="cal-visit">${icon('person')}${vCount > 1 ? vCount : ''}</div>` : '';
     const bdayNames = bdaysByDate.get(iso);
-    const bdayMark = bdayNames ? `<div class="cal-bday">🎂${bdayNames.length > 1 ? bdayNames.length : ''}</div>` : '';
+    const bdayMark = bdayNames ? `<div class="cal-bday">${icon('cake')}${bdayNames.length > 1 ? bdayNames.length : ''}</div>` : '';
     const evTitles = eventTitlesByDate.get(iso) || [];
     const evHeldMark = evTitles.length
-      ? `<div class="cal-evheld">🎪${evTitles.length > 1 ? evTitles.length : ''}</div>` : '';
+      ? `<div class="cal-evheld">${icon('tent')}${evTitles.length > 1 ? evTitles.length : ''}</div>` : '';
     if (bulkMode && bulkSelected.has(iso)) cls += ' bulk-selected';
     cells.push(`<div class="cal-cell ${cls}" data-date="${esc(iso)}">
       <div class="cal-day">${d}</div>${body}${todoMark}${visitMark}${bdayMark}${evHeldMark}${evMark}</div>`);
@@ -88,7 +89,7 @@ export async function renderCalendar(el) {
   const p = state.profile;
   const bulkPanelHtml = bulkMode ? `
     <div class="bulk-panel">
-      <div class="bulk-head">🗓️ まとめて入力：出勤する日をタップで選択（<span id="bulkCount">${bulkSelected.size}</span>日）</div>
+      <div class="bulk-head">${icon('calendar')} まとめて入力：出勤する日をタップで選択（<span id="bulkCount">${bulkSelected.size}</span>日）</div>
       <div class="row">
         <div class="field" style="flex:1"><label>開始</label><input id="bkStart" type="time" value="${esc(p.defaultStart || '20:00')}"></div>
         <div class="field" style="flex:1"><label>終了</label><input id="bkEnd" type="time" value="${esc(p.defaultEnd || '01:00')}"></div>
@@ -99,7 +100,7 @@ export async function renderCalendar(el) {
         <button class="btn btn-ghost" id="bkCancel" style="flex:1">キャンセル</button>
         <button class="btn" id="bkSave" style="flex:2">選択した日を保存</button>
       </div>
-      <button class="btn btn-ghost" id="bkDelete" style="margin-top:8px;color:#f55">🗑 選択した日の記録を削除</button>
+      <button class="btn btn-ghost" id="bkDelete" style="margin-top:8px;color:#f55">${icon('trash')} 選択した日の記録を削除</button>
     </div>` : '';
 
   el.innerHTML = `
@@ -114,7 +115,7 @@ export async function renderCalendar(el) {
     ${bulkMode
       ? '<p class="muted" style="text-align:center;margin-top:10px">タップで選択／もう一度タップで解除</p>'
       : `<p class="muted" style="text-align:center;margin-top:10px">日付をタップして記録・予定を入力</p>
-         <button id="bulkStartBtn" class="btn btn-ghost" style="margin-top:4px">🗓️ まとめて入力（複数日）</button>`}
+         <button id="bulkStartBtn" class="btn btn-ghost" style="margin-top:4px">${icon('calendar')} まとめて入力（複数日）</button>`}
 
     <div id="todoSection" style="margin-top:16px"></div>
 
@@ -123,7 +124,7 @@ export async function renderCalendar(el) {
       <div class="sheet-handle"></div>
       <div class="row" style="justify-content:space-between;align-items:center">
         <h3 id="sheetDate" style="margin:0"></h3>
-        <button id="sheetClose" style="border:none;background:none;font-size:20px;color:var(--muted)">✕</button>
+        <button id="sheetClose" style="border:none;background:none;font-size:20px;color:var(--muted)">${icon('close')}</button>
       </div>
       <div id="sheetBody"></div>
     </section>`;
@@ -174,8 +175,7 @@ export async function renderCalendar(el) {
     draft.breakMin = Number(q('#sBreak').value) || 0;
     draft.confirmed = q('#sConfirmed').checked;
     draft.absent = q('#sAbsent').checked;
-    const dpType = q('#sDayPay') ? q('#sDayPay').value : 'none';
-    draft.dayPay = { type: dpType, cap: (q('#sDayPayCap') && Number(q('#sDayPayCap').value)) || 0 };
+    // 日払いの受け取り方は設定（プロフィール）で全シフト共通に指定。既存の個別 draft.dayPay は保持する。
     const entries = [];
     for (const it of state.backItems) {
       const c = Number(counts[it.id]) || 0, s = Number(sales[it.id]) || 0;
@@ -196,23 +196,6 @@ export async function renderCalendar(el) {
     q('#sheetTotal').textContent = yen(shiftTotal(state.profile, state.backItems, draft) + evAmt);
     q('#sheetInc').textContent = yen(shiftBackTotal(state.backItems, draft) + evAmt);
     q('#sheetHours').textContent = workedHours(draft) ? `実働 ${workedHours(draft)}h` : '';
-    // 日払い：種別に応じて詳細（上限・受取/未受取）を表示
-    const dpDetail = q('#dpDetail');
-    if (dpDetail) {
-      const type = draft.dayPay && draft.dayPay.type;
-      const on = type && type !== 'none';
-      dpDetail.hidden = !on;
-      if (on) {
-        const notes = {
-          full: '時給＋歩合（ペナルティ差引後）の純額を当日全額受け取ります。',
-          base: '基本時給＋深夜手当のみ当日受取。歩合（インセンティブ）は含まれず後日支給です。',
-          trial: '体験入店分の純額（歩合込み）を当日全額受け取ります。',
-        };
-        q('#dpNote').textContent = notes[type] || '';
-        q('#dpReceived').textContent = yen(dayPayReceived(state.profile, state.backItems, draft));
-        q('#dpRemaining').textContent = yen(dayPayRemaining(state.profile, state.backItems, draft));
-      }
-    }
   };
 
   const renderSheet = () => {
@@ -230,8 +213,8 @@ export async function renderCalendar(el) {
       const hasC = hasFixed(it);
       const c = Number(counts[it.id]) || 0, s = Number(sales[it.id]) || 0;
       const active = c > 0 || s > 0;
-      const badge = hasC ? (c > 0 ? '×' + c : '') : (s > 0 ? '✓' : '');
-      const mark = it.kind === 'penalty' ? '⚠' : it.kind === 'deduction' ? '➖' : '';
+      const badge = hasC ? (c > 0 ? '×' + c : '') : (s > 0 ? icon('check') : '');
+      const mark = it.kind === 'penalty' ? icon('warning') : it.kind === 'deduction' ? icon('minus') : '';
       const neg = it.kind === 'penalty' || it.kind === 'deduction';
       return `<button type="button" class="chip-inc${active ? ' active' : ''}${neg ? ' penalty' : ''}" data-id="${esc(it.id)}">
         <span class="chip-name">${mark}${esc(it.name)}</span>
@@ -245,37 +228,37 @@ export async function renderCalendar(el) {
     const dayTodos = state.todos.filter((t) => t.due === draft.date);
     const dayTodosHtml = dayTodos.length ? `
       <div class="sheet-todos">
-        <div class="muted" style="margin-bottom:4px">📌 この日のやること</div>
+        <div class="muted" style="margin-bottom:4px">${icon('pin')} この日のやること</div>
         <ul>${dayTodos.map((t) => `<li class="${t.done ? 'done' : ''}">${esc(t.text)}</li>`).join('')}</ul>
       </div>` : '';
 
     const dayVisits = visitsOnDate(state.visits, state.customers, draft.date);
     const dayVisitsHtml = dayVisits.length ? `
       <div class="sheet-visits">
-        <div class="muted" style="margin-bottom:2px">👤 この日の来店予定</div>
+        <div class="muted" style="margin-bottom:2px">${icon('person')} この日の来店予定</div>
         <div class="muted" style="font-size:12px;margin-bottom:6px">来店したら□にチェックを入れてください</div>
         <ul>${dayVisits.map((v) => `<li class="visit-line ${v.done ? 'done' : ''}" data-id="${esc(v.id)}">
-          <button class="todo-check" type="button" aria-label="${v.done ? '未来店に戻す' : '来店済みにする'}">${v.done ? '✓' : ''}</button>
+          <button class="todo-check" type="button" aria-label="${v.done ? '未来店に戻す' : '来店済みにする'}">${v.done ? icon('check') : ''}</button>
           <span>${esc(v.customerName)}${v.note ? ' ・ ' + esc(v.note) : ''}</span></li>`).join('')}</ul>
       </div>` : '';
 
     const dayBdays = bdaysByDate.get(draft.date) || [];
     const dayBdayHtml = dayBdays.length
-      ? `<div class="sheet-bday">🎂 ${dayBdays.map((n) => esc(n)).join('・')} さんのお誕生日</div>`
+      ? `<div class="sheet-bday">${icon('cake')} ${dayBdays.map((n) => esc(n)).join('・')} さんのお誕生日</div>`
       : '';
 
     // この日に開催予定のイベント（開催日が確定しているもの）のタイトルを表示。
     const dayEventTitles = eventTitlesByDate.get(draft.date) || [];
     const dayEventTitleHtml = dayEventTitles.length
       ? `<div class="sheet-bday">${dayEventTitles.map((n) =>
-          `<div>🎪 ${esc(n)}（開催）</div>`).join('')}</div>`
+          `<div>${icon('tent')} ${esc(n)}（開催）</div>`).join('')}</div>`
       : '';
 
     // イベント歩合（対応済み）はイベント名ごとに表示。複数イベントなら複数行。
     const dayEvents = eventDetailByDate.get(draft.date) || [];
     const dayEventHtml = dayEvents.length
       ? `<div class="sheet-bday">${dayEvents.map((e) =>
-          `<div>🎉 ${esc(e.name)}（対応済み） <strong>${yen(e.back)}</strong></div>`).join('')}</div>`
+          `<div>${icon('party')} ${esc(e.name)}（対応済み） <strong>${yen(e.back)}</strong></div>`).join('')}</div>`
       : '';
 
     body.innerHTML = `
@@ -304,21 +287,6 @@ export async function renderCalendar(el) {
         </div>
         <strong id="sheetTotal" style="font-size:26px;font-weight:800">¥0</strong>
       </div>
-      <div class="daypay-box">
-        <label style="display:block;font-weight:600;margin-bottom:4px">日払い（当日その場で受取）</label>
-        <p class="muted" style="font-size:12px;margin:0 0 6px;line-height:1.6">その日に受け取った分を記録します。受け取っていない差額は「未受取（後日支給）」として集計されます。</p>
-        <select id="sDayPay" class="inline-input" style="width:100%">
-          <option value="none">なし</option>
-          <option value="full">全額 当日日払い</option>
-          <option value="base">基本時給のみ 日払い</option>
-          <option value="trial">体験入店・全額 日払い</option>
-        </select>
-        <div id="dpDetail" hidden style="margin-top:8px">
-          <p class="muted" id="dpNote" style="font-size:12px;margin:0 0 8px;line-height:1.6"></p>
-          <div class="field"><label>上限（円・空欄＝上限なし）</label><input id="sDayPayCap" type="number" inputmode="numeric" placeholder="上限なし"></div>
-          <div class="sheet-sub" style="margin-top:6px">受取済み <strong id="dpReceived">¥0</strong> ／ 未受取(差額) <strong id="dpRemaining">¥0</strong></div>
-        </div>
-      </div>
       <label style="display:block;margin-bottom:12px">
         <input id="sConfirmed" type="checkbox" ${draft.confirmed ? 'checked' : ''}> 確定（実績）にする
         <span class="muted">＝カレンダーに金額表示。OFFは「出勤予定」</span>
@@ -339,7 +307,7 @@ export async function renderCalendar(el) {
         await loadAll();
         const nv = state.visits.find((x) => x.id === vid);
         li.classList.toggle('done', !!(nv && nv.done));
-        li.querySelector('.todo-check').textContent = nv && nv.done ? '✓' : '';
+        li.querySelector('.todo-check').innerHTML = nv && nv.done ? icon('check') : '';
       };
     });
 
@@ -354,11 +322,11 @@ export async function renderCalendar(el) {
       const hasC = hasFixed(it);
       const c = Number(counts[id]) || 0, s = Number(sales[id]) || 0;
       btn.classList.toggle('active', c > 0 || s > 0);
-      const badge = hasC ? (c > 0 ? '×' + c : '') : (s > 0 ? '✓' : '');
+      const badge = hasC ? (c > 0 ? '×' + c : '') : (s > 0 ? icon('check') : '');
       let b = btn.querySelector('.chip-badge');
       if (badge) {
         if (!b) { b = document.createElement('span'); b.className = 'chip-badge'; btn.appendChild(b); }
-        b.textContent = badge;
+        b.innerHTML = badge;
       } else if (b) { b.remove(); }
     };
 
@@ -366,7 +334,7 @@ export async function renderCalendar(el) {
     const openPop = (it) => {
       const hasC = hasFixed(it), hasR = hasRate(it);
       pop.innerHTML = `
-        <div class="chip-pop-title">${it.kind === 'penalty' ? '⚠' : it.kind === 'deduction' ? '➖' : ''}${esc(it.name)}
+        <div class="chip-pop-title">${it.kind === 'penalty' ? icon('warning') : it.kind === 'deduction' ? icon('minus') : ''}${esc(it.name)}
           <span class="muted">${esc(itemLabel(it))}</span></div>
         ${hasC ? `<div class="row" style="align-items:center;gap:8px;margin:12px 0">
           <button class="bi-minus" type="button" id="popMinus" aria-label="減らす">−</button>
@@ -464,17 +432,6 @@ export async function renderCalendar(el) {
       inp.oninput = recalc; inp.onchange = recalc;
     });
     q('#sAbsent').onchange = recalc;
-
-    // 日払い：初期値（種別・上限）をセットして変更で再計算
-    const dpSel = q('#sDayPay');
-    if (dpSel) {
-      dpSel.value = (draft.dayPay && draft.dayPay.type) || 'none';
-      const capIn = q('#sDayPayCap');
-      const capVal = (draft.dayPay && draft.dayPay.cap) || state.profile.dayPayCap || 0;
-      capIn.value = capVal > 0 ? capVal : '';
-      dpSel.onchange = recalc;
-      capIn.oninput = recalc;
-    }
 
     q('#sSave').onclick = async () => {
       await put('shifts', collectDraft());

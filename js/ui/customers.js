@@ -1,7 +1,8 @@
 import { state, loadAll } from '../state.js';
+import { icon } from './icons.js';
 import { put, del, uid } from '../db.js';
 import { esc, shortDateJa, todayIso } from '../format.js';
-import { searchCustomers, sortCustomers, nextVisitDate, doneVisitCount, notesForCustomer } from '../customers-logic.js';
+import { searchCustomers, sortCustomers, nextVisitDate, doneVisitCount, notesForCustomer, kanaRow, KANA_ORDER } from '../customers-logic.js';
 import { drawEventsSection } from './events.js';
 import { confirmModal } from './confirm.js';
 
@@ -43,10 +44,11 @@ function sheetMarkup() {
       <div class="sheet-handle"></div>
       <div class="row" style="justify-content:space-between;align-items:center">
         <h3 id="custSheetTitle" style="margin:0">顧客を追加</h3>
-        <button id="custSheetClose" type="button" style="border:none;background:none;font-size:20px;color:var(--muted)">✕</button>
+        <button id="custSheetClose" type="button" style="border:none;background:none;font-size:20px;color:var(--muted)">${icon('close')}</button>
       </div>
       <form id="custForm" style="margin-top:8px">
         <div class="field"><label>名前 / 源氏名</label><input id="fName" class="inline-input" type="text" maxlength="40" required style="width:100%"></div>
+        <div class="field"><label>フリガナ（任意）</label><input id="fFurigana" class="inline-input" type="text" maxlength="40" placeholder="ヤマダ ハナコ" style="width:100%"></div>
         <div class="field"><label>連絡先（LINE/電話など）</label><input id="fContact" class="inline-input" type="text" maxlength="60" style="width:100%"></div>
         <div class="field"><label>誕生日</label>
           <div class="row" style="gap:8px">
@@ -67,6 +69,7 @@ function openForm(el, customer) {
   const bg = el.querySelector('#custSheetBg');
   el.querySelector('#custSheetTitle').textContent = customer ? '顧客を編集' : '顧客を追加';
   el.querySelector('#fName').value = customer ? customer.name : '';
+  el.querySelector('#fFurigana').value = customer ? (customer.furigana || '') : '';
   el.querySelector('#fContact').value = customer ? (customer.contact || '') : '';
   const bd = customer && customer.birthday ? customer.birthday : '';
   el.querySelector('#fBdayMonth').value = bd ? bd.slice(0, 2) : '';
@@ -97,6 +100,7 @@ function wireSheet(el) {
     await put('customers', {
       id: editingId || uid(),
       name,
+      furigana: el.querySelector('#fFurigana').value.trim(),
       contact: el.querySelector('#fContact').value.trim(),
       birthday: bm && bday ? `${bm}-${bday}` : '',
       favoriteBottle: el.querySelector('#fBottle').value.trim(),
@@ -115,21 +119,67 @@ function drawList(el) {
   const today = todayIso();
   const filtered = searchCustomers(state.customers, query);
   const list = sortCustomers(filtered, sortKey, { visits: state.visits, today });
-  const cardHtml = list.length === 0
-    ? `<p class="muted" style="text-align:center;margin-top:24px">${
-        state.customers.length ? '該当する顧客がいません。' : '「＋顧客を追加」から登録できます。'}</p>`
-    : list.map((c) => {
-        const sub = sortKey === 'visits'
-          ? `来店 ${doneVisitCount(state.visits, c.id)}回`
-          : (() => {
-              const nv = nextVisitDate(state.visits, c.id, today);
-              return nv ? '次回来店 ' + shortDateJa(nv) : '来店予定なし';
-            })();
-        return `<button class="cust-card" data-id="${esc(c.id)}" type="button">
-          <div class="cust-name">${esc(c.name)}</div>
-          <div class="muted cust-sub">${sub}</div>
-        </button>`;
-      }).join('');
+  const bdayJa = (b) => b ? `${Number(b.slice(0, 2))}/${Number(b.slice(3, 5))}` : '未登録';
+  const lastVisitOf = (cid) => {
+    const done = state.visits.filter((v) => v.customerId === cid && v.done && v.date <= today);
+    return done.length ? done.map((v) => v.date).sort().at(-1) : '';
+  };
+
+  // 1顧客ぶんのカード
+  const cardOf = (c) => {
+    const doneCount = doneVisitCount(state.visits, c.id);
+    const nv = nextVisitDate(state.visits, c.id, today);
+    const last = lastVisitOf(c.id);
+    const visitChip = nv
+      ? `<span class="cc-chip cc-chip-visit">${icon('calendar')} 次回来店 ${shortDateJa(nv)}</span>`
+      : `<span class="cc-chip cc-chip-none">${icon('calendar')} 来店予定なし</span>`;
+    const rankChip = doneCount > 0
+      ? `<span class="cc-chip cc-chip-reg">常連さん</span>`
+      : `<span class="cc-chip cc-chip-new">新規顧客</span>`;
+    return `<div class="cust-card2" data-id="${esc(c.id)}" role="button" tabindex="0">
+      <div class="cc-top">
+        <div class="cc-avatar">${icon('person')}</div>
+        <div class="cc-body">
+          <div class="cc-name">${esc(c.name)}</div>
+          ${c.furigana ? `<div class="cc-furi">${esc(c.furigana)}</div>` : ''}
+          <div class="cc-visits">来店回数：${doneCount}回</div>
+          <div class="cc-chips">${visitChip}${rankChip}</div>
+        </div>
+        <button class="cc-memo" type="button" data-memo="${esc(c.id)}">${icon('note')} メモ</button>
+        <span class="cc-chev">›</span>
+      </div>
+      <div class="cc-foot">
+        <div class="cc-foot-item">${icon('cake')}<div><span>誕生日</span><strong>${bdayJa(c.birthday)}</strong></div></div>
+        <div class="cc-foot-item">${icon('store')}<div><span>最終来店日</span><strong>${last ? shortDateJa(last) : '未登録'}</strong></div></div>
+        <div class="cc-foot-item">${icon('calCheck')}<div><span>次回予定</span><strong>${nv ? shortDateJa(nv) : '未登録'}</strong></div></div>
+      </div>
+    </div>`;
+  };
+
+  // 一覧の組み立て。名前順のときはフリガナ（無ければ名前）の読み順で
+  // 五十音の行ごとにグループ化し、上部に索引バーを出す。それ以外は従来のフラット表示。
+  let listMarkup, indexBar = '';
+  if (list.length === 0) {
+    listMarkup = `<p class="muted" style="text-align:center;margin-top:24px">${
+      state.customers.length ? '該当する顧客がいません。' : '下の「顧客を追加する」から登録できます。'}</p>`;
+  } else if (sortKey === 'name') {
+    const withR = filtered.map((c) => ({ c, r: (c.furigana || c.name || '') }));
+    withR.sort((a, b) => a.r.localeCompare(b.r, 'ja'));
+    const groups = new Map();
+    for (const { c, r } of withR) {
+      const row = kanaRow(r);
+      if (!groups.has(row)) groups.set(row, []);
+      groups.get(row).push(c);
+    }
+    const present = KANA_ORDER.filter((row) => groups.has(row));
+    listMarkup = present.map((row) =>
+      `<div class="kana-head" data-kh="${row}">${row === '#' ? '英数・その他' : row}</div>` +
+      groups.get(row).map(cardOf).join('')).join('');
+    indexBar = `<div class="kana-index">${present.map((row) =>
+      `<button type="button" class="kana-jump" data-row="${row}">${row}</button>`).join('')}</div>`;
+  } else {
+    listMarkup = list.map(cardOf).join('');
+  }
 
   const sortTabsHtml = SORTS.map((s) =>
     `<button class="sort-chip${s.key === sortKey ? ' active' : ''}" type="button" data-sort="${s.key}">${s.label}</button>`
@@ -137,18 +187,22 @@ function drawList(el) {
 
   el.innerHTML = `
     <div class="seg cust-seg">
-      <button class="seg-btn active" type="button" data-sec="customers">顧客</button>
-      <button class="seg-btn" type="button" data-sec="events">イベント</button>
+      <button class="seg-btn active" type="button" data-sec="customers">${icon('person')} 顧客</button>
+      <button class="seg-btn" type="button" data-sec="events">${icon('party')} イベント</button>
     </div>
-    <div class="row" style="justify-content:space-between;align-items:center">
+    <div class="row" style="justify-content:space-between;align-items:baseline">
       <h2 style="margin:0">顧客リスト</h2>
-      <span class="muted">${state.customers.length}人</span>
+      <span class="cust-count">${state.customers.length}人の顧客</span>
     </div>
-    <input id="custSearch" class="inline-input" type="search" placeholder="名前で検索…"
-      value="${esc(query)}" autocomplete="off" style="width:100%;margin:12px 0 8px">
+    <div class="cust-search-wrap">
+      <span class="cust-search-ico">${icon('search')}</span>
+      <input id="custSearch" type="search" placeholder="名前・フリガナ・メモで検索"
+        value="${esc(query)}" autocomplete="off">
+    </div>
     <div class="sort-tabs" id="sortTabs">${sortTabsHtml}</div>
-    <div class="cust-list">${cardHtml}</div>
-    <button class="btn" id="custAdd" type="button" style="margin-top:14px">＋顧客を追加</button>
+    ${indexBar}
+    <div class="cust-list">${listMarkup}</div>
+    <button class="btn btn-outline" id="custAdd" type="button">${icon('plus')} 顧客を追加する</button>
     ${sheetMarkup()}`;
 
   const search = el.querySelector('#custSearch');
@@ -162,8 +216,20 @@ function drawList(el) {
   el.querySelectorAll('.sort-chip').forEach((b) => {
     b.onclick = () => { sortKey = b.dataset.sort; drawList(el); };
   });
-  el.querySelectorAll('.cust-card').forEach((b) => {
+  // フリガナ索引：タップでその行の見出しへスクロール
+  el.querySelectorAll('.kana-jump').forEach((b) => {
+    b.onclick = () => {
+      const h = el.querySelector(`.kana-head[data-kh="${b.dataset.row}"]`);
+      if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
+  el.querySelectorAll('.cust-card2').forEach((b) => {
     b.onclick = () => drawDetail(el, b.dataset.id);
+    b.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); drawDetail(el, b.dataset.id); } };
+  });
+  // 「メモ」ボタンはカードのタップに伝播させず、そのまま詳細（メモ欄）を開く
+  el.querySelectorAll('.cc-memo').forEach((b) => {
+    b.onclick = (e) => { e.stopPropagation(); drawDetail(el, b.dataset.memo); };
   });
   el.querySelector('#custAdd').onclick = () => openForm(el, null);
   el.querySelector('.cust-seg [data-sec="events"]').onclick =
@@ -191,17 +257,17 @@ function drawDetail(el, id) {
         <span class="muted note-date">${shortDateJa(isoFromTs(n.createdAt))}</span>
         <span class="note-text">${esc(n.text)}</span>
       </div>
-      <button class="note-del" type="button" aria-label="削除">✕</button>
+      <button class="note-del" type="button" aria-label="削除">${icon('close')}</button>
     </li>`;
 
   const visitLi = (v) => `
     <li class="visit-item ${v.done ? 'done' : ''}" data-id="${esc(v.id)}">
-      <button class="todo-check" type="button" aria-label="${v.done ? '未来店に戻す' : '来店済みにする'}">${v.done ? '✓' : ''}</button>
+      <button class="todo-check" type="button" aria-label="${v.done ? '未来店に戻す' : '来店済みにする'}">${v.done ? icon('check') : ''}</button>
       <div class="visit-main">
         <span class="visit-date">${shortDateJa(v.date)}</span>
         ${v.note ? `<span class="muted visit-note">${esc(v.note)}</span>` : ''}
       </div>
-      <button class="visit-del" type="button" aria-label="削除">✕</button>
+      <button class="visit-del" type="button" aria-label="削除">${icon('close')}</button>
     </li>`;
 
   el.innerHTML = `
@@ -220,7 +286,7 @@ function drawDetail(el, id) {
       </div>
 
       <div class="cust-sec">
-        <h3 class="cust-sec-title">📝 メモ</h3>
+        <h3 class="cust-sec-title">${icon('note')} メモ</h3>
         <form id="noteForm" class="row" style="gap:8px;align-items:flex-start">
           <textarea id="noteText" class="inline-input" rows="1" maxlength="500"
             placeholder="話した内容・好み・約束など…" style="width:100%;flex:1;resize:vertical;min-height:38px"></textarea>
@@ -232,7 +298,7 @@ function drawDetail(el, id) {
 
       <div class="cust-sec">
         <div class="row" style="justify-content:space-between;align-items:center">
-          <h3 class="cust-sec-title">📅 来店予定</h3>
+          <h3 class="cust-sec-title">${icon('calendar')} 来店予定</h3>
           <button id="visitAdd" class="btn btn-ghost" type="button" style="width:auto;padding:6px 12px">＋予定</button>
         </div>
         <p class="muted" style="font-size:12px;margin:6px 0 0">来店したら左の□にチェックを入れてください。</p>

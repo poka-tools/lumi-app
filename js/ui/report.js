@@ -1,4 +1,5 @@
 import { state, shiftsOfMonth } from '../state.js';
+import { icon } from './icons.js';
 import { plStatement, annualSeries, monthlyWorkedHours, backRanking, dayPaySummary } from '../calc.js';
 import { yen, signedYen, esc } from '../format.js';
 import { eventIncomeInMonth, eventIncentiveDetail, eventBackRanking } from '../events-logic.js';
@@ -29,7 +30,7 @@ export async function renderReport(el) {
     .filter((x) => x.amount !== 0 || x.count !== 0)
     .map((x) => ({ ...x, pct: grossIncomeAll ? Math.round((x.amount / grossIncomeAll) * 1000) / 10 : 0 }))
     .sort((a, b) => b.amount - a.amount);
-  const medals = ['🥇', '🥈', '🥉'];
+  const medals = ['<span class="rank-badge rank-1">1</span>', '<span class="rank-badge rank-2">2</span>', '<span class="rank-badge rank-3">3</span>'];
 
   // 日払い集計（設定ONかつ日払い実績がある月だけ表示）
   const dp = dayPaySummary(wage, items, cur);
@@ -78,7 +79,7 @@ export async function renderReport(el) {
   const eventBlock = eventInc ? `
     <div class="pl-section-head" style="margin-top:14px">イベント歩合</div>
     ${eventDetail.map((ev) => `
-      <div class="pl-event-title">🎉 ${esc(ev.name)}</div>
+      <div class="pl-event-title">${icon('party')} ${esc(ev.name)}</div>
       ${ev.items.map((it) => line(it.label, it.amount, '', it.count)).join('')}
     `).join('')}
     ${subtotal('イベント歩合 小計', eventInc)}

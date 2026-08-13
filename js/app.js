@@ -6,28 +6,91 @@ import { renderReport } from './ui/report.js';
 import { renderSettings } from './ui/settings.js';
 import { renderCustomers } from './ui/customers.js';
 import { renderHelp } from './ui/help.js';
-import { maybeStartTour } from './ui/onboarding.js';
+import { maybeStartTour, startTour } from './ui/onboarding.js';
 import { esc } from './format.js';
 
 const screen = document.getElementById('screen');
+const appbar = document.getElementById('appbar');
 const renderers = {
   home: renderHome, calendar: renderCalendar, record: renderRecord,
   report: renderReport, customers: renderCustomers, settings: renderSettings,
   help: renderHelp,
 };
 
+// 画面ごとのヘッダー。ホームと主要タブは「Lumi」ブランドバー、
+// メニューから開く設定・ヘルプ・記録は「‹ 戻る」バー（ピンクグラデ）。
+const BRAND_TABS = new Set(['home', 'calendar', 'report', 'customers']);
+const BACK_TITLES = { settings: '設定', help: 'ヘルプ', record: '記録' };
+
+function brandBarHtml() {
+  const bell = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 1.8 5.7 1.8 5.7H4.2S6 14.1 6 9.5Z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>`;
+  const menu = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`;
+  return `<div class="ab-brand">Lumi<span class="ab-spark">✦</span></div>
+    <div class="ab-actions">
+      <button id="abBell" class="ab-icon" type="button" aria-label="お知らせ">${bell}</button>
+      <button id="abMenu" class="ab-icon" type="button" aria-label="メニュー">${menu}</button>
+    </div>`;
+}
+
+function setAppbar(tab) {
+  if (BRAND_TABS.has(tab)) {
+    appbar.className = 'brand';
+    appbar.innerHTML = brandBarHtml();
+    appbar.querySelector('#abBell').onclick = () => navigate('home');
+    appbar.querySelector('#abMenu').onclick = openDrawer;
+  } else {
+    appbar.className = 'back';
+    appbar.innerHTML = `<button id="abBack" class="ab-back" type="button" aria-label="戻る">‹</button>
+      <div class="ab-title">${esc(BACK_TITLES[tab] || '')}</div>
+      <div class="ab-actions"></div>`;
+    appbar.querySelector('#abBack').onclick = () => navigate('home');
+  }
+}
+
 export async function navigate(tab) {
   if (tab !== 'record') setEditingShift(null);
   document.querySelectorAll('#tabbar button').forEach((b) =>
     b.classList.toggle('active', b.dataset.tab === tab));
+  setAppbar(tab);
   screen.innerHTML = '';
   await renderers[tab](screen);
   screen.scrollTop = 0;
+  window.scrollTo(0, 0);
 }
 
 document.getElementById('tabbar').addEventListener('click', (e) => {
   const btn = e.target.closest('button');
   if (btn) navigate(btn.dataset.tab);
+});
+
+// ===== ヘッダーのメニュードロワー =====
+const drawer = document.getElementById('drawer');
+const drawerBackdrop = document.getElementById('drawerBackdrop');
+function openDrawer() {
+  drawer.classList.add('show');
+  drawerBackdrop.classList.add('show');
+  drawer.removeAttribute('inert');            // 開いている間はフォーカス可能に
+  drawer.setAttribute('aria-hidden', 'false');
+}
+function closeDrawer() {
+  // aria-hidden の要素内にフォーカスが残らないよう、閉じる前にフォーカスを外す
+  if (drawer.contains(document.activeElement)) document.activeElement.blur();
+  drawer.classList.remove('show');
+  drawerBackdrop.classList.remove('show');
+  drawer.setAttribute('inert', '');           // 閉じたらフォーカス・支援技術から除外
+  drawer.setAttribute('aria-hidden', 'true');
+}
+drawerBackdrop.addEventListener('click', closeDrawer);
+drawer.addEventListener('click', async (e) => {
+  const item = e.target.closest('[data-go]');
+  const closeBtn = e.target.closest('[data-drawer-close]');
+  if (closeBtn) { closeDrawer(); return; }
+  if (!item) return;
+  const go = item.dataset.go;
+  closeDrawer();
+  if (go === 'guide') { startTour(); return; }
+  if (go === 'backup') { await navigate('settings'); document.getElementById('backupCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  navigate(go);
 });
 
 function hideSplash() {
