@@ -875,3 +875,13 @@ input.set-val[type="time"] { -webkit-appearance: none; appearance: none; width: 
   justify-content: center; gap: 8px; margin-top: 4px; }
 .btn-delete .ic { width: 18px; height: 18px; }
 .btn-delete:active { background: #e94e81; }
+
+/* ===== 数量ステッパー（予約フォーム） ===== */
+.qty-stepper { display: flex; align-items: center; gap: 8px; }
+.qty-btn { flex: 0 0 auto; width: 42px; height: 42px; border: 1px solid #eee; background: #fff;
+  border-radius: 12px; color: var(--pink); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.qty-btn:active { background: var(--pink-soft); }
+.qty-btn .ic { width: 18px; height: 18px; }
+.qty-input { flex: 1; min-width: 0; text-align: center; padding: 10px 6px;
+  border: 1px solid #eee; border-radius: 12px; -moz-appearance: textfield; }
+.qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }

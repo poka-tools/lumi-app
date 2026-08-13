@@ -152,9 +152,6 @@ function drawEventDetail(el, eventId, opts) {
     .concat([...state.customers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'))
       .map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`)).join('');
   const timingOptions = TIMINGS.map((t) => `<option value="${t.key}">${t.label}</option>`).join('');
-  // 本数はスクロール選択（0=—〜30本）
-  const countOptions = ['<option value="">—</option>']
-    .concat(Array.from({ length: 30 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`)).join('');
 
   // 商品名の候補＝設定の歩合項目（収入のみ）＋入力履歴。同名は履歴優先（単価も保持するため）。
   const backItemChoice = (it) => ({
@@ -299,7 +296,11 @@ function drawEventDetail(el, eventId, opts) {
       </div>
       <div class="row" style="margin-top:6px">
         <div class="field" style="flex:1"><label>数量</label>
-          <select class="ri-count inline-input" style="width:100%">${countOptions}</select></div>
+          <div class="qty-stepper">
+            <button type="button" class="ri-minus qty-btn" aria-label="減らす">${icon('minus')}</button>
+            <input class="ri-count qty-input" type="number" inputmode="numeric" min="0" placeholder="0" value="${it.count || ''}">
+            <button type="button" class="ri-plus qty-btn" aria-label="増やす">${icon('plus')}</button>
+          </div></div>
         <div class="field" style="flex:1"><label>単価（円）</label>
           <input class="ri-unit inline-input" type="number" inputmode="numeric" min="0" placeholder="0" value="${it.unitPrice || ''}" style="width:100%"></div>
       </div>
@@ -320,7 +321,6 @@ function drawEventDetail(el, eventId, opts) {
     const q = (sel) => row.querySelector(sel);
     const label = q('.ri-label'), count = q('.ri-count'), unit = q('.ri-unit'),
       amount = q('.ri-amount'), bfixed = q('.ri-bfixed'), brate = q('.ri-brate'), backView = q('.ri-back');
-    count.value = formItems[i].count ? String(formItems[i].count) : '';
     const showBack = () => { const b = itemBack(formItems[i]); backView.textContent = b ? `→ 歩合 ${yen(b)}` : ''; };
     const readInputs = () => {
       formItems[i].label = label.value;
@@ -348,9 +348,18 @@ function drawEventDetail(el, eventId, opts) {
       formItems[i].amountEdited = false; // 単価が入るので売上を再計算させる
       recalc();
     };
+    // 数量ステッパー（−／＋・0未満にはしない）＋直接入力
+    const stepCount = (delta) => {
+      const next = Math.max(0, (Number(count.value) || 0) + delta);
+      count.value = next ? String(next) : '';
+      recalc();
+    };
+    q('.ri-minus').onclick = () => stepCount(-1);
+    q('.ri-plus').onclick = () => stepCount(1);
     label.oninput = recalc;
     label.onchange = applyPreset;
     count.onchange = recalc;
+    count.oninput = recalc;
     unit.oninput = recalc;
     bfixed.oninput = recalc;
     brate.oninput = recalc;
