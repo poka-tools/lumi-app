@@ -93,7 +93,12 @@ drawer.addEventListener('click', async (e) => {
   const go = item.dataset.go;
   closeDrawer();
   if (go === 'guide') { startTour(); return; }
-  if (go === 'backup') { await navigate('settings'); document.getElementById('backupCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (go === 'backup') {
+    await navigate('settings');
+    const bc = document.getElementById('backupCard');
+    if (bc) { bc.open = true; bc.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    return;
+  }
   navigate(go);
 });
 

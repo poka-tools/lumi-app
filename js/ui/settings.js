@@ -110,52 +110,76 @@ export async function renderSettings(el) {
       </div>
     </div>
 
-    <div class="card">
-      <h3>キャンペーンお知らせ</h3>
-      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">期間を決めてホーム画面に表示されるメモです（例：今月のバック増額キャンペーン）。開始日〜終了日の間だけホームにお知らせとして表示されます。空欄なら常時表示します。</p>
-      <div id="annList"></div>
-      <button class="btn btn-ghost" id="addAnn">${icon('plus')} お知らせを追加</button>
-    </div>
+    <details class="card set-details">
+      <summary class="set-details-sum">
+        <span class="set-details-title">キャンペーンお知らせ</span>
+        <span class="set-details-hint">タップで表示</span>
+        <span class="set-details-chev">${icon('chevronDown')}</span>
+      </summary>
+      <div class="set-details-body">
+        <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">期間を決めてホーム画面に表示されるメモです（例：今月のバック増額キャンペーン）。開始日〜終了日の間だけホームにお知らせとして表示されます。空欄なら常時表示します。</p>
+        <div id="annList"></div>
+        <button class="btn btn-ghost" id="addAnn">${icon('plus')} お知らせを追加</button>
+      </div>
+    </details>
 
-    <div class="card" id="backupCard">
-      <h3>データのバックアップ</h3>
-      <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
-        入力したデータは<b>お使いの端末の中だけ</b>に保存されます（サーバーには送っていません）。
-        機種変更・アプリの削除・ブラウザのデータ消去などで<b>消えてしまうことがある</b>ため、
-        ときどき<b>バックアップ</b>してファイルを保管しておくと安心です。
-        新しい端末に移すときは、そのファイルを読み込めば元に戻せます。<br>
-        <span style="color:#f08fb0">※バックアップには、設定・歩合項目・勤務記録・お知らせ・やること・顧客・来店予定・イベント予約の<b>すべてのデータ</b>が含まれます。</span>
-      </p>
-      <button class="btn btn-ghost" id="exportBtn">${icon('save')} バックアップを保存</button>
-      <div class="backup-hint">ファイルに書き出して保管します</div>
-      <div style="height:10px"></div>
-      <label class="btn btn-ghost" style="display:block;text-align:center;cursor:pointer">
-        ${icon('upload')} バックアップから復元<input id="importFile" type="file" accept="application/json" hidden>
-      </label>
-      <div class="backup-hint">保存したファイルを読み込みます</div>
-    </div>
+    <details class="card set-details" id="backupCard">
+      <summary class="set-details-sum">
+        <span class="set-details-title">データのバックアップ</span>
+        <span class="set-details-hint">タップで表示</span>
+        <span class="set-details-chev">${icon('chevronDown')}</span>
+      </summary>
+      <div class="set-details-body">
+        <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
+          入力したデータは<b>お使いの端末の中だけ</b>に保存されます（サーバーには送っていません）。
+          機種変更・アプリの削除・ブラウザのデータ消去などで<b>消えてしまうことがある</b>ため、
+          ときどき<b>バックアップ</b>してファイルを保管しておくと安心です。
+          新しい端末に移すときは、そのファイルを読み込めば元に戻せます。<br>
+          <span style="color:#f08fb0">※バックアップには、設定・歩合項目・勤務記録・お知らせ・やること・顧客・来店予定・イベント予約の<b>すべてのデータ</b>が含まれます。</span>
+        </p>
+        <button class="btn btn-ghost" id="exportBtn">${icon('save')} バックアップを保存</button>
+        <div class="backup-hint">ファイルに書き出して保管します</div>
+        <div style="height:10px"></div>
+        <label class="btn btn-ghost" style="display:block;text-align:center;cursor:pointer">
+          ${icon('upload')} バックアップから復元<input id="importFile" type="file" accept="application/json" hidden>
+        </label>
+        <div class="backup-hint">保存したファイルを読み込みます</div>
+      </div>
+    </details>
 
-    <div class="card">
-      <h3>操作ログ</h3>
-      <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
-        データを<b>追加・保存・削除した記録</b>です（この端末の中だけに保存され、外部には送られません）。
-        「あれ、消えた？」というときに、いつ何を変更したかを確認できます。
-      </p>
-      <div id="auditLogBox"></div>
-      <div style="height:10px"></div>
-      <button class="btn btn-ghost" id="clearLog" style="color:#f55">${icon('trash')} 操作ログを消去</button>
-      <div class="backup-hint">記録だけを消します（データ本体は消えません）</div>
-    </div>
+    <details class="card set-details" id="auditDetails">
+      <summary class="set-details-sum">
+        <span class="set-details-title">操作ログ</span>
+        <span class="set-details-hint">タップで表示</span>
+        <span class="set-details-chev">${icon('chevronDown')}</span>
+      </summary>
+      <div class="set-details-body">
+        <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
+          データを<b>追加・保存・削除した記録</b>です（この端末の中だけに保存され、外部には送られません）。
+          「あれ、消えた？」というときに、いつ何を変更したかを確認できます。
+        </p>
+        <div id="auditLogBox"></div>
+        <div style="height:10px"></div>
+        <button class="btn btn-ghost" id="clearLog" style="color:#f55">${icon('trash')} 操作ログを消去</button>
+        <div class="backup-hint">記録だけを消します（データ本体は消えません）</div>
+      </div>
+    </details>
 
-    <div class="card">
-      <h3>使い方・ヘルプ</h3>
-      <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
-        画面の目印つきで使い方をご案内します。よくある質問（ヘルプ）はメニューからも開けます。
-      </p>
-      <button class="btn" id="showGuide">${icon('book')} 使い方ガイドを見る</button>
-      <div style="height:10px"></div>
-      <button class="btn btn-ghost" id="openHelp">${icon('help')} ヘルプ（よくある質問）</button>
-    </div>`;
+    <details class="card set-details">
+      <summary class="set-details-sum">
+        <span class="set-details-title">使い方・ヘルプ</span>
+        <span class="set-details-hint">タップで表示</span>
+        <span class="set-details-chev">${icon('chevronDown')}</span>
+      </summary>
+      <div class="set-details-body">
+        <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
+          画面の目印つきで使い方をご案内します。よくある質問（ヘルプ）はメニューからも開けます。
+        </p>
+        <button class="btn" id="showGuide">${icon('book')} 使い方ガイドを見る</button>
+        <div style="height:10px"></div>
+        <button class="btn btn-ghost" id="openHelp">${icon('help')} ヘルプ（よくある質問）</button>
+      </div>
+    </details>`;
 
   el.querySelector('#showGuide').onclick = () => startTour();
   el.querySelector('#openHelp').onclick = () => navigate('help');
@@ -188,7 +212,12 @@ export async function renderSettings(el) {
         </div>`).join('')}
     `).join('');
   }
-  renderLog();
+  // 操作ログは既定で折りたたみ。開いたとき（初回）に描画する。
+  const auditDetails = el.querySelector('#auditDetails');
+  let auditRendered = false;
+  auditDetails.addEventListener('toggle', () => {
+    if (auditDetails.open && !auditRendered) { auditRendered = true; renderLog(); }
+  });
 
   el.querySelector('#clearLog').onclick = async () => {
     if (!(await confirmModal('操作ログをすべて消去します。よろしいですか？（データ本体は消えません）', { okLabel: '消去する', danger: true }))) return;

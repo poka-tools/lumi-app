@@ -465,6 +465,18 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .bk-cat-add textarea { flex: 1; resize: vertical; }
 .bk-cat-add .bk-sheet-save { margin: 0; padding: 11px 18px; }
 
+/* 折りたたみカード（設定の操作ログなど・既定で閉じる） */
+.set-details { padding: 0; overflow: hidden; }
+.set-details-sum { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+  padding: 16px; }
+.set-details-sum::-webkit-details-marker { display: none; }
+.set-details-title { font-size: 16px; font-weight: 700; }
+.set-details-hint { margin-left: auto; font-size: 12px; color: var(--muted); }
+.set-details-chev { width: 18px; height: 18px; color: var(--muted); flex: 0 0 auto; transition: transform .2s; }
+.set-details[open] .set-details-chev { transform: rotate(180deg); }
+.set-details[open] .set-details-hint { display: none; }
+.set-details-body { padding: 0 16px 16px; }
+
 /* 設定ページの遷移リンク行 */
 .set-link { width: 100%; background: none; border: none; cursor: pointer; font: inherit; color: inherit; }
 .set-link .set-label { display: flex; flex-direction: column; align-items: flex-start; }
