@@ -3,7 +3,6 @@ import { put, del, uid, saveProfile, getAll, clearAuditLog, suppressAudit, logNo
 import { esc } from '../format.js';
 import { groupLogsByDay, logTime, logsToPrune } from '../audit-logic.js';
 import { navigate } from '../app.js';
-import { categoryList, itemCategory, allCategories, UNCATEGORIZED } from './backfields.js';
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
 import { startTour } from './onboarding.js';
@@ -18,11 +17,6 @@ function leadSelect(id, val) {
 }
 
 export async function renderSettings(el) {
-  // 既存ユーザーが今使っている分類を、初回だけ分類マスターへ取り込む（以後は編集可）。
-  if ((state.profile.backCategories || []).length === 0) {
-    const seed = categoryList(state.backItems).filter((c) => c !== UNCATEGORIZED);
-    if (seed.length) { await saveProfile({ ...state.profile, backCategories: seed }); await loadAll(); }
-  }
   const p = state.profile;
   el.innerHTML = `
     <div class="set-group">
@@ -105,20 +99,15 @@ export async function renderSettings(el) {
 
     <button class="btn btn-save" id="saveProfile">保存する</button>
 
-    <div class="card">
-      <h3>歩合項目</h3>
-      <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">シャンパンバック・ドリンクバック・指名料・同伴・ペナルティなど、時給以外の歩合を項目として登録します。「円/件」（1件あたりの額）や「％」（売上に対する割合）で設定でき、カレンダーの日別入力「入った歩合」にチップとして並んで、タップで件数・売上を記録できます。種別は<b>収入</b>のほか、罰金は<b>ペナルティ</b>、送り代・厚生費などの天引きは<b>控除</b>を選ぶとレポートでマイナスとして別枠集計されます。分類は下の「分類の管理」で先に登録し、各項目のプルダウンから選べます（分類でタブ絞り込みも可）。</p>
-      <div class="cat-manager">
-        <div class="cat-manager-head">分類の管理</div>
-        <p class="muted" style="font-size:12px;margin:2px 0 8px;line-height:1.6">先に分類を登録しておくと、各項目の「分類」欄からプルダウンで選べます（例: ドリンク／シャンパン／指名・同伴）。<strong>カンマ「,」や改行で区切ると、一度に複数まとめて追加できます。</strong>名前の変更・削除はその分類の項目にも反映されます。</p>
-        <div id="catList"></div>
-        <form class="row" id="catAdd" style="margin-top:6px;align-items:flex-start">
-          <textarea id="catInput" class="inline-input" rows="1" placeholder="新しい分類名…（例: シャンパン）" style="flex:1;resize:vertical"></textarea>
-          <button class="btn" type="submit" style="flex:0 0 auto;width:auto">追加</button>
-        </form>
+    <div class="set-group">
+      <div class="set-group-title"><span>歩合の管理</span></div>
+      <div class="set-rows">
+        <button class="set-row set-link" id="goBackItems" type="button">
+          <span class="set-ico">${icon('percent')}</span>
+          <span class="set-label">歩合項目の設定<span class="set-sub">シャンパンバック・指名料・ペナルティなどを登録・管理</span></span>
+          <span class="set-chev">${icon('chevron')}</span>
+        </button>
       </div>
-      <div id="itemList"></div>
-      <button class="btn btn-ghost" id="addItem">${icon('plus')} 項目を追加</button>
     </div>
 
     <div class="card">
@@ -170,6 +159,7 @@ export async function renderSettings(el) {
 
   el.querySelector('#showGuide').onclick = () => startTour();
   el.querySelector('#openHelp').onclick = () => navigate('help');
+  el.querySelector('#goBackItems').onclick = () => navigate('backitems');
 
   const AUDIT_MAX = 500; // これを超えた古いログは表示時に自動で間引く
   const opBadge = { put: '保存', del: '削除', info: '' };
@@ -247,241 +237,6 @@ export async function renderSettings(el) {
     await loadAll();
     toast('保存しました');
   };
-
-  // 旧モデル(type/value)・新モデル(fixedValue/rateValue)の両方から値を読む。
-  const itemFixed = (it) => it.type === 'fixed' ? Number(it.value) || 0 : Number(it.fixedValue) || 0;
-  const itemRate = (it) => it.type === 'rate' ? Number(it.value) || 0 : Number(it.rateValue) || 0;
-  // 0 は未入力とみなし空欄表示（プレースホルダーを見せる）。何を入力する欄か分かるように。
-  const blankIfZero = (n) => n ? n : '';
-
-  // 分類マスターの管理（追加・リネーム・削除）。リネーム/削除は該当項目にも反映。
-  const renderCatManager = () => {
-    const cats = state.profile.backCategories || [];
-    const listEl = el.querySelector('#catList');
-    listEl.innerHTML = cats.length
-      ? cats.map((c) => `
-        <div class="cat-row" data-cat="${esc(c)}">
-          <input class="cat-name inline-input" value="${esc(c)}" maxlength="30" style="flex:1">
-          <button class="cat-del" type="button" aria-label="削除" style="border:none;background:none;color:#f55;font-size:16px;padding:4px 8px;flex:0 0 auto">${icon('trash')}</button>
-        </div>`).join('')
-      : '<p class="muted" style="font-size:12px;margin:4px 0">まだ分類がありません。下の欄から追加できます。</p>';
-
-    listEl.querySelectorAll('.cat-row').forEach((rowEl) => {
-      const old = rowEl.dataset.cat;
-      rowEl.querySelector('.cat-name').onchange = async (e) => {
-        const next = e.target.value.trim();
-        if (!next || next === old) { e.target.value = old; return; }
-        if (next === UNCATEGORIZED) { toast('「未分類」は分類名に使えません'); e.target.value = old; return; }
-        const cats2 = (state.profile.backCategories || []).map((c) => (c === old ? next : c));
-        const uniq = cats2.filter((c, i) => cats2.indexOf(c) === i);
-        await saveProfile({ ...state.profile, backCategories: uniq });
-        for (const it of state.backItems) {
-          if (itemCategory(it) === old) { it.category = next; await put('backItems', it); }
-        }
-        await loadAll();
-        renderCatManager(); renderItems();
-        toast('分類を変更しました');
-      };
-      rowEl.querySelector('.cat-del').onclick = async () => {
-        if (!(await confirmModal(`分類「${old}」を削除しますか？この分類の項目は「未分類」になります。`))) return;
-        await saveProfile({ ...state.profile, backCategories: (state.profile.backCategories || []).filter((c) => c !== old) });
-        for (const it of state.backItems) {
-          if (itemCategory(it) === old) { it.category = ''; await put('backItems', it); }
-        }
-        await loadAll();
-        renderCatManager(); renderItems();
-        toast('分類を削除しました');
-      };
-    });
-  };
-
-  el.querySelector('#catAdd').onsubmit = async (e) => {
-    e.preventDefault();
-    const input = el.querySelector('#catInput');
-    // カンマ（半角/全角）・改行区切りで複数まとめて追加。重複・「未分類」はスキップ。
-    const names = input.value.split(/[,、\n]/).map((s) => s.trim()).filter(Boolean);
-    if (!names.length) return;
-    const next = [...(state.profile.backCategories || [])];
-    let added = 0, skipped = 0;
-    for (const name of names) {
-      if (name === UNCATEGORIZED || next.includes(name)) { skipped++; continue; }
-      next.push(name); added++;
-    }
-    if (added === 0) { toast('追加できる新しい分類がありませんでした'); input.value = ''; return; }
-    await saveProfile({ ...state.profile, backCategories: next });
-    await loadAll();
-    input.value = '';
-    renderCatManager(); renderItems();
-    toast(`${added}件の分類を追加しました${skipped ? `（${skipped}件はスキップ）` : ''}`);
-  };
-
-  // 各項目の分類プルダウンの選択肢（未分類＝空 ＋ マスター分類）。
-  const catOptionsHtml = (cur) => {
-    const cats = allCategories(state.profile, state.backItems);
-    const list = cur && !cats.includes(cur) ? [cur, ...cats] : cats;
-    return `<option value="" ${!cur ? 'selected' : ''}>未分類</option>` +
-      list.map((c) => `<option value="${esc(c)}" ${c === cur ? 'selected' : ''}>${esc(c)}</option>`).join('');
-  };
-
-  // 折りたたみ行の金額サマリー（例「¥3,000/件 ＋ 売上10%」／控除・ペナルティは「−」付き）。
-  const kindTagText = { penalty: 'ペナルティ', deduction: '控除' };
-  const valueSummary = (it) => {
-    const f = itemFixed(it), r = itemRate(it);
-    const sign = (it.kind === 'penalty' || it.kind === 'deduction') ? '−' : '';
-    const parts = [];
-    if (f) parts.push(`${sign}¥${f.toLocaleString()}/件`);
-    if (r) parts.push(`${sign}売上${r}%`);
-    return parts.join(' ＋ ') || '未設定';
-  };
-  // 折りたたみ行の見出し（●＋名前＋種別タグ＋金額）を項目内容から作る。
-  const headHtml = (it) => {
-    const kind = it.kind || 'income';
-    const nm = (it.name || '').trim();
-    const tag = kindTagText[kind] ? `<span class="bi-tag bi-tag-${kind}">${kindTagText[kind]}</span>` : '';
-    return `
-      <span class="bi-dot kind-${kind}"></span>
-      <span class="bi-name${nm ? '' : ' is-empty'}">${nm ? esc(nm) : '（名称未設定）'}</span>
-      ${tag}
-      <span class="bi-val">${esc(valueSummary(it))}</span>
-      <span class="bi-chev"></span>`;
-  };
-
-  // 開いている項目のidを再描画をまたいで保持（新規追加時は自動で開く）。
-  let openId = null;
-
-  const renderItems = () => {
-    const box = el.querySelector('#itemList');
-    if (!state.backItems.length) {
-      box.innerHTML = '<p class="muted" style="font-size:13px;margin:4px 0 0">まだ歩合項目がありません。下の「項目を追加」から登録できます。</p>';
-      return;
-    }
-    // 分類ごとにグループ化。登録マスターの並び順→未登録で使用中→未分類 の順で並べる。
-    const groups = new Map();
-    for (const it of state.backItems) {
-      const c = itemCategory(it);
-      if (!groups.has(c)) groups.set(c, []);
-      groups.get(c).push(it);
-    }
-    const order = [...allCategories(state.profile, state.backItems).filter((c) => groups.has(c))];
-    for (const c of groups.keys()) if (c !== UNCATEGORIZED && !order.includes(c)) order.push(c);
-    if (groups.has(UNCATEGORIZED)) order.push(UNCATEGORIZED);
-    // グループ見出しは、名前付き分類が1つでもあるときだけ出す（全て未分類なら見出し無し）。
-    const showHeads = order.some((c) => c !== UNCATEGORIZED);
-
-    const itemHtml = (it) => `
-      <div class="bi-item${it.id === openId ? ' open' : ''}" data-id="${esc(it.id)}">
-        <button class="bi-head" type="button">${headHtml(it)}</button>
-        <div class="bi-body">
-          <div class="row">
-            <input class="i-name inline-input" value="${esc(it.name)}" placeholder="項目名" style="flex:1">
-          </div>
-          <div class="row" style="margin-top:8px">
-            <select class="i-kind inline-input" style="flex:1.3">
-              <option value="income" ${!it.kind || it.kind === 'income' ? 'selected' : ''}>収入</option>
-              <option value="penalty" ${it.kind === 'penalty' ? 'selected' : ''}>ペナルティ</option>
-              <option value="deduction" ${it.kind === 'deduction' ? 'selected' : ''}>控除</option>
-            </select>
-            <input class="i-fixed inline-input" type="number" inputmode="numeric" placeholder="円/件" title="円/件" value="${blankIfZero(itemFixed(it))}" style="flex:1">
-            <input class="i-rate inline-input" type="number" inputmode="numeric" placeholder="％" title="売上の％" value="${blankIfZero(itemRate(it))}" style="flex:1">
-          </div>
-          <div class="row" style="margin-top:8px;align-items:center">
-            <label class="muted" style="flex:0 0 auto;font-size:12px">分類</label>
-            <select class="i-cat inline-input" style="flex:1;min-width:0">${catOptionsHtml((it.category || '').trim())}</select>
-          </div>
-          <div class="bi-actions">
-            <button class="i-del btn-inline-del" type="button">${icon('trash')} 削除</button>
-            <button class="i-reg bi-reg" type="button">${icon('check')} 登録</button>
-          </div>
-        </div>
-      </div>`;
-
-    box.innerHTML = order.map((c) => {
-      const rows = groups.get(c).map(itemHtml).join('');
-      if (!showHeads) return rows;
-      const label = c === UNCATEGORIZED ? '未分類' : esc(c);
-      return `
-        <div class="bi-group">
-          <div class="bi-group-head">
-            <span class="bi-group-name">${label}</span>
-            <button class="bi-add-in" type="button" data-cat="${c === UNCATEGORIZED ? '' : esc(c)}" aria-label="この分類に項目を追加">${icon('plus')}</button>
-          </div>
-          <div class="bi-rows">${rows}</div>
-        </div>`;
-    }).join('');
-
-    box.querySelectorAll('.bi-item').forEach((rowEl) => {
-      const id = rowEl.dataset.id;
-      const head = rowEl.querySelector('.bi-head');
-      // 見出しタップで開閉（フォーム操作を邪魔しないよう見出しボタンのみ）。
-      head.onclick = () => {
-        const willOpen = !rowEl.classList.contains('open');
-        openId = willOpen ? id : null;
-        rowEl.classList.toggle('open', willOpen);
-      };
-      const refreshHead = () => {
-        const it = state.backItems.find((x) => x.id === id);
-        head.innerHTML = headHtml(it);
-      };
-      const save = async () => {
-        const it = state.backItems.find((x) => x.id === id);
-        const next = {
-          id: it.id, order: it.order,
-          name: rowEl.querySelector('.i-name').value,
-          kind: rowEl.querySelector('.i-kind').value,
-          fixedValue: Number(rowEl.querySelector('.i-fixed').value) || 0,
-          rateValue: Number(rowEl.querySelector('.i-rate').value) || 0,
-          category: rowEl.querySelector('.i-cat').value.trim(),
-        };
-        // 旧 type/value を破棄して新モデルへ移行
-        Object.assign(it, next, { type: undefined, value: undefined });
-        await put('backItems', it);
-        toast('保存しました');
-      };
-      // 名前・種別・金額は開いたまま見出しだけ更新（編集を継続しやすく）。
-      rowEl.querySelectorAll('.i-name,.i-kind,.i-fixed,.i-rate').forEach((f) => {
-        f.onchange = async () => { await save(); refreshHead(); };
-      });
-      // 分類変更はグループ構成が変わるので、保存後に全体を再描画（開いたまま維持）。
-      rowEl.querySelector('.i-cat').onchange = async () => { await save(); renderItems(); };
-      // 「登録」＝現在の入力を保存して行を閉じる（明示的な確定操作）。
-      rowEl.querySelector('.i-reg').onclick = async () => {
-        await save();
-        openId = null;
-        rowEl.classList.remove('open');
-        refreshHead();
-      };
-      rowEl.querySelector('.i-del').onclick = async () => {
-        if (!(await confirmModal('この項目を削除しますか？'))) return;
-        if (openId === id) openId = null;
-        await del('backItems', id);
-        await loadAll();
-        renderItems();
-      };
-    });
-
-    // 分類見出しの「＋」＝その分類で新規項目を作り、開いた状態で表示。
-    box.querySelectorAll('.bi-add-in').forEach((b) => {
-      b.onclick = () => addItem(b.dataset.cat || '');
-    });
-  };
-
-  const addItem = async (category = '') => {
-    const id = uid();
-    await put('backItems', { id, name: '', kind: 'income', fixedValue: 0, rateValue: 0, category, order: state.backItems.length });
-    await loadAll();
-    openId = id; // 追加直後は開いて名前を入力できるように
-    renderItems();
-    const row = el.querySelector(`.bi-item[data-id="${id}"]`);
-    if (row) {
-      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      row.querySelector('.i-name')?.focus();
-    }
-  };
-
-  renderCatManager();
-  renderItems();
-
-  el.querySelector('#addItem').onclick = () => addItem('');
 
   const renderAnns = () => {
     const box = el.querySelector('#annList');

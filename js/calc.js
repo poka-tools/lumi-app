@@ -34,6 +34,24 @@ export function backAmount(item, entry) {
 // 収入以外（罰金・その他控除）＝マイナス計上・歩合ランキング対象外。
 export const isDeductionKind = (kind) => kind === 'penalty' || kind === 'deduction';
 
+// 歩合項目ごとの利用実績（件数・金額）を shifts から集計して Map<itemId,{count,amount}> で返す。
+// count は entry.count の合計（本数・件数など）、amount は backAmount の合計（控除・罰金はマイナス）。
+// 歩合項目の設定ページで「今月 N件 ¥X」を出すために使う純粋関数。
+export function backItemStats(items, shifts) {
+  const byId = new Map((items || []).map((it) => [it.id, it]));
+  const out = new Map((items || []).map((it) => [it.id, { count: 0, amount: 0 }]));
+  for (const sh of (shifts || [])) {
+    for (const e of (sh.entries || [])) {
+      const it = byId.get(e.backItemId);
+      if (!it) continue;
+      const o = out.get(it.id);
+      o.count += Number(e.count) || 0;
+      o.amount += backAmount(it, e);
+    }
+  }
+  return out;
+}
+
 // wage は数値（旧）でも時給設定オブジェクト（新）でも受ける。
 // 新オブジェクト: { hourlyWage, nominationWage, douhanWage,
 //   nightPremium: { enabled, start, end, addPerHour } }

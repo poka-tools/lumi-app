@@ -344,3 +344,30 @@ test('shiftBackTotal: eventBack（削除イベントから残した歩合）を�
   // eventBack が無ければ従来どおり
   assert.equal(shiftBackTotal(items, { entries: [{ backItemId: 'x', count: 1, sales: 0 }] }), 1000);
 });
+
+import { backItemStats } from '../js/calc.js';
+
+test('backItemStats: 項目ごとに今月の件数・金額を集計', () => {
+  const items = [
+    { id: 'a', kind: 'income', fixedValue: 1000 },
+    { id: 'b', kind: 'penalty', fixedValue: 500 },
+    { id: 'c', kind: 'income', rateValue: 10 },
+  ];
+  const shifts = [
+    { entries: [{ backItemId: 'a', count: 2 }, { backItemId: 'b', count: 1 }] },
+    { entries: [{ backItemId: 'a', count: 3 }, { backItemId: 'c', sales: 20000 }] },
+  ];
+  const st = backItemStats(items, shifts);
+  assert.deepEqual(st.get('a'), { count: 5, amount: 5000 });   // 1000*(2+3)
+  assert.deepEqual(st.get('b'), { count: 1, amount: -500 });   // ペナルティはマイナス
+  assert.deepEqual(st.get('c'), { count: 0, amount: 2000 });   // 20000*10%
+});
+
+test('backItemStats: 未登録項目・空入力に耐性', () => {
+  const st = backItemStats([{ id: 'a', kind: 'income', fixedValue: 100 }], [
+    { entries: [{ backItemId: 'ghost', count: 9 }] }, // 存在しないID
+    {}, // entries なし
+  ]);
+  assert.deepEqual(st.get('a'), { count: 0, amount: 0 });
+  assert.equal(st.has('ghost'), false);
+});

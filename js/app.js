@@ -4,6 +4,7 @@ import { renderCalendar } from './ui/calendar.js';
 import { renderRecord, setEditingShift } from './ui/record.js';
 import { renderReport } from './ui/report.js';
 import { renderSettings } from './ui/settings.js';
+import { renderBackItems } from './ui/backitems.js';
 import { renderCustomers } from './ui/customers.js';
 import { renderHelp } from './ui/help.js';
 import { maybeStartTour, startTour } from './ui/onboarding.js';
@@ -14,12 +15,14 @@ const appbar = document.getElementById('appbar');
 const renderers = {
   home: renderHome, calendar: renderCalendar, record: renderRecord,
   report: renderReport, customers: renderCustomers, settings: renderSettings,
-  help: renderHelp,
+  backitems: renderBackItems, help: renderHelp,
 };
+// 下タブのハイライト用（専用サブページは親タブを点灯させる）。
+const NAV_TAB = { backitems: 'settings' };
 
 // 画面ごとのヘッダー。ホームと主要タブは「Lumi」ブランドバー、
 // メニューから開く設定・ヘルプ・記録は「‹ 戻る」バー（ピンクグラデ）。
-const BRAND_TABS = new Set(['home', 'calendar', 'report', 'customers']);
+const BRAND_TABS = new Set(['home', 'calendar', 'report', 'customers', 'backitems']);
 const BACK_TITLES = { settings: '設定', help: 'ヘルプ', record: '記録' };
 
 function brandBarHtml() {
@@ -49,8 +52,9 @@ function setAppbar(tab) {
 
 export async function navigate(tab) {
   if (tab !== 'record') setEditingShift(null);
+  const navTab = NAV_TAB[tab] || tab;
   document.querySelectorAll('#tabbar button').forEach((b) =>
-    b.classList.toggle('active', b.dataset.tab === tab));
+    b.classList.toggle('active', b.dataset.tab === navTab));
   setAppbar(tab);
   screen.innerHTML = '';
   await renderers[tab](screen);

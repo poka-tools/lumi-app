@@ -43,6 +43,16 @@ const P = {
   bag: '<path d="M6 8h12l-1 11.5H7L6 8Z"/><path d="M9 8.5V6.5a3 3 0 0 1 6 0v2"/>',
   percent: '<path d="M6.5 17.5 17.5 6.5"/><circle cx="8" cy="8" r="2.3"/><circle cx="16" cy="16" r="2.3"/>',
   arrowLeft: '<path d="M11 5l-7 7 7 7M4.5 12H20"/>',
+  chevron: '<path d="M9 5l7 7-7 7"/>',
+  chevronDown: '<path d="M5 9l7 7 7-7"/>',
+  folder: '<path d="M4 7.5A1.5 1.5 0 0 1 5.5 6H10l2 2.2h6.5A1.5 1.5 0 0 1 20 9.7v8.3A1.5 1.5 0 0 1 18.5 19.5h-13A1.5 1.5 0 0 1 4 18Z"/>',
+  dots: '<circle cx="12" cy="6" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="18" r="1.3"/>',
+  sliders: '<path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/>',
+  grid: '<rect x="4" y="4" width="7" height="7" rx="1.6"/><rect x="13" y="4" width="7" height="7" rx="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.6"/>',
+  list: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
+  sort: '<path d="M7 5v14M7 19l-3-3M7 5l3 3M17 19V5M17 5l3 3M17 19l-3-3"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
+  tag: '<path d="M4 4h7l9 9-7 7-9-9V4Z"/><circle cx="8" cy="8" r="1.4"/>',
 };
 export function icon(name, { size, cls } = {}) {
   const body = P[name];
