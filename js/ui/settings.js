@@ -117,7 +117,6 @@ export async function renderSettings(el) {
           <button class="btn" type="submit" style="flex:0 0 auto;width:auto">追加</button>
         </form>
       </div>
-      <div class="cat-tabs" id="itemTabs"></div>
       <div id="itemList"></div>
       <button class="btn btn-ghost" id="addItem">${icon('plus')} 項目を追加</button>
     </div>
@@ -280,7 +279,7 @@ export async function renderSettings(el) {
           if (itemCategory(it) === old) { it.category = next; await put('backItems', it); }
         }
         await loadAll();
-        renderCatManager(); renderTabs(); renderItems();
+        renderCatManager(); renderItems();
         toast('分類を変更しました');
       };
       rowEl.querySelector('.cat-del').onclick = async () => {
@@ -290,7 +289,7 @@ export async function renderSettings(el) {
           if (itemCategory(it) === old) { it.category = ''; await put('backItems', it); }
         }
         await loadAll();
-        renderCatManager(); renderTabs(); renderItems();
+        renderCatManager(); renderItems();
         toast('分類を削除しました');
       };
     });
@@ -312,7 +311,7 @@ export async function renderSettings(el) {
     await saveProfile({ ...state.profile, backCategories: next });
     await loadAll();
     input.value = '';
-    renderCatManager(); renderTabs(); renderItems();
+    renderCatManager(); renderItems();
     toast(`${added}件の分類を追加しました${skipped ? `（${skipped}件はスキップ）` : ''}`);
   };
 
@@ -324,48 +323,105 @@ export async function renderSettings(el) {
       list.map((c) => `<option value="${esc(c)}" ${c === cur ? 'selected' : ''}>${esc(c)}</option>`).join('');
   };
 
-  // 分類タブ（全て＋出現カテゴリ）。分類が実質1種類以下ならタブは隠す。
-  let activeCat = '全て';
-  const renderTabs = () => {
-    const cats = categoryList(state.backItems);
-    const tabsEl = el.querySelector('#itemTabs');
-    if (cats.length <= 1) { tabsEl.innerHTML = ''; activeCat = '全て'; return; }
-    const all = ['全て', ...cats];
-    if (!all.includes(activeCat)) activeCat = '全て';
-    tabsEl.innerHTML = all.map((c) =>
-      `<button class="cat-tab${c === activeCat ? ' active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
-    tabsEl.querySelectorAll('.cat-tab').forEach((b) => {
-      b.onclick = () => { activeCat = b.dataset.cat; renderTabs(); renderItems(); };
-    });
+  // 折りたたみ行の金額サマリー（例「¥3,000/件 ＋ 売上10%」／控除・ペナルティは「−」付き）。
+  const kindTagText = { penalty: 'ペナルティ', deduction: '控除' };
+  const valueSummary = (it) => {
+    const f = itemFixed(it), r = itemRate(it);
+    const sign = (it.kind === 'penalty' || it.kind === 'deduction') ? '−' : '';
+    const parts = [];
+    if (f) parts.push(`${sign}¥${f.toLocaleString()}/件`);
+    if (r) parts.push(`${sign}売上${r}%`);
+    return parts.join(' ＋ ') || '未設定';
   };
+  // 折りたたみ行の見出し（●＋名前＋種別タグ＋金額）を項目内容から作る。
+  const headHtml = (it) => {
+    const kind = it.kind || 'income';
+    const nm = (it.name || '').trim();
+    const tag = kindTagText[kind] ? `<span class="bi-tag bi-tag-${kind}">${kindTagText[kind]}</span>` : '';
+    return `
+      <span class="bi-dot kind-${kind}"></span>
+      <span class="bi-name${nm ? '' : ' is-empty'}">${nm ? esc(nm) : '（名称未設定）'}</span>
+      ${tag}
+      <span class="bi-val">${esc(valueSummary(it))}</span>
+      <span class="bi-chev"></span>`;
+  };
+
+  // 開いている項目のidを再描画をまたいで保持（新規追加時は自動で開く）。
+  let openId = null;
 
   const renderItems = () => {
     const box = el.querySelector('#itemList');
-    const shown = activeCat === '全て'
-      ? state.backItems
-      : state.backItems.filter((it) => itemCategory(it) === activeCat);
-    box.innerHTML = shown.map((it) => `
-      <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f3f3f3" data-id="${esc(it.id)}">
-        <div class="row" style="align-items:center">
-          <input class="i-name inline-input" value="${esc(it.name)}" placeholder="項目名" style="flex:1">
-          <button class="i-del" style="border:none;background:none;color:#f55;font-size:18px;padding:4px 8px;flex:0 0 auto">${icon('trash')}</button>
+    if (!state.backItems.length) {
+      box.innerHTML = '<p class="muted" style="font-size:13px;margin:4px 0 0">まだ歩合項目がありません。下の「項目を追加」から登録できます。</p>';
+      return;
+    }
+    // 分類ごとにグループ化。登録マスターの並び順→未登録で使用中→未分類 の順で並べる。
+    const groups = new Map();
+    for (const it of state.backItems) {
+      const c = itemCategory(it);
+      if (!groups.has(c)) groups.set(c, []);
+      groups.get(c).push(it);
+    }
+    const order = [...allCategories(state.profile, state.backItems).filter((c) => groups.has(c))];
+    for (const c of groups.keys()) if (c !== UNCATEGORIZED && !order.includes(c)) order.push(c);
+    if (groups.has(UNCATEGORIZED)) order.push(UNCATEGORIZED);
+    // グループ見出しは、名前付き分類が1つでもあるときだけ出す（全て未分類なら見出し無し）。
+    const showHeads = order.some((c) => c !== UNCATEGORIZED);
+
+    const itemHtml = (it) => `
+      <div class="bi-item${it.id === openId ? ' open' : ''}" data-id="${esc(it.id)}">
+        <button class="bi-head" type="button">${headHtml(it)}</button>
+        <div class="bi-body">
+          <div class="row">
+            <input class="i-name inline-input" value="${esc(it.name)}" placeholder="項目名" style="flex:1">
+          </div>
+          <div class="row" style="margin-top:8px">
+            <select class="i-kind inline-input" style="flex:1.3">
+              <option value="income" ${!it.kind || it.kind === 'income' ? 'selected' : ''}>収入</option>
+              <option value="penalty" ${it.kind === 'penalty' ? 'selected' : ''}>ペナルティ</option>
+              <option value="deduction" ${it.kind === 'deduction' ? 'selected' : ''}>控除</option>
+            </select>
+            <input class="i-fixed inline-input" type="number" inputmode="numeric" placeholder="円/件" title="円/件" value="${blankIfZero(itemFixed(it))}" style="flex:1">
+            <input class="i-rate inline-input" type="number" inputmode="numeric" placeholder="％" title="売上の％" value="${blankIfZero(itemRate(it))}" style="flex:1">
+          </div>
+          <div class="row" style="margin-top:8px;align-items:center">
+            <label class="muted" style="flex:0 0 auto;font-size:12px">分類</label>
+            <select class="i-cat inline-input" style="flex:1;min-width:0">${catOptionsHtml((it.category || '').trim())}</select>
+          </div>
+          <div class="bi-actions">
+            <button class="i-del btn-inline-del" type="button">${icon('trash')} 削除</button>
+            <button class="i-reg bi-reg" type="button">${icon('check')} 登録</button>
+          </div>
         </div>
-        <div class="row" style="margin-top:8px">
-          <select class="i-kind inline-input" style="flex:1.3">
-            <option value="income" ${!it.kind || it.kind === 'income' ? 'selected' : ''}>収入</option>
-            <option value="penalty" ${it.kind === 'penalty' ? 'selected' : ''}>ペナルティ</option>
-            <option value="deduction" ${it.kind === 'deduction' ? 'selected' : ''}>控除</option>
-          </select>
-          <input class="i-fixed inline-input" type="number" inputmode="numeric" placeholder="円/件" title="円/件" value="${blankIfZero(itemFixed(it))}" style="flex:1">
-          <input class="i-rate inline-input" type="number" inputmode="numeric" placeholder="％" title="売上の％" value="${blankIfZero(itemRate(it))}" style="flex:1">
-        </div>
-        <div class="row" style="margin-top:8px;align-items:center">
-          <label class="muted" style="flex:0 0 auto;font-size:12px">分類</label>
-          <select class="i-cat inline-input" style="flex:0 1 auto;min-width:120px;max-width:220px">${catOptionsHtml((it.category || '').trim())}</select>
-        </div>
-      </div>`).join('') || '<p class="muted">この分類の項目はありません。</p>';
-    box.querySelectorAll('[data-id]').forEach((rowEl) => {
+      </div>`;
+
+    box.innerHTML = order.map((c) => {
+      const rows = groups.get(c).map(itemHtml).join('');
+      if (!showHeads) return rows;
+      const label = c === UNCATEGORIZED ? '未分類' : esc(c);
+      return `
+        <div class="bi-group">
+          <div class="bi-group-head">
+            <span class="bi-group-name">${label}</span>
+            <button class="bi-add-in" type="button" data-cat="${c === UNCATEGORIZED ? '' : esc(c)}" aria-label="この分類に項目を追加">${icon('plus')}</button>
+          </div>
+          <div class="bi-rows">${rows}</div>
+        </div>`;
+    }).join('');
+
+    box.querySelectorAll('.bi-item').forEach((rowEl) => {
       const id = rowEl.dataset.id;
+      const head = rowEl.querySelector('.bi-head');
+      // 見出しタップで開閉（フォーム操作を邪魔しないよう見出しボタンのみ）。
+      head.onclick = () => {
+        const willOpen = !rowEl.classList.contains('open');
+        openId = willOpen ? id : null;
+        rowEl.classList.toggle('open', willOpen);
+      };
+      const refreshHead = () => {
+        const it = state.backItems.find((x) => x.id === id);
+        head.innerHTML = headHtml(it);
+      };
       const save = async () => {
         const it = state.backItems.find((x) => x.id === id);
         const next = {
@@ -381,31 +437,51 @@ export async function renderSettings(el) {
         await put('backItems', it);
         toast('保存しました');
       };
-      rowEl.querySelectorAll('.i-name,.i-kind,.i-fixed,.i-rate').forEach((f) => (f.onchange = save));
-      // 分類変更はタブ構成・絞り込みに影響するため、保存後にタブ＋一覧を再描画
-      rowEl.querySelector('.i-cat').onchange = async () => { await save(); renderTabs(); renderItems(); };
+      // 名前・種別・金額は開いたまま見出しだけ更新（編集を継続しやすく）。
+      rowEl.querySelectorAll('.i-name,.i-kind,.i-fixed,.i-rate').forEach((f) => {
+        f.onchange = async () => { await save(); refreshHead(); };
+      });
+      // 分類変更はグループ構成が変わるので、保存後に全体を再描画（開いたまま維持）。
+      rowEl.querySelector('.i-cat').onchange = async () => { await save(); renderItems(); };
+      // 「登録」＝現在の入力を保存して行を閉じる（明示的な確定操作）。
+      rowEl.querySelector('.i-reg').onclick = async () => {
+        await save();
+        openId = null;
+        rowEl.classList.remove('open');
+        refreshHead();
+      };
       rowEl.querySelector('.i-del').onclick = async () => {
         if (!(await confirmModal('この項目を削除しますか？'))) return;
+        if (openId === id) openId = null;
         await del('backItems', id);
         await loadAll();
-        renderTabs();
         renderItems();
       };
     });
+
+    // 分類見出しの「＋」＝その分類で新規項目を作り、開いた状態で表示。
+    box.querySelectorAll('.bi-add-in').forEach((b) => {
+      b.onclick = () => addItem(b.dataset.cat || '');
+    });
   };
+
+  const addItem = async (category = '') => {
+    const id = uid();
+    await put('backItems', { id, name: '', kind: 'income', fixedValue: 0, rateValue: 0, category, order: state.backItems.length });
+    await loadAll();
+    openId = id; // 追加直後は開いて名前を入力できるように
+    renderItems();
+    const row = el.querySelector(`.bi-item[data-id="${id}"]`);
+    if (row) {
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      row.querySelector('.i-name')?.focus();
+    }
+  };
+
   renderCatManager();
-  renderTabs();
   renderItems();
 
-  el.querySelector('#addItem').onclick = async () => {
-    const order = state.backItems.length;
-    // 特定タブを選択中なら、その分類で新規作成（作業を続けやすく）
-    const category = activeCat === '全て' || activeCat === '未分類' ? '' : activeCat;
-    await put('backItems', { id: uid(), name: '', kind: 'income', fixedValue: 0, rateValue: 0, category, order });
-    await loadAll();
-    renderTabs();
-    renderItems();
-  };
+  el.querySelector('#addItem').onclick = () => addItem('');
 
   const renderAnns = () => {
     const box = el.querySelector('#annList');

@@ -335,6 +335,50 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .cat-manager-head { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
 .cat-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 
+/* 歩合項目リスト（折りたたみ＋分類グループ） */
+.bi-group { margin-bottom: 16px; }
+.bi-group-head { display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin: 0 2px 6px; }
+.bi-group-name { font-size: 12px; font-weight: 700; color: var(--pink); letter-spacing: .02em; }
+.bi-add-in { flex: 0 0 auto; width: 26px; height: 26px; display: inline-flex; align-items: center;
+  justify-content: center; border: 1.5px solid var(--pink-soft); background: var(--pink-soft);
+  color: var(--pink); border-radius: 50%; cursor: pointer; padding: 0; }
+.bi-add-in .ic { width: 16px; height: 16px; }
+.bi-rows { display: flex; flex-direction: column; gap: 8px; }
+.bi-item { border: 1px solid #f0e6ea; border-radius: 14px; background: #fff; overflow: hidden; }
+.bi-item.open { border-color: var(--pink); box-shadow: 0 2px 10px rgba(255,92,138,.08); }
+.bi-head { display: flex; align-items: center; gap: 9px; width: 100%; padding: 12px 14px;
+  background: none; border: none; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.bi-dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; background: #ccc; }
+.bi-dot.kind-income { background: var(--pink); }
+.bi-dot.kind-penalty { background: #f55; }
+.bi-dot.kind-deduction { background: #f0a94e; }
+.bi-name { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; flex: 0 1 auto; }
+.bi-name.is-empty { color: var(--muted); font-weight: 400; }
+.bi-tag { flex: 0 0 auto; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
+.bi-tag-penalty { background: #ffe1e1; color: #e04444; }
+.bi-tag-deduction { background: #fde6cf; color: #c9862a; }
+.bi-val { margin-left: auto; flex: 0 0 auto; font-size: 13px; color: var(--muted);
+  white-space: nowrap; }
+.bi-chev { flex: 0 0 auto; width: 8px; height: 8px; margin-left: 2px;
+  border-right: 2px solid #c9b8c0; border-bottom: 2px solid #c9b8c0;
+  transform: rotate(-45deg); transition: transform .2s; }
+.bi-item.open .bi-chev { transform: rotate(45deg); }
+.bi-body { display: none; padding: 0 14px 14px; }
+.bi-item.open .bi-body { display: block; }
+.btn-inline-del { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px;
+  border: none; background: none; color: #f55; font-size: 13px; font-weight: 600;
+  padding: 8px 6px; cursor: pointer; }
+.btn-inline-del .ic { width: 16px; height: 16px; }
+.bi-actions { display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 12px; }
+.bi-reg { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+  background: var(--pink); color: #fff; border: none; border-radius: 12px;
+  font-weight: 700; font-size: 14px; padding: 9px 22px; cursor: pointer; }
+.bi-reg:active { background: #e94b7c; }
+.bi-reg .ic { width: 16px; height: 16px; }
+
 /* インセンティブ・チップ（カレンダー日別入力） */
 .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
 .chip-inc { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid #eadfe4;
