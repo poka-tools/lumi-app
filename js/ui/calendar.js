@@ -3,7 +3,6 @@ import { icon } from './icons.js';
 import { put, del, uid } from '../db.js';
 import { shiftTotal, shiftBackTotal, workedHours, backAmount } from '../calc.js';
 import { yen, esc, weekdayJa, todayIso } from '../format.js';
-import { hasFixed, hasRate, itemLabel, categoryList, itemCategory, UNCATEGORIZED } from './backfields.js';
 import { openItemPicker } from './itempicker.js';
 import { renderTodos } from './todos.js';
 import { confirmModal } from './confirm.js';
@@ -197,16 +196,6 @@ export async function renderCalendar(el) {
     q('#sheetTotal').textContent = yen(shiftTotal(state.profile, state.backItems, draft) + evAmt);
     q('#sheetInc').textContent = yen(shiftBackTotal(state.backItems, draft) + evAmt);
     q('#sheetHours').textContent = workedHours(draft) ? `実働 ${workedHours(draft)}h` : '';
-    // カテゴリ別アコーディオンの小計を更新（その日の入力分のみ）
-    sheet.querySelectorAll('.inc-group').forEach((g) => {
-      const cat = g.dataset.cat;
-      const t = g.querySelector('.inc-group-total');
-      if (!t) return;
-      const sub = state.backItems
-        .filter((it) => itemCategory(it) === cat)
-        .reduce((s, it) => s + backAmount(it, { count: Number(counts[it.id]) || 0, sales: Number(sales[it.id]) || 0 }), 0);
-      t.textContent = yen(sub);
-    });
   };
 
   const renderSheet = () => {
@@ -220,27 +209,10 @@ export async function renderCalendar(el) {
       if (e.sales) sales[e.backItemId] = e.sales;
     });
 
-    const chipHtml = (it) => {
-      const hasC = hasFixed(it);
-      const c = Number(counts[it.id]) || 0, s = Number(sales[it.id]) || 0;
-      const active = c > 0 || s > 0;
-      const badge = hasC ? (c > 0 ? '×' + c : '') : (s > 0 ? icon('check') : '');
-      const mark = it.kind === 'penalty' ? icon('warning') : it.kind === 'deduction' ? icon('minus') : '';
-      const neg = it.kind === 'penalty' || it.kind === 'deduction';
-      return `<button type="button" class="chip-inc${active ? ' active' : ''}${neg ? ' penalty' : ''}" data-id="${esc(it.id)}">
-        <span class="chip-name">${mark}${esc(it.name)}</span>
-        ${badge ? `<span class="chip-badge">${badge}</span>` : ''}
-      </button>`;
-    };
     const itemsHtml = state.backItems.length === 0
-      ? '<p class="muted">先に「設定」で歩合項目を登録してください。</p>'
-      : `<div class="inc-searchrow">
-           <div class="inc-search"><span class="inc-search-ic">${icon('search')}</span>
-             <input id="incSearch" type="search" placeholder="項目名で検索" autocomplete="off"></div>
-           <button class="inc-filter" id="incPicker" type="button">${icon('sliders')} 絞り込み</button>
-         </div>
-         <div class="inc-catchips" id="incCatChips"></div>
-         <div class="inc-groups" id="incGroups"></div>`;
+      ? `<p class="muted">先に「歩合項目の設定」で項目を登録してください。</p>`
+      : `<div id="incSummary"></div>
+         <button class="btn btn-ghost inc-open" id="incOpen" type="button">${icon('plus')} 歩合項目を選んで入力する</button>`;
 
     const dayTodos = state.todos.filter((t) => t.due === draft.date);
     const dayTodosHtml = dayTodos.length ? `
@@ -295,8 +267,8 @@ export async function renderCalendar(el) {
       </div>
       <p class="muted" id="sAbsentNote" style="margin:0 0 8px;font-size:12px;color:var(--pink)" hidden>欠勤日です。ペナルティ（罰金）は下の歩合項目から加算してください。</p>
       <div class="inc-head">
-        <div class="inc-head-title">${icon('money')} 入った歩合を記録</div>
-        <div class="inc-head-sub">タップで件数・売上を入力</div>
+        <div class="inc-head-title">${icon('money')} 入った歩合</div>
+        <div class="inc-head-sub">「歩合項目を選んで入力」から件数を入力できます</div>
       </div>
       ${itemsHtml}
       <div class="sheet-total">
@@ -312,10 +284,7 @@ export async function renderCalendar(el) {
       </label>
       <button class="btn" id="sSave">保存</button>
       <div style="height:8px"></div>
-      <button class="btn btn-ghost" id="sDelete" style="color:#f55">この日の記録を削除</button>
-
-      <div class="chip-pop-backdrop" id="chipPopBg" hidden></div>
-      <div class="chip-pop" id="chipPop" role="dialog" aria-modal="true" hidden></div>`;
+      <button class="btn btn-ghost" id="sDelete" style="color:#f55">この日の記録を削除</button>`;
 
     body.querySelectorAll('.visit-line').forEach((li) => {
       const vid = li.dataset.id;
@@ -330,178 +299,57 @@ export async function renderCalendar(el) {
       };
     });
 
-    // ===== 歩合・チップ：タップ＝＋1／長押し＝調整ポップオーバー =====
-    const groupsBox = q('#incGroups');
-    const catChipsBox = q('#incCatChips');
-    const searchEl = q('#incSearch');
-    const pop = q('#chipPop'), popBg = q('#chipPopBg');
-    let incQuery = '';
-    let activeIncCat = '全て';
-    const incCollapsed = new Set();
-
-    // 分類の見出しアイコン＝その分類の先頭項目の絵文字（未分類はフォルダ）。
+    // ===== 入った歩合の要約（入力済み項目の一覧）＋「歩合項目を選んで入力」で選択画面を開く =====
     const KIND_EMOJI = { income: '💰', penalty: '⚠️', deduction: '🧾' };
     const itemEmoji = (it) => it.icon || KIND_EMOJI[it.kind || 'income'] || '💰';
+    const summaryBox = q('#incSummary');
 
-    const refreshChip = (id) => {
-      const it = state.backItems.find((x) => x.id === id);
-      const btn = groupsBox && groupsBox.querySelector(`.chip-inc[data-id="${CSS.escape(id)}"]`);
-      if (!it || !btn) return;
-      const hasC = hasFixed(it);
-      const c = Number(counts[id]) || 0, s = Number(sales[id]) || 0;
-      btn.classList.toggle('active', c > 0 || s > 0);
-      const badge = hasC ? (c > 0 ? '×' + c : '') : (s > 0 ? icon('check') : '');
-      let b = btn.querySelector('.chip-badge');
-      if (badge) {
-        if (!b) { b = document.createElement('span'); b.className = 'chip-badge'; btn.appendChild(b); }
-        b.innerHTML = badge;
-      } else if (b) { b.remove(); }
-    };
-
-    const closePop = () => { pop.hidden = true; popBg.hidden = true; };
-    const openPop = (it) => {
-      const hasC = hasFixed(it), hasR = hasRate(it);
-      pop.innerHTML = `
-        <div class="chip-pop-title">${it.kind === 'penalty' ? icon('warning') : it.kind === 'deduction' ? icon('minus') : ''}${esc(it.name)}
-          <span class="muted">${esc(itemLabel(it))}</span></div>
-        ${hasC ? `<div class="row" style="align-items:center;gap:8px;margin:12px 0">
-          <button class="bi-minus" type="button" id="popMinus" aria-label="減らす">−</button>
-          <input id="popCount" class="inline-input" type="number" inputmode="numeric" placeholder="件数"
-            value="${Number(counts[it.id]) > 0 ? counts[it.id] : ''}" style="flex:1;text-align:center">
-          <button class="bi-plus" type="button" id="popPlus" aria-label="増やす">＋</button>
-        </div>` : ''}
-        ${hasR ? `<div class="field" style="margin:12px 0"><label>対象売上(円)</label>
-          <input id="popSales" class="inline-input" type="number" inputmode="numeric"
-            value="${Number(sales[it.id]) > 0 ? sales[it.id] : ''}" style="width:100%"></div>` : ''}
-        <div class="row" style="gap:8px">
-          <button class="btn btn-ghost" type="button" id="popClear" style="flex:1">クリア</button>
-          <button class="btn" type="button" id="popDone" style="flex:1">完了</button>
-        </div>`;
-      const cInp = pop.querySelector('#popCount'), sInp = pop.querySelector('#popSales');
-      const apply = () => {
-        if (cInp) counts[it.id] = Number(cInp.value) || 0;
-        if (sInp) sales[it.id] = Number(sInp.value) || 0;
-        refreshChip(it.id); recalc();
-      };
-      if (cInp) {
-        pop.querySelector('#popPlus').onclick = () => { cInp.value = (Number(cInp.value) || 0) + 1; apply(); };
-        pop.querySelector('#popMinus').onclick = () => {
-          cInp.value = Math.max(0, (Number(cInp.value) || 0) - 1) || ''; apply();
-        };
-        cInp.oninput = apply;
-      }
-      if (sInp) sInp.oninput = apply;
-      pop.querySelector('#popClear').onclick = () => {
-        counts[it.id] = 0; sales[it.id] = 0;
-        if (cInp) cInp.value = ''; if (sInp) sInp.value = '';
-        refreshChip(it.id); recalc();
-      };
-      pop.querySelector('#popDone').onclick = closePop;
-      pop.hidden = false; popBg.hidden = false;
-      if (cInp) { cInp.focus(); cInp.select(); }
-    };
-    popBg.onclick = closePop;
-
-    const tapChip = (it) => {
-      if (hasFixed(it)) { counts[it.id] = (Number(counts[it.id]) || 0) + 1; refreshChip(it.id); recalc(); }
-      else openPop(it); // 率(売上)のみの項目はポップオーバーで入力
-    };
-    const wireChips = () => {
-      if (!groupsBox) return;
-      groupsBox.querySelectorAll('.chip-inc').forEach((btn) => {
-        const it = state.backItems.find((x) => x.id === btn.dataset.id);
-        let timer = null, longFired = false, moved = false, sx = 0, sy = 0;
-        const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
-        btn.addEventListener('pointerdown', (e) => {
-          longFired = false; moved = false; sx = e.clientX; sy = e.clientY;
-          timer = setTimeout(() => { longFired = true; openPop(it); }, 450);
-        });
-        btn.addEventListener('pointermove', (e) => {
-          if (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10) { moved = true; clear(); }
-        });
-        btn.addEventListener('pointerup', () => { clear(); if (!longFired && !moved) tapChip(it); });
-        btn.addEventListener('pointercancel', clear);
-        btn.addEventListener('pointerleave', clear);
-        btn.addEventListener('contextmenu', (e) => e.preventDefault());
-      });
-    };
-
-    // ===== カテゴリフィルターチップ（件数付き）＝表示する分類の絞り込み =====
-    const renderCatChips = () => {
-      if (!catChipsBox) return;
-      const cats = categoryList(state.backItems);
-      const total = state.backItems.length;
-      const chip = (key, label, n, active) =>
-        `<button type="button" class="inc-catchip${active ? ' active' : ''}" data-cat="${esc(key)}">${esc(label)}<span class="inc-catchip-n">${n}</span></button>`;
-      let html = chip('全て', 'すべて', total, activeIncCat === '全て');
-      for (const c of cats) {
-        const label = c === UNCATEGORIZED ? '未分類' : c;
-        const n = state.backItems.filter((it) => itemCategory(it) === c).length;
-        html += chip(c, label, n, activeIncCat === c);
-      }
-      catChipsBox.innerHTML = html;
-      catChipsBox.querySelectorAll('.inc-catchip').forEach((b) => {
-        b.onclick = () => { activeIncCat = b.dataset.cat; renderCatChips(); renderGroups(); };
-      });
-    };
-
-    // ===== カテゴリ別アコーディオン（見出し＝絵文字＋名前＋当日小計＋開閉）＋チップ =====
-    const renderGroups = () => {
-      if (!groupsBox) return;
-      const q2 = incQuery.trim().toLowerCase();
-      let items = state.backItems;
-      if (q2) items = items.filter((it) => (it.name || '').toLowerCase().includes(q2));
-      let cats = categoryList(state.backItems);
-      if (activeIncCat !== '全て') cats = cats.filter((c) => c === activeIncCat);
-      const groups = cats
-        .map((c) => ({ cat: c, list: items.filter((it) => itemCategory(it) === c) }))
-        .filter((g) => g.list.length);
-      if (!groups.length) {
-        groupsBox.innerHTML = '<p class="muted" style="text-align:center;padding:12px 0">該当する項目がありません</p>';
+    const renderIncSummary = () => {
+      if (!summaryBox) return;
+      const rows = state.backItems
+        .map((it) => ({ it, c: Number(counts[it.id]) || 0, s: Number(sales[it.id]) || 0 }))
+        .filter((r) => r.c > 0 || r.s > 0);
+      if (!rows.length) {
+        summaryBox.innerHTML = `<p class="inc-empty">まだ歩合が入力されていません。<br>下のボタンから項目を選んで入力できます。</p>`;
         return;
       }
-      groupsBox.innerHTML = groups.map(({ cat, list }) => {
-        const label = cat === UNCATEGORIZED ? '未分類' : esc(cat);
-        const emoji = cat === UNCATEGORIZED ? icon('folder') : esc(itemEmoji(list[0]));
-        const sub = list.reduce((s, it) =>
-          s + backAmount(it, { count: Number(counts[it.id]) || 0, sales: Number(sales[it.id]) || 0 }), 0);
-        const isCol = incCollapsed.has(cat);
-        return `<div class="inc-group" data-cat="${esc(cat)}">
-          <button type="button" class="inc-group-head" data-toggle="${esc(cat)}">
-            <span class="inc-group-emoji">${emoji}</span>
-            <span class="inc-group-name">${label}</span>
-            <span class="inc-group-total">${yen(sub)}</span>
-            <span class="inc-group-chev${isCol ? '' : ' open'}">${icon('chevronDown')}</span>
-          </button>
-          <div class="inc-group-body"${isCol ? ' hidden' : ''}>${list.map(chipHtml).join('')}</div>
+      summaryBox.innerHTML = `<div class="inc-sum-list">${rows.map(({ it, c, s }) => {
+        const amt = backAmount(it, { count: c, sales: s });
+        const neg = it.kind === 'penalty' || it.kind === 'deduction';
+        const qtyTxt = c > 0 ? `×${c}` : (s > 0 ? `売上${yen(s)}` : '');
+        return `<div class="inc-sum-row">
+          <span class="inc-sum-emoji">${esc(itemEmoji(it))}</span>
+          <span class="inc-sum-name">${esc(it.name || '（名称未設定）')}</span>
+          <span class="inc-sum-qty">${qtyTxt}</span>
+          <span class="inc-sum-amt${neg ? ' neg' : ''}">${yen(amt)}</span>
         </div>`;
-      }).join('');
-      groupsBox.querySelectorAll('.inc-group-head').forEach((h) => {
-        h.onclick = () => {
-          const c = h.dataset.toggle;
-          if (incCollapsed.has(c)) incCollapsed.delete(c); else incCollapsed.add(c);
-          renderGroups();
-        };
-      });
-      wireChips();
+      }).join('')}</div>`;
     };
 
-    if (searchEl) searchEl.oninput = () => { incQuery = searchEl.value; renderGroups(); };
-    const pickerBtn = q('#incPicker');
-    if (pickerBtn) pickerBtn.onclick = () => openItemPicker({
-      onApply: (ids) => {
-        for (const id of ids) {
-          const it = state.backItems.find((x) => x.id === id);
-          if (it && hasFixed(it)) counts[id] = (Number(counts[id]) || 0) + 1;
-          // 率(売上)のみの項目はチップから対象売上を入力してもらう
-        }
-        renderGroups();
-        recalc();
-      },
-    });
+    const openBtn = q('#incOpen');
+    if (openBtn) openBtn.onclick = () => {
+      // 現在の入力を初期値として選択画面へ渡す
+      const initial = {};
+      for (const it of state.backItems) {
+        const c = Number(counts[it.id]) || 0, s = Number(sales[it.id]) || 0;
+        if (c > 0 || s > 0) initial[it.id] = { count: c, sales: s };
+      }
+      openItemPicker({
+        initial,
+        onApply: (entries) => {
+          // 選択画面の内容でその日の歩合入力を丸ごと置き換える
+          counts = {}; sales = {};
+          for (const [id, e] of Object.entries(entries)) {
+            if (e.count) counts[id] = e.count;
+            if (e.sales) sales[id] = e.sales;
+          }
+          renderIncSummary();
+          recalc();
+        },
+      });
+    };
 
-    renderCatChips();
-    renderGroups();
+    renderIncSummary();
 
     sheet.querySelectorAll('#sStart,#sEnd,#sBreak').forEach((inp) => {
       inp.oninput = recalc; inp.onchange = recalc;

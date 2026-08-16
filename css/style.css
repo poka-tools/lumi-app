@@ -354,11 +354,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .bk-stat-l { font-size: 10.5px; color: var(--muted); }
 
 .bk-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-.bk-viewtoggle { display: inline-flex; background: #f4eef1; border-radius: 12px; padding: 3px; gap: 2px; }
-.bk-vt { display: inline-flex; align-items: center; gap: 4px; border: none; background: none;
-  color: var(--muted); font-size: 12.5px; font-weight: 700; padding: 6px 12px; border-radius: 10px; cursor: pointer; }
-.bk-vt .ic { width: 15px; height: 15px; }
-.bk-vt.active { background: #fff; color: var(--pink); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.bk-toolbar-list { justify-content: flex-end; }
 .bk-sort { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
 .bk-sort-ic { width: 16px; height: 16px; }
 .bk-sort select { border: 1px solid #eadfe4; border-radius: 10px; padding: 7px 8px; font-size: 12.5px;
@@ -1085,11 +1081,6 @@ input.set-val[type="time"] { -webkit-appearance: none; appearance: none; width: 
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: 0 0 auto; }
 .picker-icobtn .ic { width: 22px; height: 22px; }
 .picker-title { flex: 1; text-align: center; margin: 0; font-size: 16px; font-weight: 800; }
-.picker-toggle { display: flex; gap: 0; margin: 12px 14px 0; background: var(--pink-soft);
-  border-radius: 12px; padding: 3px; flex: 0 0 auto; }
-.picker-tg { flex: 1; border: none; background: none; color: var(--pink); border-radius: 10px;
-  padding: 9px 0; font-size: 13.5px; font-weight: 700; cursor: pointer; }
-.picker-tg.active { background: var(--pink); color: #fff; box-shadow: 0 2px 6px rgba(255,92,138,.3); }
 .picker-search { position: relative; margin: 12px 14px 0; flex: 0 0 auto; }
 .picker-search-ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
   width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
@@ -1099,15 +1090,25 @@ input.set-val[type="time"] { -webkit-appearance: none; appearance: none; width: 
 .picker-body { flex: 1; overflow-y: auto; padding: 14px; -webkit-overflow-scrolling: touch; }
 .picker-body .bk-group { background: #fff; border-radius: 18px; box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
 .picker-body .bk-group-total { font-size: 12.5px; color: var(--pink); }
-.pick-card { padding-bottom: 40px; }
-.pick-card.selected, .pick-row.selected { border-color: var(--pink); background: var(--pink-soft); }
-.pick-add { position: absolute; right: 8px; bottom: 8px; width: 30px; height: 30px; border-radius: 50%;
-  border: none; background: var(--pink-soft); color: var(--pink); display: inline-flex;
-  align-items: center; justify-content: center; cursor: pointer; }
-.pick-add .ic { width: 17px; height: 17px; }
-.selected .pick-add { background: var(--pink); color: #fff; }
-.pick-row { position: relative; padding-right: 46px; }
-.pick-row .pick-add { top: 50%; bottom: auto; transform: translateY(-50%); }
+.pick-row.selected { border-color: var(--pink); background: var(--pink-soft); }
+/* 件数ステッパー（− 0 ＋） */
+.pick-stepper { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.pick-step { width: 32px; height: 32px; border-radius: 10px; border: 1.5px solid #eadfe4;
+  background: #fff; color: var(--pink); font-size: 20px; font-weight: 700; line-height: 1;
+  cursor: pointer; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; }
+.pick-step:active { background: var(--pink-soft); }
+.selected .pick-step { border-color: var(--pink); }
+.pick-qty { min-width: 30px; text-align: center; font-size: 16px; font-weight: 800;
+  font-variant-numeric: tabular-nums; }
+.selected .pick-qty { color: var(--pink); }
+.pick-sales { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.pick-sales-in { flex: 1; min-width: 0; border: 1.5px solid #eadfe4; border-radius: 10px;
+  padding: 7px 8px; font-size: 14px; text-align: right; -moz-appearance: textfield; }
+.pick-sales-in::-webkit-outer-spin-button, .pick-sales-in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* リスト表示ではステッパー/売上欄を右端に固定 */
+.pick-row { gap: 8px; }
+.pick-row .pick-stepper, .pick-row .pick-sales { flex: 0 0 auto; margin-left: auto; }
+.pick-row .pick-sales-in { width: 90px; flex: 0 0 auto; }
 .picker-foot { flex: 0 0 auto; background: #fff; border-top: 1px solid #f0e6ea;
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
 .picker-foot-info { display: flex; align-items: center; justify-content: space-between;
@@ -1120,3 +1121,25 @@ input.set-val[type="time"] { -webkit-appearance: none; appearance: none; width: 
 .picker-empty-ic .ic { width: 44px; height: 44px; }
 .picker-empty-add { width: auto; display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; }
 .picker-nores { text-align: center; padding: 30px 0; }
+
+/* ===== 選択画面の説明バナー ===== */
+.picker-note { display: flex; align-items: flex-start; gap: 8px; margin: 12px 14px 0;
+  background: #fff6fa; border: 1px solid #ffd9e6; border-radius: 12px; padding: 10px 12px;
+  font-size: 12px; line-height: 1.6; color: #6b5560; flex: 0 0 auto; }
+.picker-note .ic { width: 17px; height: 17px; color: var(--pink); flex: 0 0 auto; margin-top: 1px; }
+.picker-note strong { color: var(--pink); font-weight: 800; }
+
+/* ===== 日別シート「入った歩合」の要約リスト＋入力ボタン ===== */
+.inc-empty { font-size: 13px; color: var(--muted); line-height: 1.6; text-align: center;
+  background: var(--bg); border-radius: 12px; padding: 14px 12px; margin: 0 0 10px; }
+.inc-sum-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.inc-sum-row { display: flex; align-items: center; gap: 8px; background: var(--bg);
+  border-radius: 12px; padding: 9px 12px; }
+.inc-sum-emoji { font-size: 17px; flex: 0 0 auto; line-height: 1; }
+.inc-sum-name { font-size: 14px; font-weight: 700; min-width: 0; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis; }
+.inc-sum-qty { font-size: 12px; font-weight: 700; color: var(--pink); flex: 0 0 auto; }
+.inc-sum-amt { margin-left: auto; font-size: 14px; font-weight: 800; flex: 0 0 auto; }
+.inc-sum-amt.neg { color: #e0466a; }
+.inc-open { display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px; }
+.inc-open .ic { width: 17px; height: 17px; }

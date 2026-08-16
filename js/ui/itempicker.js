@@ -1,10 +1,11 @@
-// 「歩合項目を選択」フルスクリーンモーダル（日次詳細シートの「絞り込み」から開く）。
-// 今月の実績（件数・金額）付きでカテゴリ別に一覧し、複数選択して「選択した歩合を入力する」で
-// 呼び出し元（カレンダー日別シート）へ反映する。既存の .bk-* カードスタイルを再利用。
+// 「歩合項目を選択」フルスクリーンモーダル（日次詳細シートの「歩合を入力」から開く）。
+// 今月の実績付きでカテゴリ別に一覧し、各項目を − 0 + のステッパーで件数入力（率のみの項目は
+// 対象売上を入力）して、「選択した歩合を入力する」で呼び出し元（カレンダー日別シート）へ反映する。
+// 既存の .bk-* カードスタイルを再利用。
 import { state, shiftsOfMonth } from '../state.js';
 import { esc, yen } from '../format.js';
-import { backItemStats, isDeductionKind } from '../calc.js';
-import { itemCategory, categoryList, UNCATEGORIZED } from './backfields.js';
+import { backItemStats, isDeductionKind, backAmount } from '../calc.js';
+import { itemCategory, categoryList, UNCATEGORIZED, hasFixed, hasRate } from './backfields.js';
 import { icon } from './icons.js';
 import { navigate } from '../app.js';
 
@@ -13,6 +14,8 @@ const itemFixed = (it) => (it.type === 'fixed' ? Number(it.value) || 0 : Number(
 const itemRate = (it) => (it.type === 'rate' ? Number(it.value) || 0 : Number(it.rateValue) || 0);
 const itemUnit = (it) => it.unit || '件';
 const itemEmoji = (it) => it.icon || KIND_EMOJI[it.kind || 'income'] || '💰';
+// 率(売上%)のみで、1件あたりの固定額が無い項目＝件数ではなく売上を入力する。
+const isRateOnly = (it) => hasRate(it) && !hasFixed(it);
 
 // 1件あたりの歩合表示（例「¥1,100/本」「売上10%」／控除・罰金は「−」付き）。
 function rateLabel(it) {
@@ -24,17 +27,22 @@ function rateLabel(it) {
   return parts.join(' ＋ ') || '未設定';
 }
 
-// 選択の1単位あたりの寄与額（フッター「合計」用）。率のみの項目は0（売上未定のため）。
-const unitAmount = (it) => (isDeductionKind(it.kind) ? -Math.abs(itemFixed(it)) : itemFixed(it));
+const yenSigned = (n) => (n < 0 ? '−' + yen(Math.abs(n)) : yen(n));
 
 /**
  * 歩合項目選択モーダルを開く。
  * @param {object} opts
- * @param {(ids:string[])=>void} opts.onApply 「選択した歩合を入力する」タップ時に選択IDの配列で呼ばれる。
+ * @param {Object<string,{count:number,sales:number}>} [opts.initial] 既存の入力（項目id→件数/売上）。
+ * @param {(entries:Object<string,{count:number,sales:number}>)=>void} opts.onApply
+ *   「選択した歩合を入力する」タップ時に、件数/売上が入っている項目だけを渡して呼ばれる。
  */
-export function openItemPicker({ onApply } = {}) {
-  const selected = new Set();
-  let view = 'card';            // 'card' | 'list'
+export function openItemPicker({ initial = {}, onApply } = {}) {
+  const qty = {};     // 項目id -> 件数
+  const salesMap = {}; // 項目id -> 対象売上（率のみ項目）
+  for (const [id, e] of Object.entries(initial || {})) {
+    if (e && e.count) qty[id] = e.count;
+    if (e && e.sales) salesMap[id] = e.sales;
+  }
   let query = '';               // 名前検索
   const collapsed = new Set();  // 折りたたみ中の分類
 
@@ -61,9 +69,9 @@ export function openItemPicker({ onApply } = {}) {
       <h3 class="picker-title">歩合項目を選択</h3>
       <button class="picker-icobtn" id="pkClose" type="button" aria-label="閉じる">${icon('close')}</button>
     </div>
-    <div class="picker-toggle">
-      <button class="picker-tg" data-view="card" type="button">カード表示</button>
-      <button class="picker-tg" data-view="list" type="button">リスト表示</button>
+    <div class="picker-note">
+      ${icon('help')}
+      <span>この画面で<strong>今日入った歩合</strong>を入力します。<br>各項目の <strong>−／＋</strong> で件数（本数）を数え、下の<strong>「選択した歩合を入力する」</strong>を押すとこの日の記録に反映されます。</span>
     </div>
     <div class="picker-search">
       <span class="picker-search-ic">${icon('search')}</span>
@@ -72,8 +80,8 @@ export function openItemPicker({ onApply } = {}) {
     <div class="picker-body" id="pkBody"></div>
     <div class="picker-foot">
       <div class="picker-foot-info">
-        <span>選択中 <strong id="pkSelCount">0件</strong></span>
-        <span class="picker-foot-sum">合計 <strong id="pkSelSum">¥0</strong></span>
+        <span>入力中 <strong id="pkSelCount">0件</strong></span>
+        <span class="picker-foot-sum">歩合合計 <strong id="pkSelSum">¥0</strong></span>
       </div>
       <button class="btn picker-apply" id="pkApply" type="button">選択した歩合を入力する</button>
     </div>`;
@@ -87,12 +95,6 @@ export function openItemPicker({ onApply } = {}) {
 
   const searchEl = modal.querySelector('#pkSearch');
   searchEl.oninput = () => { query = searchEl.value; drawBody(); };
-
-  const syncToggle = () =>
-    modal.querySelectorAll('.picker-tg').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
-  modal.querySelectorAll('.picker-tg').forEach((b) => {
-    b.onclick = () => { view = b.dataset.view; syncToggle(); drawBody(); };
-  });
 
   // ---- グルーピング（分類順） ----
   function groups(items) {
@@ -111,38 +113,39 @@ export function openItemPicker({ onApply } = {}) {
     return q ? state.backItems.filter((it) => (it.name || '').toLowerCase().includes(q)) : state.backItems;
   }
 
-  function cardHtml(it) {
+  const isActive = (it) => (Number(qty[it.id]) || 0) > 0 || (Number(salesMap[it.id]) || 0) > 0;
+
+  // 件数ステッパー or 売上入力欄（率のみ項目）。
+  function controlHtml(it) {
+    if (isRateOnly(it)) {
+      const sv = Number(salesMap[it.id]) || 0;
+      return `<div class="pick-sales">対象売上
+        <input class="pick-sales-in" data-id="${esc(it.id)}" type="number" inputmode="numeric" placeholder="0" value="${sv > 0 ? sv : ''}">円</div>`;
+    }
+    const q = Number(qty[it.id]) || 0;
+    return `<div class="pick-stepper">
+      <button class="pick-step" type="button" data-act="minus" data-id="${esc(it.id)}" aria-label="減らす">−</button>
+      <span class="pick-qty" data-id="${esc(it.id)}">${q}</span>
+      <button class="pick-step" type="button" data-act="plus" data-id="${esc(it.id)}" aria-label="増やす">＋</button>
+    </div>`;
+  }
+
+  function monthHtml(it) {
     const s = stats.get(it.id) || { count: 0, amount: 0 };
-    const kind = it.kind || 'income';
-    const sel = selected.has(it.id);
-    const amtCls = isDeductionKind(kind) ? 'neg' : '';
-    const amtText = isDeductionKind(kind) ? '−' + yen(Math.abs(s.amount)) : yen(s.amount);
-    return `
-      <div class="bk-card pick-card${sel ? ' selected' : ''}" data-id="${esc(it.id)}">
-        <div class="bk-ava kind-${kind}">${esc(itemEmoji(it))}</div>
-        <div class="bk-card-name">${esc(it.name || '（名称未設定）')}</div>
-        <div class="bk-card-rate">${esc(rateLabel(it))}</div>
-        <div class="bk-card-use">今月 ${s.count}${esc(itemUnit(it))}</div>
-        <div class="bk-card-amt ${amtCls}">${amtText}</div>
-        <button class="pick-add" data-id="${esc(it.id)}" type="button" aria-label="${sel ? '選択解除' : '選択'}">${sel ? icon('check') : icon('plus')}</button>
-      </div>`;
+    const amt = isDeductionKind(it.kind) ? '−' + yen(Math.abs(s.amount)) : yen(s.amount);
+    return `今月 ${s.count}${esc(itemUnit(it))}・${amt}`;
   }
 
   function rowHtml(it) {
-    const s = stats.get(it.id) || { count: 0, amount: 0 };
     const kind = it.kind || 'income';
-    const sel = selected.has(it.id);
-    const amtCls = isDeductionKind(kind) ? 'neg' : '';
-    const amtText = isDeductionKind(kind) ? '−' + yen(Math.abs(s.amount)) : yen(s.amount);
     return `
-      <div class="bk-lrow pick-row${sel ? ' selected' : ''}" data-id="${esc(it.id)}">
+      <div class="bk-lrow pick-row${isActive(it) ? ' selected' : ''}" data-id="${esc(it.id)}">
         <div class="bk-ava sm kind-${kind}">${esc(itemEmoji(it))}</div>
         <div class="bk-lrow-main">
           <div class="bk-lrow-name">${esc(it.name || '（名称未設定）')}</div>
-          <div class="bk-lrow-sub">${esc(rateLabel(it))}・今月 ${s.count}${esc(itemUnit(it))}</div>
+          <div class="bk-lrow-sub">${esc(rateLabel(it))}・${monthHtml(it)}</div>
         </div>
-        <div class="bk-lrow-amt ${amtCls}">${amtText}</div>
-        <button class="pick-add" data-id="${esc(it.id)}" type="button" aria-label="${sel ? '選択解除' : '選択'}">${sel ? icon('check') : icon('plus')}</button>
+        ${controlHtml(it)}
       </div>`;
   }
 
@@ -161,17 +164,9 @@ export function openItemPicker({ onApply } = {}) {
 
     body.innerHTML = gs.map(({ cat, list }) => {
       const label = cat === UNCATEGORIZED ? '未分類' : esc(cat);
-      const total = list.reduce((s, it) => {
-        const st = stats.get(it.id);
-        return s + (st ? st.amount : 0);
-      }, 0);
-      const totalTxt = total < 0 ? '−' + yen(Math.abs(total)) : yen(total);
+      const total = list.reduce((s, it) => s + (stats.get(it.id) ? stats.get(it.id).amount : 0), 0);
       const isCol = collapsed.has(cat);
-      const inner = view === 'card'
-        ? `<div class="bk-grid">${list.map(cardHtml).join('')}
-             <button class="bk-add pick-newcard" type="button">
-               <span class="bk-add-ic">${icon('plus')}</span><span>項目を追加</span></button></div>`
-        : `<div class="bk-list">${list.map(rowHtml).join('')}
+      const inner = `<div class="bk-list">${list.map(rowHtml).join('')}
              <button class="bk-lrow bk-ladd pick-newcard" type="button">
                <span class="bk-add-ic sm">${icon('plus')}</span><span>項目を追加</span></button></div>`;
       return `
@@ -179,7 +174,7 @@ export function openItemPicker({ onApply } = {}) {
           <button class="bk-group-head" type="button" data-toggle="${esc(cat)}">
             <span class="bk-group-name">${label}</span>
             <span class="bk-group-count">${list.length}項目</span>
-            <span class="bk-group-total">今月の合計 ${totalTxt}</span>
+            <span class="bk-group-total">今月の合計 ${yenSigned(total)}</span>
             <span class="bk-group-chev ${isCol ? '' : 'open'}">${icon('chevronDown')}</span>
           </button>
           ${isCol ? '' : `<div class="bk-group-body">${inner}</div>`}
@@ -193,44 +188,61 @@ export function openItemPicker({ onApply } = {}) {
         drawBody();
       };
     });
-    body.querySelectorAll('.pick-add').forEach((b) => {
-      b.onclick = (e) => { e.stopPropagation(); toggle(b.dataset.id); };
+    body.querySelectorAll('.pick-step').forEach((b) => {
+      b.onclick = (e) => {
+        e.stopPropagation();
+        const id = b.dataset.id;
+        const cur = Number(qty[id]) || 0;
+        qty[id] = Math.max(0, cur + (b.dataset.act === 'plus' ? 1 : -1));
+        syncCard(id);
+        updateFoot();
+      };
+    });
+    body.querySelectorAll('.pick-sales-in').forEach((inp) => {
+      inp.oninput = () => {
+        salesMap[inp.dataset.id] = Number(inp.value) || 0;
+        syncCard(inp.dataset.id, true);
+        updateFoot();
+      };
+      inp.onclick = (e) => e.stopPropagation();
     });
     body.querySelectorAll('.pick-newcard').forEach((b) => {
       b.onclick = () => { close(); navigate('backitems'); };
     });
   }
 
-  function toggle(id) {
-    if (selected.has(id)) selected.delete(id); else selected.add(id);
-    // 該当カード/行だけ更新（再描画せず入力状態を保つ）
-    const el = body.querySelector(`.pick-card[data-id="${CSS.escape(id)}"], .pick-row[data-id="${CSS.escape(id)}"]`);
-    if (el) {
-      const sel = selected.has(id);
-      el.classList.toggle('selected', sel);
-      const btn = el.querySelector('.pick-add');
-      if (btn) { btn.innerHTML = sel ? icon('check') : icon('plus'); btn.setAttribute('aria-label', sel ? '選択解除' : '選択'); }
+  // 1枚のカード/行だけ状態を反映（再描画せず＝スクロール・入力フォーカス維持）。
+  function syncCard(id, keepInput) {
+    const it = state.backItems.find((x) => x.id === id);
+    const el = body.querySelector(`.pick-row[data-id="${CSS.escape(id)}"]`);
+    if (!it || !el) return;
+    el.classList.toggle('selected', isActive(it));
+    if (!keepInput) {
+      const qEl = el.querySelector('.pick-qty');
+      if (qEl) qEl.textContent = Number(qty[id]) || 0;
     }
-    updateFoot();
   }
 
   function updateFoot() {
-    let sum = 0;
-    for (const id of selected) {
-      const it = state.backItems.find((x) => x.id === id);
-      if (it) sum += unitAmount(it);
+    let sum = 0, n = 0;
+    for (const it of state.backItems) {
+      const c = Number(qty[it.id]) || 0, s = Number(salesMap[it.id]) || 0;
+      if (c > 0 || s > 0) { n++; sum += backAmount(it, { count: c, sales: s }); }
     }
-    selCountEl.textContent = `${selected.size}件`;
-    selSumEl.textContent = sum < 0 ? '−' + yen(Math.abs(sum)) : yen(sum);
+    selCountEl.textContent = `${n}件`;
+    selSumEl.textContent = yenSigned(sum);
   }
 
   modal.querySelector('#pkApply').onclick = () => {
-    const ids = [...selected];
+    const entries = {};
+    for (const it of state.backItems) {
+      const c = Number(qty[it.id]) || 0, s = Number(salesMap[it.id]) || 0;
+      if (c > 0 || s > 0) entries[it.id] = { count: c, sales: s };
+    }
     close();
-    if (onApply) onApply(ids);
+    if (onApply) onApply(entries);
   };
 
-  syncToggle();
   drawBody();
   updateFoot();
 }

@@ -11,7 +11,6 @@ import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
 
 // ページ内で保持する表示状態（ナビゲーションをまたいで維持）。
-let view = 'card';        // 'card' | 'list'
 let sortKey = 'custom';   // 'custom' | 'name' | 'amount'
 let query = '';           // 名前検索
 let activeCat = null;     // null=すべて / 分類名で絞り込み
@@ -55,11 +54,7 @@ export async function renderBackItems(el) {
 
       <div class="bk-stats" id="bkStats"></div>
 
-      <div class="bk-toolbar">
-        <div class="bk-viewtoggle">
-          <button class="bk-vt" data-view="card" type="button">${icon('grid')} カード</button>
-          <button class="bk-vt" data-view="list" type="button">${icon('list')} リスト</button>
-        </div>
+      <div class="bk-toolbar bk-toolbar-list">
         <label class="bk-sort">
           ${icon('sort', { cls: 'bk-sort-ic' })}
           <select id="bkSort">
@@ -92,14 +87,6 @@ export async function renderBackItems(el) {
   const searchEl = el.querySelector('#bkSearch');
   searchEl.value = query;
   searchEl.oninput = () => { query = searchEl.value; drawList(); };
-
-  el.querySelectorAll('.bk-vt').forEach((b) => {
-    b.onclick = () => { view = b.dataset.view; syncViewToggle(); drawList(); };
-  });
-
-  function syncViewToggle() {
-    el.querySelectorAll('.bk-vt').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
-  }
 
   // ---- 集計・グルーピング ----
   const monthShifts = () => shiftsOfMonth();
@@ -201,7 +188,7 @@ export async function renderBackItems(el) {
       const groupTotal = list.reduce((s, it) => s + (st.get(it.id)?.amount || 0), 0);
       const isCollapsed = collapsed.has(c);
       const bodyHtml = isCollapsed ? ''
-        : `<div class="bk-group-body">${view === 'card' ? cardsHtml(list, st, c) : rowsHtml(list, st, c)}</div>`;
+        : `<div class="bk-group-body">${rowsHtml(list, st, c)}</div>`;
       return `
         <div class="bk-group" data-cat="${c === UNCATEGORIZED ? '' : esc(c)}">
           <button class="bk-group-head" type="button" data-toggle="${esc(c)}">
@@ -234,29 +221,6 @@ export async function renderBackItems(el) {
     box.querySelectorAll('[data-addin]').forEach((c) => {
       c.onclick = (e) => { e.stopPropagation(); openEditor(null, c.dataset.addin); };
     });
-  }
-
-  function cardsHtml(list, st, cat) {
-    const addCat = cat === UNCATEGORIZED ? '' : cat;
-    const cards = list.map((it) => {
-      const s = st.get(it.id) || { count: 0, amount: 0 };
-      const kind = it.kind || 'income';
-      const amtCls = isDeductionKind(kind) ? 'neg' : '';
-      const amtText = isDeductionKind(kind) ? signedYen(s.amount) : yen(s.amount);
-      return `
-        <div class="bk-card" data-edit="${esc(it.id)}">
-          <span class="bk-kebab" aria-hidden="true">${icon('dots')}</span>
-          <div class="bk-ava kind-${kind}">${esc(itemEmoji(it))}</div>
-          <div class="bk-card-name">${esc(it.name || '（名称未設定）')}</div>
-          <div class="bk-card-rate">${esc(rateLabel(it))}</div>
-          <div class="bk-card-use">今月 ${s.count}${esc(itemUnit(it))}</div>
-          <div class="bk-card-amt ${amtCls}">${amtText}</div>
-        </div>`;
-    }).join('');
-    return `<div class="bk-grid">${cards}
-      <button class="bk-add" data-addin="${esc(addCat)}" type="button">
-        <span class="bk-add-ic">${icon('plus')}</span><span>項目を追加</span></button>
-    </div>`;
   }
 
   function rowsHtml(list, st, cat) {
@@ -466,7 +430,6 @@ export async function renderBackItems(el) {
   }
 
   // 初期描画
-  syncViewToggle();
   drawStats();
   drawChips();
   drawList();
