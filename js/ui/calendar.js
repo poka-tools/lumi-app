@@ -511,7 +511,7 @@ export async function renderCalendar(el) {
     // 自動更新と勘違いされないよう、オンにしたら「保存」を促すトーストを出す。
     q('#sConfirmed').onchange = (e) => {
       recalc();
-      if (e.target.checked) toast('「保存」を押すと確定されます');
+      if (e.target.checked) toast('「保存」を押すと\n確定されます');
     };
 
     q('#sSave').onclick = async () => {
