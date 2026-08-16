@@ -1,9 +1,10 @@
 import { state, shiftsOfMonth, loadAll } from '../state.js';
 import { icon } from './icons.js';
 import { put, del, uid } from '../db.js';
-import { shiftTotal, shiftBackTotal, workedHours } from '../calc.js';
+import { shiftTotal, shiftBackTotal, workedHours, backAmount } from '../calc.js';
 import { yen, esc, weekdayJa, todayIso } from '../format.js';
-import { hasFixed, hasRate, itemLabel, categoryList, itemCategory } from './backfields.js';
+import { hasFixed, hasRate, itemLabel, categoryList, itemCategory, UNCATEGORIZED } from './backfields.js';
+import { openItemPicker } from './itempicker.js';
 import { renderTodos } from './todos.js';
 import { confirmModal } from './confirm.js';
 import { toast } from './toast.js';
@@ -196,6 +197,16 @@ export async function renderCalendar(el) {
     q('#sheetTotal').textContent = yen(shiftTotal(state.profile, state.backItems, draft) + evAmt);
     q('#sheetInc').textContent = yen(shiftBackTotal(state.backItems, draft) + evAmt);
     q('#sheetHours').textContent = workedHours(draft) ? `実働 ${workedHours(draft)}h` : '';
+    // カテゴリ別アコーディオンの小計を更新（その日の入力分のみ）
+    sheet.querySelectorAll('.inc-group').forEach((g) => {
+      const cat = g.dataset.cat;
+      const t = g.querySelector('.inc-group-total');
+      if (!t) return;
+      const sub = state.backItems
+        .filter((it) => itemCategory(it) === cat)
+        .reduce((s, it) => s + backAmount(it, { count: Number(counts[it.id]) || 0, sales: Number(sales[it.id]) || 0 }), 0);
+      t.textContent = yen(sub);
+    });
   };
 
   const renderSheet = () => {
@@ -223,7 +234,13 @@ export async function renderCalendar(el) {
     };
     const itemsHtml = state.backItems.length === 0
       ? '<p class="muted">先に「設定」で歩合項目を登録してください。</p>'
-      : `<div class="cat-tabs" id="chipTabs"></div><div class="chip-grid" id="chipGrid"></div>`;
+      : `<div class="inc-searchrow">
+           <div class="inc-search"><span class="inc-search-ic">${icon('search')}</span>
+             <input id="incSearch" type="search" placeholder="項目名で検索" autocomplete="off"></div>
+           <button class="inc-filter" id="incPicker" type="button">${icon('sliders')} 絞り込み</button>
+         </div>
+         <div class="inc-catchips" id="incCatChips"></div>
+         <div class="inc-groups" id="incGroups"></div>`;
 
     const dayTodos = state.todos.filter((t) => t.due === draft.date);
     const dayTodosHtml = dayTodos.length ? `
@@ -277,8 +294,10 @@ export async function renderCalendar(el) {
         <div class="field" style="flex:1"><label>休憩(分)</label><input id="sBreak" type="number" inputmode="numeric" placeholder="0" value="${Number(draft.breakMin) || ''}"></div>
       </div>
       <p class="muted" id="sAbsentNote" style="margin:0 0 8px;font-size:12px;color:var(--pink)" hidden>欠勤日です。ペナルティ（罰金）は下の歩合項目から加算してください。</p>
-      <h4 style="margin:10px 0 4px">入った歩合</h4>
-      <p class="muted" style="margin:0 0 8px;font-size:12px">タップで＋1／長押しで件数・売上を調整</p>
+      <div class="inc-head">
+        <div class="inc-head-title">${icon('money')} 入った歩合を記録</div>
+        <div class="inc-head-sub">タップで件数・売上を入力</div>
+      </div>
       ${itemsHtml}
       <div class="sheet-total">
         <div>
@@ -312,12 +331,21 @@ export async function renderCalendar(el) {
     });
 
     // ===== 歩合・チップ：タップ＝＋1／長押し＝調整ポップオーバー =====
-    const chipGrid = q('#chipGrid');
+    const groupsBox = q('#incGroups');
+    const catChipsBox = q('#incCatChips');
+    const searchEl = q('#incSearch');
     const pop = q('#chipPop'), popBg = q('#chipPopBg');
+    let incQuery = '';
+    let activeIncCat = '全て';
+    const incCollapsed = new Set();
+
+    // 分類の見出しアイコン＝その分類の先頭項目の絵文字（未分類はフォルダ）。
+    const KIND_EMOJI = { income: '💰', penalty: '⚠️', deduction: '🧾' };
+    const itemEmoji = (it) => it.icon || KIND_EMOJI[it.kind || 'income'] || '💰';
 
     const refreshChip = (id) => {
       const it = state.backItems.find((x) => x.id === id);
-      const btn = chipGrid && chipGrid.querySelector(`.chip-inc[data-id="${CSS.escape(id)}"]`);
+      const btn = groupsBox && groupsBox.querySelector(`.chip-inc[data-id="${CSS.escape(id)}"]`);
       if (!it || !btn) return;
       const hasC = hasFixed(it);
       const c = Number(counts[id]) || 0, s = Number(sales[id]) || 0;
@@ -379,8 +407,8 @@ export async function renderCalendar(el) {
       else openPop(it); // 率(売上)のみの項目はポップオーバーで入力
     };
     const wireChips = () => {
-      if (!chipGrid) return;
-      chipGrid.querySelectorAll('.chip-inc').forEach((btn) => {
+      if (!groupsBox) return;
+      groupsBox.querySelectorAll('.chip-inc').forEach((btn) => {
         const it = state.backItems.find((x) => x.id === btn.dataset.id);
         let timer = null, longFired = false, moved = false, sx = 0, sy = 0;
         const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
@@ -398,40 +426,93 @@ export async function renderCalendar(el) {
       });
     };
 
-    // ===== 分類タブでチップを絞り込み（全て＋出現カテゴリ・1種類以下ならタブ非表示） =====
-    const chipTabs = q('#chipTabs');
-    let activeChipCat = '全て';
-    const renderChipGrid = () => {
-      if (!chipGrid) return;
-      const list = activeChipCat === '全て'
-        ? state.backItems
-        : state.backItems.filter((it) => itemCategory(it) === activeChipCat);
-      chipGrid.innerHTML = list.map(chipHtml).join('');
-      wireChips();
-    };
-    const renderChipTabs = () => {
-      if (!chipGrid) return;
+    // ===== カテゴリフィルターチップ（件数付き）＝表示する分類の絞り込み =====
+    const renderCatChips = () => {
+      if (!catChipsBox) return;
       const cats = categoryList(state.backItems);
-      if (!chipTabs || cats.length <= 1) { activeChipCat = '全て'; renderChipGrid(); return; }
-      const all = ['全て', ...cats];
-      if (!all.includes(activeChipCat)) activeChipCat = '全て';
-      chipTabs.innerHTML = all.map((c) =>
-        `<button type="button" class="cat-tab${c === activeChipCat ? ' active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
-      chipTabs.querySelectorAll('.cat-tab').forEach((b) => {
-        b.onclick = () => {
-          activeChipCat = b.dataset.cat;
-          chipTabs.querySelectorAll('.cat-tab').forEach((x) => x.classList.toggle('active', x === b));
-          renderChipGrid();
+      const total = state.backItems.length;
+      const chip = (key, label, n, active) =>
+        `<button type="button" class="inc-catchip${active ? ' active' : ''}" data-cat="${esc(key)}">${esc(label)}<span class="inc-catchip-n">${n}</span></button>`;
+      let html = chip('全て', 'すべて', total, activeIncCat === '全て');
+      for (const c of cats) {
+        const label = c === UNCATEGORIZED ? '未分類' : c;
+        const n = state.backItems.filter((it) => itemCategory(it) === c).length;
+        html += chip(c, label, n, activeIncCat === c);
+      }
+      catChipsBox.innerHTML = html;
+      catChipsBox.querySelectorAll('.inc-catchip').forEach((b) => {
+        b.onclick = () => { activeIncCat = b.dataset.cat; renderCatChips(); renderGroups(); };
+      });
+    };
+
+    // ===== カテゴリ別アコーディオン（見出し＝絵文字＋名前＋当日小計＋開閉）＋チップ =====
+    const renderGroups = () => {
+      if (!groupsBox) return;
+      const q2 = incQuery.trim().toLowerCase();
+      let items = state.backItems;
+      if (q2) items = items.filter((it) => (it.name || '').toLowerCase().includes(q2));
+      let cats = categoryList(state.backItems);
+      if (activeIncCat !== '全て') cats = cats.filter((c) => c === activeIncCat);
+      const groups = cats
+        .map((c) => ({ cat: c, list: items.filter((it) => itemCategory(it) === c) }))
+        .filter((g) => g.list.length);
+      if (!groups.length) {
+        groupsBox.innerHTML = '<p class="muted" style="text-align:center;padding:12px 0">該当する項目がありません</p>';
+        return;
+      }
+      groupsBox.innerHTML = groups.map(({ cat, list }) => {
+        const label = cat === UNCATEGORIZED ? '未分類' : esc(cat);
+        const emoji = cat === UNCATEGORIZED ? icon('folder') : esc(itemEmoji(list[0]));
+        const sub = list.reduce((s, it) =>
+          s + backAmount(it, { count: Number(counts[it.id]) || 0, sales: Number(sales[it.id]) || 0 }), 0);
+        const isCol = incCollapsed.has(cat);
+        return `<div class="inc-group" data-cat="${esc(cat)}">
+          <button type="button" class="inc-group-head" data-toggle="${esc(cat)}">
+            <span class="inc-group-emoji">${emoji}</span>
+            <span class="inc-group-name">${label}</span>
+            <span class="inc-group-total">${yen(sub)}</span>
+            <span class="inc-group-chev${isCol ? '' : ' open'}">${icon('chevronDown')}</span>
+          </button>
+          <div class="inc-group-body"${isCol ? ' hidden' : ''}>${list.map(chipHtml).join('')}</div>
+        </div>`;
+      }).join('');
+      groupsBox.querySelectorAll('.inc-group-head').forEach((h) => {
+        h.onclick = () => {
+          const c = h.dataset.toggle;
+          if (incCollapsed.has(c)) incCollapsed.delete(c); else incCollapsed.add(c);
+          renderGroups();
         };
       });
-      renderChipGrid();
+      wireChips();
     };
-    renderChipTabs();
+
+    if (searchEl) searchEl.oninput = () => { incQuery = searchEl.value; renderGroups(); };
+    const pickerBtn = q('#incPicker');
+    if (pickerBtn) pickerBtn.onclick = () => openItemPicker({
+      onApply: (ids) => {
+        for (const id of ids) {
+          const it = state.backItems.find((x) => x.id === id);
+          if (it && hasFixed(it)) counts[id] = (Number(counts[id]) || 0) + 1;
+          // 率(売上)のみの項目はチップから対象売上を入力してもらう
+        }
+        renderGroups();
+        recalc();
+      },
+    });
+
+    renderCatChips();
+    renderGroups();
 
     sheet.querySelectorAll('#sStart,#sEnd,#sBreak').forEach((inp) => {
       inp.oninput = recalc; inp.onchange = recalc;
     });
     q('#sAbsent').onchange = recalc;
+    // 「確定（実績）にする」はチェックしただけでは保存されない。
+    // 自動更新と勘違いされないよう、オンにしたら「保存」を促すトーストを出す。
+    q('#sConfirmed').onchange = (e) => {
+      recalc();
+      if (e.target.checked) toast('「保存」を押すと確定されます');
+    };
 
     q('#sSave').onclick = async () => {
       await put('shifts', collectDraft());
