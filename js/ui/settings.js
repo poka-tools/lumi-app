@@ -8,6 +8,7 @@ import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
 import { startTour } from './onboarding.js';
 import { icon } from './icons.js';
+import { openPaywall } from './paywall.js';
 
 // リマインダーの「何日前から」選択肢（当日〜1週間前）。
 const LEAD_OPTS = [[0, '当日'], [1, '1日前'], [2, '2日前'], [3, '3日前'], [7, '1週間前']];
@@ -182,6 +183,14 @@ export async function renderSettings(el) {
       </div>
     </details>
 
+    <button class="card premium-cta" id="openPaywall" type="button">
+      <div class="premium-cta-main">
+        <span class="premium-cta-title"><span class="pw-spark">✦</span> Lumi Premium</span>
+        <span class="premium-cta-sub">顧客管理・イベント・詳細レポートを解放（¥500/月）</span>
+      </div>
+      <span class="premium-cta-chev">${icon('chevron')}</span>
+    </button>
+
     <div class="card app-info">
       <div class="app-info-row">
         <span class="app-info-label">アプリのバージョン</span>
@@ -196,6 +205,7 @@ export async function renderSettings(el) {
   el.querySelector('#showGuide').onclick = () => startTour();
   el.querySelector('#openHelp').onclick = () => navigate('help');
   el.querySelector('#checkUpdate').onclick = () => checkForUpdate();
+  el.querySelector('#openPaywall').onclick = () => openPaywall();
   el.querySelector('#goBackItems').onclick = () => navigate('backitems');
 
   const AUDIT_MAX = 500; // これを超えた古いログは表示時に自動で間引く
