@@ -1,4 +1,4 @@
-import { loadAll } from './state.js';
+import { loadAll, state } from './state.js';
 import { renderHome } from './ui/home.js';
 import { renderCalendar } from './ui/calendar.js';
 import { renderRecord, setEditingShift } from './ui/record.js';
@@ -11,6 +11,7 @@ import { maybeStartTour, startTour } from './ui/onboarding.js';
 import { esc } from './format.js';
 import { toast } from './ui/toast.js';
 import { promptUpdate } from './ui/update.js';
+import { openNotifications, unseenAnnouncements } from './ui/notifications.js';
 
 const screen = document.getElementById('screen');
 const appbar = document.getElementById('appbar');
@@ -32,7 +33,7 @@ function brandBarHtml() {
   const menu = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`;
   return `<div class="ab-brand">Lumi<span class="ab-spark">✦</span></div>
     <div class="ab-actions">
-      <button id="abBell" class="ab-icon${updateReady ? ' has-update' : ''}" type="button" aria-label="アップデートを確認">${bell}<span class="ab-dot"></span></button>
+      <button id="abBell" class="ab-icon${hasBellNotice() ? ' has-update' : ''}" type="button" aria-label="お知らせ">${bell}<span class="ab-dot"></span></button>
       <button id="abMenu" class="ab-icon" type="button" aria-label="メニュー">${menu}</button>
     </div>`;
 }
@@ -41,7 +42,7 @@ function setAppbar(tab) {
   if (BRAND_TABS.has(tab)) {
     appbar.className = 'brand';
     appbar.innerHTML = brandBarHtml();
-    appbar.querySelector('#abBell').onclick = () => checkForUpdate();
+    appbar.querySelector('#abBell').onclick = () => openBell();
     appbar.querySelector('#abMenu').onclick = openDrawer;
   } else {
     appbar.className = 'back';
@@ -142,13 +143,35 @@ function hideSplash() {
 
 // ===== Service Worker / アップデート =====
 let swReg = null; // 登録情報（手動の更新確認で使う）
-let updateReady = false; // 待機中の新SWがある（ホームのベルに赤ドットを出す）
+let updateReady = false; // 待機中の新SWがある（ベルの赤ドット判定に使う）
 
-// 更新の有無をベルのバッジに反映する。ブランドバー表示中のみ #abBell が存在。
+// ベルの赤ドットを出すべきか＝アプリの更新あり、または未読のお知らせがある。
+function hasBellNotice() {
+  return updateReady || unseenAnnouncements(state).length > 0;
+}
+
+// ベルのバッジを最新状態に更新する。ブランドバー表示中のみ #abBell が存在。
+function refreshBellBadge() {
+  const bell = appbar.querySelector('#abBell');
+  if (bell) bell.classList.toggle('has-update', hasBellNotice());
+}
+
 function setUpdateReady(v) {
   updateReady = v;
-  const bell = appbar.querySelector('#abBell');
-  if (bell) bell.classList.toggle('has-update', v);
+  refreshBellBadge();
+}
+
+// ベルをタップ＝お知らせパネル（キャンペーンお知らせ＋アプリの更新）を開く。
+function openBell() {
+  openNotifications({
+    updateReady,
+    onCheckUpdate: checkForUpdate,
+    onShowUpdate: () => {
+      if (swReg && swReg.waiting) { setUpdateReady(true); promptUpdate(swReg); }
+      else checkForUpdate();
+    },
+    afterSeen: refreshBellBadge,
+  });
 }
 
 function initServiceWorker() {
