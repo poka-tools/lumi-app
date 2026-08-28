@@ -9,6 +9,8 @@ import { renderCustomers } from './ui/customers.js';
 import { renderHelp } from './ui/help.js';
 import { maybeStartTour, startTour } from './ui/onboarding.js';
 import { esc } from './format.js';
+import { toast } from './ui/toast.js';
+import { promptUpdate } from './ui/update.js';
 
 const screen = document.getElementById('screen');
 const appbar = document.getElementById('appbar');
@@ -135,16 +137,44 @@ function hideSplash() {
     hideSplash(); // 何があってもスプラッシュは必ず閉じる
   }
   maybeStartTour(); // 初回のみ目印つき使い方ツアーを表示（読み込み失敗時は profile が無いので出ない）
-  if ('serviceWorker' in navigator) {
-    // SW更新の反映漏れ（新旧アセット混在）を防ぐ：新しいSWが制御を取ったら一度だけ自動リロードして
-    // 全アセットを新版に揃える。初回登録時（もともと制御SWが無い）はリロードしない。
-    const hadController = !!navigator.serviceWorker.controller;
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!hadController || refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
-    navigator.serviceWorker.register('service-worker.js').catch(() => {});
-  }
+  initServiceWorker();
 })();
+
+// ===== Service Worker / アップデート =====
+let swReg = null; // 登録情報（手動の更新確認で使う）
+
+function initServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  // 新しいSWが制御を取ったら一度だけリロードして全アセットを新版に揃える。
+  // 初回登録時（もともと制御SWが無い）はリロードしない。有効化は「今すぐ更新」で行う。
+  const hadController = !!navigator.serviceWorker.controller;
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+  navigator.serviceWorker.register('service-worker.js').then((reg) => {
+    swReg = reg;
+    // すでに待機中の新SWがある（前回開いた時に落ちてきていた）
+    if (reg.waiting && navigator.serviceWorker.controller) promptUpdate(reg);
+    // 新SWが見つかってインストールされたら告知
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) promptUpdate(reg);
+      });
+    });
+  }).catch(() => {});
+}
+
+// 設定の「アップデートを確認」ボタンから呼ぶ。手動で新版の有無を確認する。
+export async function checkForUpdate() {
+  if (!swReg) { toast('この環境では更新を確認できません'); return; }
+  toast('更新を確認中…');
+  try { await swReg.update(); } catch { toast('更新の確認に失敗しました'); return; }
+  if (swReg.waiting) promptUpdate(swReg);
+  else if (swReg.installing) toast('更新を準備しています…'); // 完了後 updatefound で告知
+  else toast('最新版です');
+}

@@ -1,12 +1,12 @@
-const CACHE = 'yashoku-v129';
+const CACHE = 'yashoku-v130';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',
   './assets/logo.png', './assets/icon-192.png', './assets/icon-512.png',
   './js/app.js', './js/state.js', './js/db.js', './js/calc.js', './js/format.js',
   './js/customers-logic.js', './js/events-logic.js', './js/reminders-logic.js',
-  './js/audit-logic.js',
-  './js/ui/icons.js',
+  './js/audit-logic.js', './js/version.js', './changelog.json',
+  './js/ui/icons.js', './js/ui/update.js',
   './js/ui/home.js', './js/ui/calendar.js', './js/ui/record.js',
   './js/ui/report.js', './js/ui/settings.js', './js/ui/donut.js',
   './js/ui/backfields.js', './js/ui/todos.js', './js/ui/customers.js',
@@ -15,7 +15,13 @@ const ASSETS = [
   './js/ui/backitems.js', './js/ui/itempicker.js',
 ];
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // skipWaiting はここでは呼ばない。新SWは「待機」状態で止め、アプリ内の
+  // 「今すぐ更新」ボタン（SKIP_WAITING メッセージ）で初めて有効化する。
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+});
+// アプリから更新の合図を受けたら待機を解除して有効化する。
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) =>

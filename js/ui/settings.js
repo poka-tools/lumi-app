@@ -2,7 +2,8 @@ import { state, loadAll } from '../state.js';
 import { put, del, uid, saveProfile, getAll, clearAuditLog, suppressAudit, logNote } from '../db.js';
 import { esc } from '../format.js';
 import { groupLogsByDay, logTime, logsToPrune } from '../audit-logic.js';
-import { navigate } from '../app.js';
+import { navigate, checkForUpdate } from '../app.js';
+import { APP_VERSION } from '../version.js';
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
 import { startTour } from './onboarding.js';
@@ -179,10 +180,22 @@ export async function renderSettings(el) {
         <div style="height:10px"></div>
         <button class="btn btn-ghost" id="openHelp">${icon('help')} ヘルプ（よくある質問）</button>
       </div>
-    </details>`;
+    </details>
+
+    <div class="card app-info">
+      <div class="app-info-row">
+        <span class="app-info-label">アプリのバージョン</span>
+        <span class="app-info-ver">v${APP_VERSION}</span>
+      </div>
+      <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
+        新しい更新があるか確認します。ある場合は内容をご案内し、その場で更新できます。
+      </p>
+      <button class="btn btn-ghost" id="checkUpdate">${icon('refresh')} アップデートを確認</button>
+    </div>`;
 
   el.querySelector('#showGuide').onclick = () => startTour();
   el.querySelector('#openHelp').onclick = () => navigate('help');
+  el.querySelector('#checkUpdate').onclick = () => checkForUpdate();
   el.querySelector('#goBackItems').onclick = () => navigate('backitems');
 
   const AUDIT_MAX = 500; // これを超えた古いログは表示時に自動で間引く
