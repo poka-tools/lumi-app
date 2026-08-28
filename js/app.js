@@ -32,7 +32,7 @@ function brandBarHtml() {
   const menu = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`;
   return `<div class="ab-brand">Lumi<span class="ab-spark">✦</span></div>
     <div class="ab-actions">
-      <button id="abBell" class="ab-icon" type="button" aria-label="お知らせ">${bell}</button>
+      <button id="abBell" class="ab-icon${updateReady ? ' has-update' : ''}" type="button" aria-label="アップデートを確認">${bell}<span class="ab-dot"></span></button>
       <button id="abMenu" class="ab-icon" type="button" aria-label="メニュー">${menu}</button>
     </div>`;
 }
@@ -41,7 +41,7 @@ function setAppbar(tab) {
   if (BRAND_TABS.has(tab)) {
     appbar.className = 'brand';
     appbar.innerHTML = brandBarHtml();
-    appbar.querySelector('#abBell').onclick = () => navigate('home');
+    appbar.querySelector('#abBell').onclick = () => checkForUpdate();
     appbar.querySelector('#abMenu').onclick = openDrawer;
   } else {
     appbar.className = 'back';
@@ -142,6 +142,14 @@ function hideSplash() {
 
 // ===== Service Worker / アップデート =====
 let swReg = null; // 登録情報（手動の更新確認で使う）
+let updateReady = false; // 待機中の新SWがある（ホームのベルに赤ドットを出す）
+
+// 更新の有無をベルのバッジに反映する。ブランドバー表示中のみ #abBell が存在。
+function setUpdateReady(v) {
+  updateReady = v;
+  const bell = appbar.querySelector('#abBell');
+  if (bell) bell.classList.toggle('has-update', v);
+}
 
 function initServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
@@ -157,24 +165,24 @@ function initServiceWorker() {
   navigator.serviceWorker.register('service-worker.js').then((reg) => {
     swReg = reg;
     // すでに待機中の新SWがある（前回開いた時に落ちてきていた）
-    if (reg.waiting && navigator.serviceWorker.controller) promptUpdate(reg);
+    if (reg.waiting && navigator.serviceWorker.controller) { setUpdateReady(true); promptUpdate(reg); }
     // 新SWが見つかってインストールされたら告知
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
       if (!nw) return;
       nw.addEventListener('statechange', () => {
-        if (nw.state === 'installed' && navigator.serviceWorker.controller) promptUpdate(reg);
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) { setUpdateReady(true); promptUpdate(reg); }
       });
     });
   }).catch(() => {});
 }
 
-// 設定の「アップデートを確認」ボタンから呼ぶ。手動で新版の有無を確認する。
+// ホームのベル／設定の「アップデートを確認」から呼ぶ。手動で新版の有無を確認する。
 export async function checkForUpdate() {
   if (!swReg) { toast('この環境では更新を確認できません'); return; }
   toast('更新を確認中…');
   try { await swReg.update(); } catch { toast('更新の確認に失敗しました'); return; }
-  if (swReg.waiting) promptUpdate(swReg);
+  if (swReg.waiting) { setUpdateReady(true); promptUpdate(swReg); }
   else if (swReg.installing) toast('更新を準備しています…'); // 完了後 updatefound で告知
-  else toast('最新版です');
+  else { setUpdateReady(false); toast('最新版です'); }
 }

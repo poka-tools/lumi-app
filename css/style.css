@@ -740,6 +740,10 @@ body { padding-top: calc(54px + env(safe-area-inset-top)); }
   border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--ink); }
 .ab-icon:active { background: var(--pink-soft); }
 .ab-icon svg { width: 23px; height: 23px; display: block; }
+.ab-icon { position: relative; }
+.ab-dot { display: none; position: absolute; top: 7px; right: 7px; width: 9px; height: 9px;
+  background: #ff3b5c; border: 2px solid #fff; border-radius: 50%; box-sizing: content-box; }
+.ab-icon.has-update .ab-dot { display: block; }
 .ab-back { border: none; background: none; color: var(--pink); font-size: 30px; line-height: 1;
   width: 40px; height: 40px; flex: 0 0 auto; cursor: pointer; }
 .ab-title { flex: 1; text-align: center; font-weight: 700; font-size: 18px; margin-right: 40px; }
