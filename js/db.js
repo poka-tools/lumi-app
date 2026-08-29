@@ -38,6 +38,20 @@ export function openDb() {
   });
 }
 
+// この端末に保存された全データ（DBまるごと）を削除して初期状態に戻す。
+// アカウントを持たないローカル完結アプリの「リセット／退会」に相当する操作。
+// 呼び出し側は完了後にリロードして、openDb で空のDBを作り直す。
+export function resetAllData() {
+  return new Promise((resolve, reject) => {
+    if (_db) { try { _db.close(); } catch (e) { /* 既に閉じていても無視 */ } _db = null; }
+    const req = indexedDB.deleteDatabase(DB_NAME);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+    // 他タブが開いていて削除がブロックされても、リロードで解消するため成功扱い。
+    req.onblocked = () => resolve();
+  });
+}
+
 function tx(store, mode) {
   return openDb().then((db) => db.transaction(store, mode).objectStore(store));
 }

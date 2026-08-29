@@ -1,5 +1,5 @@
 import { state, loadAll } from '../state.js';
-import { put, del, uid, saveProfile, getAll, clearAuditLog, suppressAudit, logNote } from '../db.js';
+import { put, del, uid, saveProfile, getAll, clearAuditLog, suppressAudit, logNote, resetAllData } from '../db.js';
 import { esc } from '../format.js';
 import { groupLogsByDay, logTime, logsToPrune } from '../audit-logic.js';
 import { navigate, checkForUpdate } from '../app.js';
@@ -149,6 +149,22 @@ export async function renderSettings(el) {
       </div>
     </details>
 
+    <details class="card set-details" id="resetCard">
+      <summary class="set-details-sum">
+        <span class="set-details-title">データを削除（リセット）</span>
+        <span class="set-details-hint">タップで表示</span>
+        <span class="set-details-chev">${icon('chevronDown')}</span>
+      </summary>
+      <div class="set-details-body">
+        <p class="muted" style="font-size:12px;margin:2px 0 12px;line-height:1.7">
+          このアプリの<b>すべてのデータ</b>（設定・歩合項目・勤務記録・お知らせ・やること・顧客・来店予定・イベント予約・操作ログ）を、<b>この端末から完全に削除</b>して最初の状態に戻します。<br>
+          <span style="color:#f55">※削除したデータは元に戻せません。</span>ご不安なときは、先に上の「データのバックアップ」から保存しておいてください。
+        </p>
+        <button class="btn btn-ghost" id="resetAllBtn" style="color:#f55">${icon('trash')} すべてのデータを削除する</button>
+        <div class="backup-hint">アカウントのリセット・退会をしたいときに使います</div>
+      </div>
+    </details>
+
     <details class="card set-details" id="auditDetails">
       <summary class="set-details-sum">
         <span class="set-details-title">操作ログ</span>
@@ -247,6 +263,21 @@ export async function renderSettings(el) {
     await clearAuditLog();
     toast('操作ログを消去しました');
     renderLog();
+  };
+
+  el.querySelector('#resetAllBtn').onclick = async () => {
+    if (!(await confirmModal(
+      'すべてのデータを削除して、最初の状態に戻します。\n勤務記録・顧客・イベント・設定など、この端末に保存したすべてが消え、元に戻せません。\n\n本当に削除しますか？',
+      { okLabel: 'すべて削除する', cancelLabel: 'やめる', danger: true }
+    ))) return;
+    try {
+      await resetAllData();
+      toast('データを削除しました。\n最初の画面に戻ります…');
+      setTimeout(() => window.location.reload(), 1400);
+    } catch (err) {
+      console.error('データ削除に失敗:', err);
+      toast('削除に失敗しました。\nアプリを完全に終了してから、もう一度お試しください。');
+    }
   };
 
   // 深夜手当トグルOFFのときは配下の入力欄を淡色・操作不可に。
