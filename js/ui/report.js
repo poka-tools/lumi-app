@@ -5,6 +5,7 @@ import { yen, signedYen, esc } from '../format.js';
 import { eventIncomeInMonth, eventIncentiveDetail, eventBackRanking } from '../events-logic.js';
 import { isPremium } from '../entitlement.js';
 import { lockScreen, wireLockCta } from './premium-gate.js';
+import { toast } from './toast.js';
 
 // レポートで表示中の月（YYYY-MM）。タブを開くたび今月にリセットし、‹ › で過去/未来へ切り替える。
 let reportMonth = null;
@@ -327,19 +328,19 @@ function drawReport(el) {
     };
   });
 
-  // 印刷（ブラウザの「PDFで保存」で書き出し）。チェックの外れた項目は印刷時のみ隠す。
-  el.querySelector('#pdfBtn').onclick = () => {
-    const opts = el.querySelectorAll('#pdfOptions input[data-sec]');
-    opts.forEach((cb) => {
-      const sec = el.querySelector('#' + cb.dataset.sec);
-      if (sec) sec.classList.toggle('print-hide', !cb.checked);
-    });
-    const cleanup = () => {
-      el.querySelectorAll('.print-hide').forEach((s) => s.classList.remove('print-hide'));
-      window.removeEventListener('afterprint', cleanup);
-    };
-    window.addEventListener('afterprint', cleanup);
-    setTimeout(cleanup, 1000); // afterprint 非対応環境のフォールバック
-    window.print();
+  // アプリ内でPDFを直接生成（ブラウザ印刷を使わない＝URL/日付フッターが出ない）。
+  el.querySelector('#pdfBtn').onclick = async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      const { exportReportPdf } = await import('./pdf.js'); // 重いライブラリはここで初めて読み込む
+      await exportReportPdf(el, month.replace('-', '年') + '月');
+    } catch (err) {
+      // 生成に失敗したらブラウザ印刷にフォールバック
+      toast('PDF生成に失敗したため印刷画面を開きます');
+      window.print();
+    } finally {
+      btn.disabled = false;
+    }
   };
 }
