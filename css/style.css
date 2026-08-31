@@ -515,7 +515,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
   /* 全体を詰めて1枚に収める。基準フォントも少し小さく。 */
   body { color: #1a1a1a !important; font-size: 10.5px; line-height: 1.45;
     -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  #screen { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+  /* @page の余白を 0 にすると、ブラウザが余白に入れる URL/日付/ページ番号のヘッダー・フッターが消える。
+     その代わり本文の余白は #screen 側の padding で確保する。 */
+  #screen { padding: 12mm 11mm !important; margin: 0 !important; max-width: none !important; }
   .print-only { display: block !important; }
 
   h2 { margin: 0 0 2px !important; font-size: 15px; color: #111; }
@@ -541,7 +543,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
   /* 年間グラフは低めに抑えて縦を節約 */
   .chart-box svg, #annualChart svg { max-width: 100% !important; max-height: 135px !important; height: auto !important; }
 
-  @page { margin: 10mm; }
+  @page { margin: 0; }
 }
 
 .chart-grid { stroke: #f2e6ec; stroke-width: 1; }
