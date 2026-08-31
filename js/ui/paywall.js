@@ -1,11 +1,11 @@
 import { esc } from '../format.js';
 import { icon } from './icons.js';
 import { toast } from './toast.js';
-import { isPremium, PREMIUM_FEATURES, FREE_FEATURES } from '../entitlement.js';
+import { PREMIUM_FEATURES, FREE_FEATURES, hasPremium, enforcing } from '../entitlement.js';
 
 // Lumi Premium の案内（ペイウォール）モーダル。
-// フェーズ1では決済は未接続のため「登録する」は近日公開の案内にとどめる。
-// フェーズ2で RevenueCat 接続時に onSubscribe を購入フローに差し替える。
+// 「登録する」は RevenueCat（Web Billing）の購入フローに接続済み。
+// ただし通常モードでは購入ボタンを出さない（enforcing() のときだけ表示）＝本番ユーザーに影響しない。
 
 let open = false;
 
@@ -13,7 +13,8 @@ export function openPaywall() {
   if (open) return;
   open = true;
 
-  const premium = isPremium();
+  const subscribed = hasPremium();          // 実際に有料権利を持っているか
+  const showBuy = enforcing() && !subscribed; // ロックモードで未購入のときだけ購入ボタン
   const freeList = FREE_FEATURES.map((t) => `<li>${esc(t)}</li>`).join('');
   const premiumList = Object.values(PREMIUM_FEATURES).map((t) => `<li>${esc(t)}</li>`).join('');
 
@@ -30,10 +31,13 @@ export function openPaywall() {
         <div class="pw-sec-title pw-premium">${icon('target')} Premium で解放</div>
         <ul class="pw-list premium">${premiumList}</ul>
       </div>
-      ${premium
-        ? `<div class="pw-note">現在すべての機能をお使いいただけます。</div>`
-        : `<button class="btn pw-cta" type="button" data-act="subscribe">Premium に登録する</button>`}
-      <p class="pw-fine">いつでも解約できます。${premium ? '' : '※お支払い機能は近日公開予定です。'}</p>
+      ${subscribed
+        ? `<div class="pw-note">Premium をご利用中です。いつもありがとうございます。</div>`
+        : showBuy
+          ? `<button class="btn pw-cta" type="button" data-act="subscribe">Premium に登録する</button>
+             <p class="pw-fine">最初の7日間は無料。いつでも解約できます。</p>`
+          : `<div class="pw-note">現在すべての機能をお使いいただけます。</div>
+             <p class="pw-fine">いつでも解約できます。※お支払い機能は準備中です。</p>`}
     </div>`;
   document.body.appendChild(back);
 
@@ -45,11 +49,32 @@ export function openPaywall() {
   back.querySelector('[data-act="close"]').onclick = close;
   back.onclick = (e) => { if (e.target === back) close(); };
   const cta = back.querySelector('[data-act="subscribe"]');
-  if (cta) cta.onclick = onSubscribe;
+  if (cta) cta.onclick = () => onSubscribe(cta, close);
   requestAnimationFrame(() => back.classList.add('show'));
 }
 
-// フェーズ2でここを RevenueCat の購入フローに差し替える。
-function onSubscribe() {
-  toast('お支払い機能は近日公開予定です');
+// RevenueCat の購入フローを開始する。SDKがカード入力モーダルを表示する。
+async function onSubscribe(btn, close) {
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '処理中…';
+  try {
+    const rc = await import('../rc.js'); // 重いSDKはここで初めて読み込む
+    const active = await rc.purchasePremium();
+    if (active) {
+      toast('ご登録ありがとうございます！\nPremium が有効になりました');
+      close();
+    } else {
+      toast('お支払いは完了しましたが、\n権利の反映に少し時間がかかっています');
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  } catch (e) {
+    const rc = await import('../rc.js');
+    if (!rc.isUserCancelled(e)) {
+      toast('購入を完了できませんでした：\n' + ((e && e.message) || e));
+    }
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
 }

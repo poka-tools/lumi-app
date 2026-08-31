@@ -206,6 +206,7 @@ export async function renderSettings(el) {
       </div>
       <span class="premium-cta-chev">${icon('chevron')}</span>
     </button>
+    <button class="btn btn-ghost" id="restorePurchase" type="button" style="margin-top:8px">${icon('refresh')} 購入を復元</button>
 
     <div class="card app-info">
       <div class="app-info-row">
@@ -222,6 +223,22 @@ export async function renderSettings(el) {
   el.querySelector('#openHelp').onclick = () => navigate('help');
   el.querySelector('#checkUpdate').onclick = () => checkForUpdate();
   el.querySelector('#openPaywall').onclick = () => openPaywall();
+  el.querySelector('#restorePurchase').onclick = async (e) => {
+    const btn = e.currentTarget;
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = '確認中…';
+    try {
+      const rc = await import('../rc.js'); // 重いSDKはここで初めて読み込む
+      const active = await rc.refreshCustomerInfo();
+      toast(active ? 'Premium を復元しました' : 'この端末では有効な購入が見つかりませんでした');
+    } catch (err) {
+      toast('復元を確認できませんでした：\n' + ((err && err.message) || err));
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = orig;
+    }
+  };
   el.querySelector('#goBackItems').onclick = () => navigate('backitems');
 
   const AUDIT_MAX = 500; // これを超えた古いログは表示時に自動で間引く

@@ -12,6 +12,7 @@ import { esc } from './format.js';
 import { toast } from './ui/toast.js';
 import { promptUpdate } from './ui/update.js';
 import { openNotifications, unseenAnnouncements } from './ui/notifications.js';
+import { enforcing } from './entitlement.js';
 
 const screen = document.getElementById('screen');
 const appbar = document.getElementById('appbar');
@@ -122,6 +123,11 @@ function hideSplash() {
   const minSplash = new Promise((r) => setTimeout(r, 1100)); // 最低表示時間
   try {
     await loadAll();
+    // ロックモード（本番有効化 or ?rctest=1）のときだけ RevenueCat の権利を取得する。
+    // 通常の本番ユーザーは SDK を一切読み込まない＝ゼロ影響。失敗してもアプリは続行。
+    if (enforcing()) {
+      try { const rc = await import('./rc.js'); await rc.refreshCustomerInfo(); } catch { /* 権利取得失敗は無視 */ }
+    }
     await navigate('home');
   } catch (err) {
     console.error('初期化に失敗しました:', err);

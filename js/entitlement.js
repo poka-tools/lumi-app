@@ -1,9 +1,7 @@
-import { state } from './state.js';
-
-// ===== 有料プラン（Lumi Premium）の権利判定の土台 =====
-// フェーズ1：まだ課金基盤（RevenueCat）を繋いでいないので「ロックはしない」。
-// isPremium() は当面 true を返し、本番ユーザーの機能を一切制限しない。
-// フェーズ2で RevenueCat を接続したら ENFORCE を true にし、実際の entitlement を反映する。
+// ===== 有料プラン（Lumi Premium）の権利判定 =====
+// フェーズ2：RevenueCat（Web Billing）を接続済み。ただし本番ユーザーを急にロックしないよう
+// 段階的に有効化する。実際の権利状態は rc.js が取得し、setPremiumCached() でここに反映する。
+// このファイルは軽量に保つ（重い SDK を静的 import しない）＝レンダリングから安全に参照できる。
 
 // 有料でロック予定の機能キー（ペイウォールの表示や将来のゲートで参照）。
 export const PREMIUM_FEATURES = {
@@ -25,11 +23,33 @@ export const FREE_FEATURES = [
   'データのバックアップ',
 ];
 
-const ENFORCE = false; // フェーズ2で true にする
+// 本番で機能ロックを有効化するときに true にする（テスト完了＋本番キー切替後）。
+// false の間は「誰も」ロックされない＝現状の全機能無料を維持する。
+const ENFORCE = false;
 
+// テスト用スイッチ：?rctest=1 で有効化・?rctest=0 で無効化（localStorage に記憶）。
+// 本番ユーザーに影響を与えず、購入フローや権利反映を確認するために使う。
+export function rcTestMode() {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('rctest') === '1') localStorage.setItem('lumi_rc_test', '1');
+    else if (q.get('rctest') === '0') localStorage.removeItem('lumi_rc_test');
+    return localStorage.getItem('lumi_rc_test') === '1';
+  } catch { return false; }
+}
+
+// 機能ロックを効かせるモードか（本番有効化 or テストモード）。
+export function enforcing() { return ENFORCE || rcTestMode(); }
+
+// rc.js が取得した「実際に有料権利を持っているか」のキャッシュ（同期参照用）。
+let _premiumCached = false;
+export function setPremiumCached(v) { _premiumCached = !!v; }
+export function hasPremium() { return _premiumCached; }
+
+// 機能が使えるか（ゲート判定）。ロックしないモードでは常に true。
 export function isPremium() {
-  if (!ENFORCE) return true; // 課金基盤未接続の間は全機能を開放
-  return !!(state.profile && state.profile.premium);
+  if (!enforcing()) return true;
+  return _premiumCached;
 }
 
 // 機能が使えるか。ロック中なら false（呼び出し側でペイウォールを出す想定）。
