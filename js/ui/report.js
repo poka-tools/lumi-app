@@ -140,6 +140,7 @@ export async function renderReport(el) {
 
   el.innerHTML = `
     <h2>収支レポート（${esc(state.month.replace('-', '年'))}月）</h2>
+    <div class="print-only report-print-meta">${esc(wage.name || 'Lumi')}${wage.storeName ? '（' + esc(wage.storeName) + '）' : ''} ／ 作成日 ${esc(new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }))}</div>
     <div class="card" id="secSummary">
       <div class="row" style="justify-content:space-between"><span>総勤務時間</span><strong>${monthlyWorkedHours(cur)}h</strong></div>
       <div class="row" style="justify-content:space-between"><span>出勤日数</span><strong>${cur.filter((s) => !s.absent && !s.recordOnly).length}日</strong></div>

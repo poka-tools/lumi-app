@@ -503,14 +503,37 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .chip-pop-title .muted { font-weight: 400; font-size: 13px; margin-left: 4px; }
 
 /* 印刷（レポートをPDFで保存） */
+/* 画面では隠し、印刷（PDF）だけに出す要素 */
+.print-only { display: none; }
+
 @media print {
-  #tabbar, #splash, .sheet, .sheet-backdrop, .no-print, .seg, .print-hide { display: none !important; }
-  body { background: #fff !important; }
-  #screen { padding: 0 !important; }
-  h2 { margin: 0 0 8px !important; }
-  .card { box-shadow: none !important; border: 1px solid #eee; break-inside: avoid; margin-bottom: 10px; }
-  .pl-net { break-inside: avoid; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* アプリのUI（固定ヘッダー・下タブ・ドロワー・トグル等）は印刷しない。
+     特に固定ヘッダー #appbar を隠さないと先頭の見出し・カードに重なって文字が切れる。 */
+  #appbar, #tabbar, #drawer, #drawerBackdrop, #splash,
+  .sheet, .sheet-backdrop, .modal-backdrop, .no-print, .seg, .print-hide { display: none !important; }
+  html, body { background: #fff !important; }
+  body { color: #1a1a1a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* 印刷はページ全幅を使う（画面の480px中央寄せ制限を解除） */
+  #screen { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+  .print-only { display: block !important; }
+
+  h2 { margin: 0 0 4px !important; font-size: 20px; color: #111; }
+  .card h3 { font-size: 15px; }
+  /* 薄い灰色は紙だと読みづらいので濃くする */
+  .muted { color: #555 !important; }
+
+  .card { box-shadow: none !important; border: 1px solid #ccc; border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 12px;
+    break-inside: avoid; page-break-inside: avoid; }
+  /* 各行はページ跨ぎで割れないように */
+  .pl-line, .pl-net, .pl-subtotal, .pl-section-head, .row { break-inside: avoid; page-break-inside: avoid; }
+  /* 金額は改行させない／長い項目名・商品名は折り返して切れないように */
+  .pl-amt, .pl-net > strong { white-space: nowrap; }
+  .pl-line > span:first-child, .row > span:first-child { min-width: 0; word-break: break-word; overflow-wrap: anywhere; }
+  /* グラフSVGは用紙幅に収める */
+  .chart-box svg, #annualChart svg { max-width: 100% !important; height: auto !important; }
+
+  .report-print-meta { font-size: 12px; color: #555; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #ddd; }
   @page { margin: 14mm; }
 }
 
