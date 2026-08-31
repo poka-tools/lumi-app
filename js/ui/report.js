@@ -3,8 +3,20 @@ import { icon } from './icons.js';
 import { plStatement, annualSeries, monthlyWorkedHours, backRanking, dayPaySummary } from '../calc.js';
 import { yen, signedYen, esc } from '../format.js';
 import { eventIncomeInMonth, eventIncentiveDetail, eventBackRanking } from '../events-logic.js';
+import { isPremium } from '../entitlement.js';
+import { lockScreen, wireLockCta } from './premium-gate.js';
 
 export async function renderReport(el) {
+  if (!isPremium()) {
+    el.innerHTML = lockScreen('詳細レポート', [
+      '年間の収入推移グラフ',
+      '歩合ランキング（TOP3）',
+      'PDFで保存・印刷',
+      '日払いの受取／未受取の集計',
+    ]);
+    wireLockCta(el);
+    return;
+  }
   const wage = state.profile, items = state.backItems;
   const cur = shiftsOfMonth();
   const pl = plStatement(wage, items, cur);

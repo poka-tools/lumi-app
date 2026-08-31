@@ -9,6 +9,10 @@ import { itemCategory, categoryList, allCategories, UNCATEGORIZED } from './back
 import { icon } from './icons.js';
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
+import { ensurePremium } from './premium-gate.js';
+
+// 無料プランで登録できる歩合項目の上限（これを超える追加・分類機能は有料）。
+const FREE_BACKITEM_LIMIT = 5;
 
 // ページ内で保持する表示状態（ナビゲーションをまたいで維持）。
 let sortKey = 'custom';   // 'custom' | 'name' | 'amount'
@@ -78,7 +82,7 @@ export async function renderBackItems(el) {
 
   el.querySelector('#bkBack').onclick = () => navigate('settings');
   el.querySelector('#bkNew').onclick = () => openEditor(null, activeCatForNew());
-  el.querySelector('#bkManageCats').onclick = openCategoryManager;
+  el.querySelector('#bkManageCats').onclick = () => { if (ensurePremium()) openCategoryManager(); };
 
   const sortSel = el.querySelector('#bkSort');
   sortSel.value = sortKey;
@@ -260,6 +264,8 @@ export async function renderBackItems(el) {
   // ---- 編集シート ----
   function openEditor(item, presetCat) {
     const isNew = !item;
+    // 新規追加は無料枠（5個）まで。6個目以降はペイウォールを出す（既存項目の編集は制限なし）。
+    if (isNew && state.backItems.length >= FREE_BACKITEM_LIMIT && !ensurePremium()) return;
     const it = item || { id: uid(), name: '', kind: 'income', fixedValue: 0, rateValue: 0,
       category: presetCat || '', unit: '件', icon: '', order: state.backItems.length };
     const curEmoji = it.icon || '';
