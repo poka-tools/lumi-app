@@ -547,6 +547,13 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .chart-grid { stroke: #f2e6ec; stroke-width: 1; }
 .chart-ylabel { fill: var(--muted); font-size: 8.5px; }
 
+/* レポートの月切り替え（‹ 2026年7月 ›） */
+.rep-monthnav { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 12px; }
+.rep-navbtn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #f0e2ea;
+  background: var(--card); color: var(--pink); font-size: 20px; line-height: 1; cursor: pointer; box-shadow: var(--shadow); }
+.rep-navbtn:disabled { opacity: .35; box-shadow: none; cursor: default; }
+.rep-navlabel { font-weight: 700; font-size: 15px; min-width: 104px; text-align: center; color: var(--ink); }
+
 /* ===== 顧客管理 ===== */
 .cust-list { display: flex; flex-direction: column; gap: 10px; }
 .cust-card { text-align: left; background: var(--card); border: none; border-radius: 14px;

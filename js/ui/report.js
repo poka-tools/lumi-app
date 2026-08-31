@@ -6,33 +6,47 @@ import { eventIncomeInMonth, eventIncentiveDetail, eventBackRanking } from '../e
 import { isPremium } from '../entitlement.js';
 import { lockScreen, wireLockCta } from './premium-gate.js';
 
+// レポートで表示中の月（YYYY-MM）。タブを開くたび今月にリセットし、‹ › で過去/未来へ切り替える。
+let reportMonth = null;
+function thisMonth() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
+function shiftReportMonth(m, delta) {
+  const [y, mo] = m.split('-').map(Number);
+  const d = new Date(y, mo - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export async function renderReport(el) {
   if (!isPremium()) {
     el.innerHTML = lockScreen('詳細レポート', [
-      '年間の収入推移グラフ',
-      '歩合ランキング（TOP3）',
-      'PDFで保存・印刷',
+      '月ごとの収支明細（時給内訳・歩合明細）',
       '日払いの受取／未受取の集計',
+      '過去の月をさかのぼって閲覧・PDF出力',
     ]);
     wireLockCta(el);
     return;
   }
+  reportMonth = thisMonth(); // タブを開くたびデフォルト＝今月に設定
+  drawReport(el);
+}
+
+function drawReport(el) {
+  const month = reportMonth;
   const wage = state.profile, items = state.backItems;
-  const cur = shiftsOfMonth();
+  const cur = shiftsOfMonth(month);
   const pl = plStatement(wage, items, cur);
   // イベント予約（対応済み）の当月合計＝イベント歩合。通常歩合に加算する。
   // 表示はイベント名ごとの行に分けて判別できるようにする。
-  const eventInc = eventIncomeInMonth(state.reservations, state.events, state.month);
-  const eventDetail = eventIncentiveDetail(state.reservations, state.events, state.month);
+  const eventInc = eventIncomeInMonth(state.reservations, state.events, month);
+  const eventDetail = eventIncentiveDetail(state.reservations, state.events, month);
   const incentiveTotalAll = pl.incentiveTotal + eventInc;
   const grossIncomeAll = pl.grossIncome + eventInc;
   const netAll = pl.net + eventInc;
-  const year = Number(state.month.slice(0, 4));
+  const year = Number(month.slice(0, 4));
   const series = annualSeries(wage, items, state.shifts, year);
   // 歩合ランキングはシフト内の歩合項目＋イベント予約(対応済み)の商品を商品名で合算。
   // 割合はイベントを含む総収入(grossIncomeAll)ベースで再計算する。
   const rankMap = new Map();
-  for (const r of [...backRanking(wage, items, cur), ...eventBackRanking(state.reservations, state.events, state.month)]) {
+  for (const r of [...backRanking(wage, items, cur), ...eventBackRanking(state.reservations, state.events, month)]) {
     const acc = rankMap.get(r.name) || { name: r.name, amount: 0, count: 0 };
     acc.amount += r.amount;
     acc.count += r.count;
@@ -139,15 +153,20 @@ export async function renderReport(el) {
   const plBody = (view) => view === 'incentive' ? plIncentiveOnly() : plFull();
 
   el.innerHTML = `
-    <h2>収支レポート（${esc(state.month.replace('-', '年'))}月）</h2>
+    <h2>収支レポート（${esc(month.replace('-', '年'))}月）</h2>
     <div class="print-only report-print-meta">${esc(wage.name || 'Lumi')}${wage.storeName ? '（' + esc(wage.storeName) + '）' : ''} ／ 作成日 ${esc(new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }))}</div>
+    <div class="rep-monthnav no-print">
+      <button id="repPrev" class="rep-navbtn" type="button" aria-label="前の月">‹</button>
+      <span class="rep-navlabel">${esc(month.replace('-', '年'))}月</span>
+      <button id="repNext" class="rep-navbtn" type="button" aria-label="次の月">›</button>
+    </div>
     <div class="card" id="secSummary">
       <div class="row" style="justify-content:space-between"><span>出勤日数</span><strong>${cur.filter((s) => !s.absent && !s.recordOnly).length}日</strong></div>
       <div class="row" style="justify-content:space-between"><span>総勤務時間</span><strong>${monthlyWorkedHours(cur)}h</strong></div>
       <div class="row" style="justify-content:space-between"><span>基本時給</span><strong>${yen(wage.hourlyWage || 0)}<span class="muted" style="font-weight:400"> / 時</span></strong></div>
     </div>
 
-    <div class="card" id="secAnnual">
+    <div class="card no-print" id="secAnnual">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <h3 style="margin:0">年間（${year}年）</h3>
         <div class="seg">
@@ -188,7 +207,6 @@ export async function renderReport(el) {
       <h3>PDFに含める項目</h3>
       <p class="muted" style="margin:0 0 8px">チェックした項目だけをPDFに出力します。</p>
       <label class="pdf-opt"><input type="checkbox" data-sec="secSummary" checked> 勤務サマリー</label>
-      <label class="pdf-opt"><input type="checkbox" data-sec="secAnnual" checked> 年間推移グラフ</label>
       <label class="pdf-opt"><input type="checkbox" data-sec="secPl" checked> 収支明細（P/L）</label>
       ${showDayPay ? '<label class="pdf-opt"><input type="checkbox" data-sec="secDayPay" checked> 日払い</label>' : ''}
       <button id="pdfBtn" class="btn" style="margin-top:10px">PDFで保存</button>
@@ -280,6 +298,12 @@ export async function renderReport(el) {
     };
   });
   renderChart('bar');
+
+  // 月の切り替え（‹ ›）。前月へは自由、次月は今月まで（未来の空レポートは出さない）。
+  el.querySelector('#repPrev').onclick = () => { reportMonth = shiftReportMonth(reportMonth, -1); drawReport(el); };
+  const repNext = el.querySelector('#repNext');
+  if (reportMonth >= thisMonth()) repNext.disabled = true;
+  repNext.onclick = () => { reportMonth = shiftReportMonth(reportMonth, 1); drawReport(el); };
 
   // P/L の全体／歩合のみ トグル
   const plSeg = el.querySelector('#plSeg');
