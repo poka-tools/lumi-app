@@ -5,6 +5,8 @@ import { esc, shortDateJa, todayIso } from '../format.js';
 import { searchCustomers, sortCustomers, nextVisitDate, doneVisitCount, notesForCustomer, kanaRow, KANA_ORDER } from '../customers-logic.js';
 import { drawEventsSection } from './events.js';
 import { confirmModal } from './confirm.js';
+import { isPremium } from '../entitlement.js';
+import { lockScreen, wireLockCta } from './premium-gate.js';
 
 let query = '';      // 検索文字列（再描画で保持）
 let sortKey = 'name'; // 並び替えキー（再描画で保持）
@@ -18,6 +20,14 @@ const SORTS = [
 ];
 
 export async function renderCustomers(el) {
+  if (!isPremium()) {
+    el.innerHTML = lockScreen('顧客管理・イベント予約名簿', [
+      '太客リスト・誕生日・来店予定・メモ',
+      'イベント予約名簿（シャンパン予約・歩合計上）',
+    ]);
+    wireLockCta(el);
+    return;
+  }
   query = '';
   sortKey = 'name';
   drawList(el);

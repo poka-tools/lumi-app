@@ -9,6 +9,7 @@ import { confirmModal } from './confirm.js';
 import { toast } from './toast.js';
 import { visitCountByDate, visitsOnDate, birthdaysByDate } from '../customers-logic.js';
 import { eventIncomeByDate, eventIncomeByDateDetailed } from '../events-logic.js';
+import { ensurePremium } from './premium-gate.js';
 
 // まとめて入力（複数日選択）モードの状態。カレンダー再描画をまたいで保持する。
 let bulkMode = false;
@@ -148,7 +149,12 @@ export async function renderCalendar(el) {
   const shiftMonth = (delta) => {
     const d = new Date(y, m - 1 + delta, 1);
     // ローカルの年月で組み立てる（toISOString だと UTC 変換で月がずれる）
-    state.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const target = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    // 過去月の閲覧は有料。現在の月より前へ移動しようとしたらペイウォールを出す（未来＝予定は無料）。
+    const now = new Date();
+    const nowMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    if (target < nowMonth && !ensurePremium()) return;
+    state.month = target;
     if (bulkMode) bulkSelected.clear(); // 月をまたいだ選択は混乱するのでクリア
     renderCalendar(el);
   };

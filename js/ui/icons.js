@@ -28,6 +28,7 @@ const P = {
   minus: '<path d="M6 12h12"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
   target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r=".9"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="9.5" rx="2.2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><circle cx="12" cy="15" r="1.1"/>',
   ban: '<circle cx="12" cy="12" r="8.5"/><path d="M6.2 6.2l11.6 11.6"/>',
   alarm: '<circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.5 1.5M4.5 6 7 3.5M19.5 6 17 3.5"/>',
   tent: '<path d="M12 4 4 20h16L12 4ZM12 4v16M12 20l-4-7M12 20l4-7"/>',

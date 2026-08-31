@@ -9,6 +9,7 @@ import { confirmModal } from './confirm.js';
 import { startTour } from './onboarding.js';
 import { icon } from './icons.js';
 import { openPaywall } from './paywall.js';
+import { ensurePremium } from './premium-gate.js';
 
 // リマインダーの「何日前から」選択肢（当日〜1週間前）。
 const LEAD_OPTS = [[0, '当日'], [1, '1日前'], [2, '2日前'], [3, '3日前'], [7, '1週間前']];
@@ -240,6 +241,12 @@ export async function renderSettings(el) {
     }
   };
   el.querySelector('#goBackItems').onclick = () => navigate('backitems');
+
+  // 日払い管理は有料。ロック中に「なし」以外を選んだら元に戻してペイウォールを出す。
+  const dpSel = el.querySelector('#dayPayType');
+  if (dpSel) dpSel.onchange = () => {
+    if (dpSel.value !== 'none' && !ensurePremium()) dpSel.value = 'none';
+  };
 
   const AUDIT_MAX = 500; // これを超えた古いログは表示時に自動で間引く
   const opBadge = { put: '保存', del: '削除', info: '' };

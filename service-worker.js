@@ -1,4 +1,4 @@
-const CACHE = 'yashoku-v136';
+const CACHE = 'yashoku-v137';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',
@@ -13,7 +13,7 @@ const ASSETS = [
   './js/ui/backfields.js', './js/ui/todos.js', './js/ui/customers.js',
   './js/ui/toast.js', './js/ui/events.js', './js/ui/confirm.js',
   './js/ui/reminders.js', './js/ui/onboarding.js', './js/ui/help.js',
-  './js/ui/backitems.js', './js/ui/itempicker.js',
+  './js/ui/backitems.js', './js/ui/itempicker.js', './js/ui/premium-gate.js',
 ];
 self.addEventListener('install', (e) => {
   // skipWaiting はここでは呼ばない。新SWは「待機」状態で止め、アプリ内の

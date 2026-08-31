@@ -697,6 +697,13 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .pw-cta { margin-top: 16px; }
 .pw-note { margin-top: 14px; padding: 10px; border-radius: 10px; background: var(--pink-soft); color: var(--pink); font-size: 12.5px; text-align: center; font-weight: 700; }
 .pw-fine { font-size: 11px; color: var(--muted); text-align: center; margin: 8px 0 0; line-height: 1.6; }
+/* 有料機能ロック時のプレースホルダー画面 */
+.lock-screen { max-width: 340px; margin: 40px auto; padding: 24px 20px; text-align: center; }
+.lock-badge { width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--pink-soft); color: var(--pink); }
+.lock-title { margin: 0 0 6px; font-size: 17px; }
+.lock-sub { margin: 0 0 14px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.lock-list { text-align: left; display: inline-block; margin: 0 0 4px; padding: 12px 16px; border-radius: 12px; background: var(--pink-soft); font-size: 12.5px; line-height: 1.9; color: var(--text); }
+.lock-cta { display: block; width: 100%; margin-top: 16px; }
 .btn-danger:active { background: #e04444; }
 .cal-visit { color: var(--purple); font-size: 9px; font-weight: 700; margin-top: 1px; }
 .sheet-visits { background: var(--pink-soft); border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; }
