@@ -142,8 +142,9 @@ export async function renderReport(el) {
     <h2>収支レポート（${esc(state.month.replace('-', '年'))}月）</h2>
     <div class="print-only report-print-meta">${esc(wage.name || 'Lumi')}${wage.storeName ? '（' + esc(wage.storeName) + '）' : ''} ／ 作成日 ${esc(new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }))}</div>
     <div class="card" id="secSummary">
-      <div class="row" style="justify-content:space-between"><span>総勤務時間</span><strong>${monthlyWorkedHours(cur)}h</strong></div>
       <div class="row" style="justify-content:space-between"><span>出勤日数</span><strong>${cur.filter((s) => !s.absent && !s.recordOnly).length}日</strong></div>
+      <div class="row" style="justify-content:space-between"><span>総勤務時間</span><strong>${monthlyWorkedHours(cur)}h</strong></div>
+      <div class="row" style="justify-content:space-between"><span>基本時給</span><strong>${yen(wage.hourlyWage || 0)}<span class="muted" style="font-weight:400"> / 時</span></strong></div>
     </div>
 
     <div class="card" id="secAnnual">
@@ -171,7 +172,7 @@ export async function renderReport(el) {
 
     ${dayPayCard}
 
-    <div class="card" id="secRank">
+    <div class="card no-print" id="secRank">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <h3 style="margin:0">歩合 TOP3</h3>
         <div class="seg" id="rankSeg">
@@ -190,7 +191,6 @@ export async function renderReport(el) {
       <label class="pdf-opt"><input type="checkbox" data-sec="secAnnual" checked> 年間推移グラフ</label>
       <label class="pdf-opt"><input type="checkbox" data-sec="secPl" checked> 収支明細（P/L）</label>
       ${showDayPay ? '<label class="pdf-opt"><input type="checkbox" data-sec="secDayPay" checked> 日払い</label>' : ''}
-      <label class="pdf-opt"><input type="checkbox" data-sec="secRank" checked> 歩合 TOP3</label>
       <button id="pdfBtn" class="btn" style="margin-top:10px">PDFで保存</button>
     </div>`;
 
