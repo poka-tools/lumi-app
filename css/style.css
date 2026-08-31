@@ -508,33 +508,40 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 
 @media print {
   /* アプリのUI（固定ヘッダー・下タブ・ドロワー・トグル等）は印刷しない。
-     特に固定ヘッダー #appbar を隠さないと先頭の見出し・カードに重なって文字が切れる。 */
+     固定ヘッダー #appbar は position:fixed のため隠さないと全ページ上部に重複印刷される。 */
   #appbar, #tabbar, #drawer, #drawerBackdrop, #splash,
   .sheet, .sheet-backdrop, .modal-backdrop, .no-print, .seg, .print-hide { display: none !important; }
   html, body { background: #fff !important; }
-  body { color: #1a1a1a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  /* 印刷はページ全幅を使う（画面の480px中央寄せ制限を解除） */
+  /* 全体を詰めて1枚に収める。基準フォントも少し小さく。 */
+  body { color: #1a1a1a !important; font-size: 10.5px; line-height: 1.45;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   #screen { padding: 0 !important; margin: 0 !important; max-width: none !important; }
   .print-only { display: block !important; }
 
-  h2 { margin: 0 0 4px !important; font-size: 20px; color: #111; }
-  .card h3 { font-size: 15px; }
-  /* 薄い灰色は紙だと読みづらいので濃くする */
+  h2 { margin: 0 0 2px !important; font-size: 15px; color: #111; }
+  .report-print-meta { font-size: 9.5px; color: #555; margin: 0 0 6px; padding-bottom: 5px; border-bottom: 1px solid #ddd; }
   .muted { color: #555 !important; }
 
-  .card { box-shadow: none !important; border: 1px solid #ccc; border-radius: 10px;
-    padding: 14px 16px; margin-bottom: 12px;
-    break-inside: avoid; page-break-inside: avoid; }
-  /* 各行はページ跨ぎで割れないように */
-  .pl-line, .pl-net, .pl-subtotal, .pl-section-head, .row { break-inside: avoid; page-break-inside: avoid; }
-  /* 金額は改行させない／長い項目名・商品名は折り返して切れないように */
-  .pl-amt, .pl-net > strong { white-space: nowrap; }
-  .pl-line > span:first-child, .row > span:first-child { min-width: 0; word-break: break-word; overflow-wrap: anywhere; }
-  /* グラフSVGは用紙幅に収める */
-  .chart-box svg, #annualChart svg { max-width: 100% !important; height: auto !important; }
+  /* カードは軽い枠のブロックにして詰める。break-inside:avoid は付けない
+     （残りスペースに入らないカードが丸ごと次ページへ飛び、大きな余白＝空白ページになるのを防ぐ）。 */
+  .card { box-shadow: none !important; border: 1px solid #ddd; border-radius: 7px;
+    padding: 7px 10px !important; margin: 0 0 7px !important; break-inside: auto; page-break-inside: auto; }
+  .card h3 { font-size: 12px; margin: 0 0 3px !important; }
 
-  .report-print-meta { font-size: 12px; color: #555; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #ddd; }
-  @page { margin: 14mm; }
+  /* 行間・余白を詰める */
+  .row { margin: 0 !important; }
+  .pl-line { padding: 1px 0 !important; }
+  .pl-line > span:first-child, .row > span:first-child { min-width: 0; padding-left: 6px; overflow-wrap: anywhere; }
+  .pl-section-head { margin: 2px 0 1px !important; font-size: 10.5px; }
+  .pl-subtotal > span:first-child { font-size: 10.5px; }
+  .pl-net { padding: 3px 0 !important; margin-top: 3px !important; break-inside: avoid; }
+  .pl-net > span { font-size: 11px !important; }
+  .pl-net > strong { font-size: 15px !important; white-space: nowrap; }
+  .pl-amt { white-space: nowrap; }
+  /* 年間グラフは低めに抑えて縦を節約 */
+  .chart-box svg, #annualChart svg { max-width: 100% !important; max-height: 135px !important; height: auto !important; }
+
+  @page { margin: 10mm; }
 }
 
 .chart-grid { stroke: #f2e6ec; stroke-width: 1; }
