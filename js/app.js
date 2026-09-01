@@ -13,6 +13,7 @@ import { esc } from './format.js';
 import { toast } from './ui/toast.js';
 import { promptUpdate } from './ui/update.js';
 import { openNotifications, unseenAnnouncements } from './ui/notifications.js';
+import { checkLapse, openLapsedModal } from './ui/lapsed.js';
 import { enforcing } from './entitlement.js';
 
 const screen = document.getElementById('screen');
@@ -122,12 +123,17 @@ function hideSplash() {
     navigator.storage.persist().catch(() => {});
   }
   const minSplash = new Promise((r) => setTimeout(r, 1100)); // 最低表示時間
+  let lapseDetected = false; // 前回有料→今回失効を検知したら起動後に案内モーダルを出す
   try {
     await loadAll();
     // ロックモード（本番有効化 or ?rctest=1）のときだけ RevenueCat の権利を取得する。
     // 通常の本番ユーザーは SDK を一切読み込まない＝ゼロ影響。失敗してもアプリは続行。
     if (enforcing()) {
-      try { const rc = await import('./rc.js'); await rc.refreshCustomerInfo(); } catch { /* 権利取得失敗は無視 */ }
+      try {
+        const rc = await import('./rc.js');
+        const active = await rc.refreshCustomerInfo();
+        lapseDetected = checkLapse(active); // 解約・支払い停止で権利が失効したかを判定
+      } catch { /* 権利取得失敗は無視 */ }
     }
     await navigate('home');
   } catch (err) {
@@ -145,6 +151,7 @@ function hideSplash() {
     hideSplash(); // 何があってもスプラッシュは必ず閉じる
   }
   maybeStartTour(); // 初回のみ目印つき使い方ツアーを表示（読み込み失敗時は profile が無いので出ない）
+  if (lapseDetected) openLapsedModal(); // 有料失効の案内（データを残す／削除する）
   initServiceWorker();
 })();
 

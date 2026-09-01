@@ -1,4 +1,4 @@
-const CACHE = 'yashoku-v151';
+const CACHE = 'yashoku-v152';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',
@@ -6,6 +6,7 @@ const ASSETS = [
   './js/app.js', './js/state.js', './js/db.js', './js/calc.js', './js/format.js',
   './js/customers-logic.js', './js/events-logic.js', './js/reminders-logic.js',
   './js/audit-logic.js', './js/version.js', './changelog.json', './js/entitlement.js',
+  './js/subscription-logic.js', './js/ui/lapsed.js',
   './js/rc.js', './js/vendor/purchases-js.mjs',
   './js/ui/pdf.js', './js/vendor/jspdf.mjs', './js/vendor/html2canvas.mjs',
   './js/ui/icons.js', './js/ui/update.js', './js/ui/notifications.js', './js/ui/paywall.js',

@@ -686,6 +686,10 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .modal-msg { font-size: 15px; line-height: 1.6; color: var(--ink); white-space: pre-wrap; }
 .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
 .modal-actions .btn { flex: 1; }
+/* 縦積みの選択肢（推奨を上・破壊的操作を下に）。 */
+.modal-actions-stack { flex-direction: column; }
+.lapsed-title { margin: 0 0 10px; font-size: 17px; text-align: center; color: var(--ink); }
+.lapsed-del { color: #f55; }
 .btn-danger { background: #f55; color: #fff; }
 /* アップデート告知ポップアップ */
 .update-head { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; color: var(--ink); }
