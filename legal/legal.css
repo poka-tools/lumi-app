@@ -1,0 +1,27 @@
+/* Lumi 法的ページ 共通スタイル（軽量・スクリプト無し） */
+:root { --pink:#ff5c8a; --ink:#2b2b33; --muted:#6b6b76; --line:#eee2e8; --bg:#fff7fb; }
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP","Segoe UI",sans-serif;
+  line-height:1.9; -webkit-text-size-adjust:100%;
+}
+.wrap { max-width:760px; margin:0 auto; padding:24px 18px 64px; }
+header.lp-head { display:flex; align-items:baseline; gap:8px; margin-bottom:8px; }
+.lp-brand { font-weight:800; color:var(--pink); font-size:20px; letter-spacing:.02em; }
+.lp-brand .spark { color:var(--pink); }
+h1 { font-size:22px; margin:18px 0 4px; }
+h2 { font-size:16px; margin:28px 0 8px; padding-left:10px; border-left:4px solid var(--pink); }
+p, li { font-size:14.5px; color:var(--ink); }
+.muted { color:var(--muted); font-size:12.5px; }
+a { color:var(--pink); }
+table.info { width:100%; border-collapse:collapse; margin:8px 0 4px; }
+table.info th, table.info td { text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--line); font-size:14px; }
+table.info th { width:34%; background:#fff; font-weight:700; white-space:nowrap; }
+table.info td { background:#fff; }
+ol, ul { padding-left:1.3em; }
+.card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin:12px 0; }
+.nav { display:flex; flex-wrap:wrap; gap:10px; margin:20px 0 8px; }
+.nav a { display:inline-block; background:#fff; border:1px solid var(--line); border-radius:999px; padding:6px 14px; font-size:13px; text-decoration:none; }
+footer.lp-foot { margin-top:40px; padding-top:16px; border-top:1px solid var(--line); }
+.back { display:inline-block; margin-top:8px; font-size:13px; }
