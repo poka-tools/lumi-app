@@ -1,4 +1,4 @@
-const CACHE = 'yashoku-v146';
+const CACHE = 'yashoku-v147';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',
@@ -12,6 +12,7 @@ const ASSETS = [
   './js/ui/home.js', './js/ui/calendar.js', './js/ui/record.js',
   './js/ui/report.js', './js/ui/settings.js', './js/ui/donut.js',
   './js/ui/backfields.js', './js/ui/todos.js', './js/ui/customers.js',
+  './js/ui/mypage.js',
   './js/ui/toast.js', './js/ui/events.js', './js/ui/confirm.js',
   './js/ui/reminders.js', './js/ui/onboarding.js', './js/ui/help.js',
   './js/ui/backitems.js', './js/ui/itempicker.js', './js/ui/premium-gate.js',

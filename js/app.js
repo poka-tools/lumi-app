@@ -6,6 +6,7 @@ import { renderReport } from './ui/report.js';
 import { renderSettings } from './ui/settings.js';
 import { renderBackItems } from './ui/backitems.js';
 import { renderCustomers } from './ui/customers.js';
+import { renderMyPage } from './ui/mypage.js';
 import { renderHelp } from './ui/help.js';
 import { maybeStartTour, startTour } from './ui/onboarding.js';
 import { esc } from './format.js';
@@ -19,14 +20,14 @@ const appbar = document.getElementById('appbar');
 const renderers = {
   home: renderHome, calendar: renderCalendar, record: renderRecord,
   report: renderReport, customers: renderCustomers, settings: renderSettings,
-  backitems: renderBackItems, help: renderHelp,
+  backitems: renderBackItems, help: renderHelp, mypage: renderMyPage,
 };
 // 下タブのハイライト用（専用サブページは親タブを点灯させる）。
 const NAV_TAB = { backitems: 'settings' };
 
 // 画面ごとのヘッダー。ホームと主要タブは「Lumi」ブランドバー、
 // メニューから開く設定・ヘルプ・記録は「‹ 戻る」バー（ピンクグラデ）。
-const BRAND_TABS = new Set(['home', 'calendar', 'report', 'customers', 'backitems']);
+const BRAND_TABS = new Set(['home', 'calendar', 'report', 'customers', 'backitems', 'mypage']);
 const BACK_TITLES = { settings: '設定', help: 'ヘルプ', record: '記録' };
 
 function brandBarHtml() {
@@ -98,7 +99,7 @@ drawer.addEventListener('click', async (e) => {
   closeDrawer();
   if (go === 'guide') { startTour(); return; }
   if (go === 'backup') {
-    await navigate('settings');
+    await navigate('mypage');
     const bc = document.getElementById('backupCard');
     if (bc) { bc.open = true; bc.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     return;
