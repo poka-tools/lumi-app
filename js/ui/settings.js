@@ -96,8 +96,6 @@ export async function renderSettings(el) {
       </div>
     </div>
 
-    <button class="btn btn-save" id="saveProfile">保存する</button>
-
     <div class="set-group">
       <div class="set-group-title"><span>歩合の管理</span></div>
       <div class="set-rows">
@@ -124,31 +122,10 @@ export async function renderSettings(el) {
 
   el.querySelector('#goBackItems').onclick = () => navigate('backitems');
 
-  // 日払い管理は有料。ロック中に「なし」以外を選んだら元に戻してペイウォールを出す。
-  const dpSel = el.querySelector('#dayPayType');
-  if (dpSel) dpSel.onchange = () => {
-    if (dpSel.value !== 'none' && !ensurePremium()) dpSel.value = 'none';
-  };
-
-  // 「レポートに日払いの差額を表示する」は保存ボタン不要＝切り替えた瞬間に即保存・反映。
-  const showDiff = el.querySelector('#showDayPayDiff');
-  if (showDiff) showDiff.onchange = async () => {
-    await saveProfile({ ...state.profile, showDayPayDiff: showDiff.checked });
-    await loadAll();
-    toast(showDiff.checked ? 'レポートに日払いの差額を表示します' : '差額の表示をオフにしました');
-  };
-
-  // 深夜手当トグルOFFのときは配下の入力欄を淡色・操作不可に。
-  const npRows = el.querySelector('#npRows');
-  const npToggle = el.querySelector('#npEnabled');
-  const syncNp = () => npRows.classList.toggle('is-off', !npToggle.checked);
-  npToggle.onchange = syncNp;
-  syncNp();
-
-  // 「保存する」はプロフィール・時給・深夜手当・初期値・日払い・リマインダー・表示設定を一括保存。
-  // 歩合項目／お知らせは変更時に即保存されるためこのボタンの対象外。
-  el.querySelector('#saveProfile').onclick = async () => {
-    const num = (id) => Number(el.querySelector(id).value) || 0;
+  // 「保存する」ボタンは廃止。各項目を変更した瞬間に自動保存する。
+  // 歩合項目／お知らせは元々変更時に即保存されるため対象外。
+  const num = (id) => Number(el.querySelector(id).value) || 0;
+  async function saveAll() {
     await saveProfile({
       ...state.profile,
       name: el.querySelector('#name').value,
@@ -177,6 +154,25 @@ export async function renderSettings(el) {
     });
     await loadAll();
     toast('保存しました');
+  }
+
+  // 変更で自動保存する項目（テキスト・数値・時刻・トグル・選択）。
+  ['name', 'store', 'wage', 'npStart', 'npEnd', 'npAdd', 'defStart', 'defEnd', 'defBreak',
+    'dayPayCap', 'showDayPayDiff', 'shiftRemEnabled', 'shiftRemLead', 'campRemEnabled', 'campRemLead']
+    .forEach((id) => { const f = el.querySelector('#' + id); if (f) f.onchange = saveAll; });
+
+  // 深夜手当トグル：配下の入力欄の淡色表示を切り替えつつ自動保存。
+  const npRows = el.querySelector('#npRows');
+  const npToggle = el.querySelector('#npEnabled');
+  const syncNp = () => npRows.classList.toggle('is-off', !npToggle.checked);
+  npToggle.onchange = () => { syncNp(); saveAll(); };
+  syncNp();
+
+  // 日払いの受け取り方は有料。ロック中に「なし」以外を選んだら戻してペイウォール。通れば保存。
+  const dpSel = el.querySelector('#dayPayType');
+  if (dpSel) dpSel.onchange = () => {
+    if (dpSel.value !== 'none' && !ensurePremium()) { dpSel.value = 'none'; return; }
+    saveAll();
   };
 
   const renderAnns = () => {
