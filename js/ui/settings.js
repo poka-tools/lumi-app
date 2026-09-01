@@ -10,6 +10,7 @@ import { startTour } from './onboarding.js';
 import { icon } from './icons.js';
 import { openPaywall } from './paywall.js';
 import { ensurePremium } from './premium-gate.js';
+import { rcTestMode } from '../entitlement.js';
 
 // リマインダーの「何日前から」選択肢（当日〜1週間前）。
 const LEAD_OPTS = [[0, '当日'], [1, '1日前'], [2, '2日前'], [3, '3日前'], [7, '1週間前']];
@@ -209,6 +210,7 @@ export async function renderSettings(el) {
     </button>
     <button class="btn btn-ghost" id="restorePurchase" type="button" style="margin-top:8px">${icon('refresh')} 購入を復元</button>
     <button class="btn btn-ghost" id="manageSub" type="button" style="margin-top:8px">${icon('gear')} サブスクを管理／解約する</button>
+    ${rcTestMode() ? `<button class="btn btn-ghost" id="rcTestReset" type="button" style="margin-top:8px;color:#b0171f">${icon('trash')} テスト: RC利用者IDをリセット</button>` : ''}
 
     <div class="card app-info">
       <div class="app-info-row">
@@ -262,6 +264,18 @@ export async function renderSettings(el) {
       btn.disabled = false;
       btn.innerHTML = orig;
     }
+  };
+  // テスト用（?rctest=1 のときだけ表示）：RC利用者IDを消して未購入状態に戻す。
+  // アプリの「データ削除」は IndexedDB のみ消し localStorage は残すため、RC識別子はこれで消す。
+  const rcReset = el.querySelector('#rcTestReset');
+  if (rcReset) rcReset.onclick = async () => {
+    const ok = await confirmModal('テスト用の購入状態（RC利用者ID）を消して\n未購入の状態に戻します。よろしいですか？',
+      { okLabel: 'リセットする', cancelLabel: 'やめる', danger: true });
+    if (!ok) return;
+    // rc.js の APPUSER_KEY / EMAIL_KEY と同一のキー。SDKを読み込まずに直接消す。
+    try { localStorage.removeItem('lumi_rc_appuser'); localStorage.removeItem('lumi_rc_email'); } catch { /* 無視 */ }
+    toast('RC利用者IDをリセットしました');
+    setTimeout(() => location.reload(), 800);
   };
   el.querySelector('#goBackItems').onclick = () => navigate('backitems');
 
