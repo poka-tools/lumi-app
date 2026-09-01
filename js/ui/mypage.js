@@ -90,16 +90,18 @@ export async function renderMyPage(el) {
       </div>
     </details>
 
-    <button class="card premium-cta" id="openPaywall" type="button">
-      <div class="premium-cta-main">
-        <span class="premium-cta-title"><span class="pw-spark">✦</span> Lumi Premium</span>
-        <span class="premium-cta-sub">顧客管理・イベント・詳細レポートを解放（¥500/月）</span>
-      </div>
-      <span class="premium-cta-chev">${icon('chevron')}</span>
-    </button>
-    <button class="btn btn-ghost" id="restorePurchase" type="button" style="margin-top:8px">${icon('refresh')} 購入を復元</button>
-    <button class="btn btn-ghost" id="manageSub" type="button" style="margin-top:8px">${icon('gear')} サブスクを管理／解約する</button>
-    ${rcTestMode() ? `<button class="btn btn-ghost" id="rcTestReset" type="button" style="margin-top:8px;color:#b0171f">${icon('trash')} テスト: RC利用者IDをリセット</button>` : ''}
+    <div class="mp-account">
+      <button class="card premium-cta" id="openPaywall" type="button">
+        <div class="premium-cta-main">
+          <span class="premium-cta-title"><span class="pw-spark">✦</span> Lumi Premium</span>
+          <span class="premium-cta-sub">顧客管理・イベント・詳細レポートを解放（¥500/月）</span>
+        </div>
+        <span class="premium-cta-chev">${icon('chevron')}</span>
+      </button>
+      <button class="btn btn-ghost" id="restorePurchase" type="button">${icon('refresh')} 購入を復元</button>
+      <button class="btn btn-ghost" id="manageSub" type="button">${icon('gear')} サブスクを管理／解約する</button>
+      ${rcTestMode() ? `<button class="btn btn-ghost" id="rcTestReset" type="button" style="color:#b0171f">${icon('trash')} テスト: RC利用者IDをリセット</button>` : ''}
+    </div>
 
     <div class="card app-info">
       <div class="app-info-row">

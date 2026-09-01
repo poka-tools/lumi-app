@@ -727,6 +727,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .premium-cta-sub { font-size: 11.5px; color: var(--muted); }
 .premium-cta-chev { color: var(--pink); display: flex; }
 .premium-cta-chev .ic { width: 18px; height: 18px; }
+/* マイページのアカウント系ボタン群：均一な余白でまとめる（枠の密着・重なり防止） */
+.mp-account { display: flex; flex-direction: column; gap: 10px; margin: 4px 0 14px; }
+.mp-account > .card { margin-bottom: 0; }
 .pw-spark { color: var(--pink); font-weight: 900; }
 /* ペイウォール */
 .pw-card { max-width: 400px; padding: 22px 20px 18px; position: relative; text-align: left; }
