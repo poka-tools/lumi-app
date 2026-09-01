@@ -208,6 +208,7 @@ export async function renderSettings(el) {
       <span class="premium-cta-chev">${icon('chevron')}</span>
     </button>
     <button class="btn btn-ghost" id="restorePurchase" type="button" style="margin-top:8px">${icon('refresh')} 購入を復元</button>
+    <button class="btn btn-ghost" id="manageSub" type="button" style="margin-top:8px">${icon('gear')} サブスクを管理／解約する</button>
 
     <div class="card app-info">
       <div class="app-info-row">
@@ -236,6 +237,28 @@ export async function renderSettings(el) {
     } catch (err) {
       toast('復元を確認できませんでした：\n' + ((err && err.message) || err));
     } finally {
+      btn.disabled = false;
+      btn.innerHTML = orig;
+    }
+  };
+  el.querySelector('#manageSub').onclick = async (e) => {
+    const btn = e.currentTarget;
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = '確認中…';
+    try {
+      const rc = await import('../rc.js'); // 重いSDKはここで初めて読み込む
+      const url = await rc.getManagementUrl();
+      if (url) {
+        // 解約はRevenueCat/Stripeのホスト画面で行う（外部ページへ遷移）。
+        location.href = url;
+      } else {
+        toast('有効なサブスクリプションが\n見つかりませんでした');
+        btn.disabled = false;
+        btn.innerHTML = orig;
+      }
+    } catch (err) {
+      toast('管理ページを開けませんでした：\n' + ((err && err.message) || err));
       btn.disabled = false;
       btn.innerHTML = orig;
     }

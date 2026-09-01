@@ -71,6 +71,13 @@ export async function refreshCustomerInfo() {
   return active;
 }
 
+// サブスクの管理／解約ページURL（RevenueCat/Stripeホスト）を取得する。
+// 最新の顧客情報を取り直してから managementURL を返す。無ければ null。
+export async function getManagementUrl() {
+  await refreshCustomerInfo();
+  return (_cachedInfo && _cachedInfo.managementURL) || null;
+}
+
 // default オファリングの monthly パッケージを取得。
 async function monthlyPackage() {
   const p = ensureConfigured();
