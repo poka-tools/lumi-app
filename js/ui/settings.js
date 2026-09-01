@@ -130,6 +130,14 @@ export async function renderSettings(el) {
     if (dpSel.value !== 'none' && !ensurePremium()) dpSel.value = 'none';
   };
 
+  // 「レポートに日払いの差額を表示する」は保存ボタン不要＝切り替えた瞬間に即保存・反映。
+  const showDiff = el.querySelector('#showDayPayDiff');
+  if (showDiff) showDiff.onchange = async () => {
+    await saveProfile({ ...state.profile, showDayPayDiff: showDiff.checked });
+    await loadAll();
+    toast(showDiff.checked ? 'レポートに日払いの差額を表示します' : '差額の表示をオフにしました');
+  };
+
   // 深夜手当トグルOFFのときは配下の入力欄を淡色・操作不可に。
   const npRows = el.querySelector('#npRows');
   const npToggle = el.querySelector('#npEnabled');
