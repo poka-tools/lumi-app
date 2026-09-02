@@ -880,7 +880,8 @@ body { padding-top: calc(54px + env(safe-area-inset-top)); }
 .drawer-close { border: none; background: none; font-size: 20px; color: var(--muted); cursor: pointer; padding: 4px 8px; }
 .drawer-nav { display: flex; flex-direction: column; padding: 8px 0; }
 .drawer-item { display: flex; align-items: center; gap: 14px; padding: 15px 20px; border: none;
-  background: none; font-size: 15px; color: var(--ink); text-align: left; cursor: pointer; width: 100%; }
+  background: none; font-size: 15px; color: var(--ink); text-align: left; cursor: pointer; width: 100%;
+  box-sizing: border-box; text-decoration: none; }
 .drawer-item:active { background: var(--pink-soft); }
 .di-ico { font-size: 19px; width: 24px; text-align: center; flex: 0 0 auto; }
 

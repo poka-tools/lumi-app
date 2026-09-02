@@ -95,6 +95,8 @@ drawer.addEventListener('click', async (e) => {
   const item = e.target.closest('[data-go]');
   const closeBtn = e.target.closest('[data-drawer-close]');
   if (closeBtn) { closeDrawer(); return; }
+  // 外部リンク（アンケート等）はドロワーを閉じるだけ。遷移はブラウザ既定（別タブ）に任せる。
+  if (e.target.closest('a[href]')) { closeDrawer(); return; }
   if (!item) return;
   const go = item.dataset.go;
   closeDrawer();
