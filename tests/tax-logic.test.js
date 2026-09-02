@@ -46,7 +46,9 @@ test('occupationBackItems: 職種ごとの件数と中身', () => {
   let n = 0;
   const gen = () => 'id' + (n++);
   assert.equal(occupationBackItems('concafe', gen, 0).length, 5);
-  assert.equal(occupationBackItems('idol', gen, 0).length, 4);
+  assert.equal(occupationBackItems('cabakura', gen, 0).length, 5);
+  assert.equal(occupationBackItems('girlsbar', gen, 0).length, 5);
+  assert.equal(occupationBackItems('idol', gen, 0).length, 5);
   assert.equal(occupationBackItems('other', gen, 0).length, 0);
   const items = occupationBackItems('cabakura', gen, 3);
   assert.equal(items[0].order, 3); // startOrder から連番
