@@ -1,10 +1,11 @@
-const CACHE = 'yashoku-v159';
+const CACHE = 'yashoku-v160';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',
   './assets/logo.png', './assets/icon-192.png', './assets/icon-512.png',
   './js/app.js', './js/state.js', './js/db.js', './js/calc.js', './js/format.js',
   './js/customers-logic.js', './js/events-logic.js', './js/reminders-logic.js',
+  './js/tax-logic.js', './js/presets.js',
   './js/audit-logic.js', './js/version.js', './changelog.json', './js/entitlement.js',
   './js/subscription-logic.js', './js/ui/lapsed.js',
   './js/rc.js', './js/vendor/purchases-js.mjs',

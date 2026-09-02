@@ -10,6 +10,7 @@ import { icon } from './icons.js';
 import { toast } from './toast.js';
 import { confirmModal } from './confirm.js';
 import { ensurePremium } from './premium-gate.js';
+import { OCCUPATIONS, occupationBackItems, occupationLabel } from '../presets.js';
 
 // 無料プランで登録できる歩合項目の上限（これを超える追加・分類機能は有料）。
 const FREE_BACKITEM_LIMIT = 5;
@@ -63,6 +64,7 @@ export async function renderBackItems(el) {
         <button class="bk-action primary" id="bkAddItem" type="button">${icon('plus')} 項目を追加</button>
         <button class="bk-action ghost" id="bkManageCats" type="button">${icon('folder')} 分類の管理</button>
       </div>
+      <button class="bk-template-link" id="bkTemplate" type="button">${icon('grid')} 業種テンプレートから項目を追加</button>
 
       <div class="bk-searchbar">
         <span class="bk-search-ic">${icon('search')}</span>
@@ -99,6 +101,7 @@ export async function renderBackItems(el) {
   el.querySelector('#bkBack').onclick = () => navigate('settings');
   el.querySelector('#bkAddItem').onclick = () => openEditor(null, activeCatForNew());
   el.querySelector('#bkManageCats').onclick = () => { if (ensurePremium()) openCategoryManager(); };
+  el.querySelector('#bkTemplate').onclick = () => openTemplatePicker();
   el.querySelector('#bkSelect').onclick = () => enterSelectMode();
   el.querySelector('#bkSelCancel').onclick = () => exitSelectMode();
   el.querySelector('#bkSelAll').onclick = () => toggleSelectAll();
@@ -206,8 +209,10 @@ export async function renderBackItems(el) {
         <div class="bk-empty-ic">${icon('clipboard')}</div>
         <p>まだ歩合項目がありません。</p>
         <button class="btn bk-empty-add" id="bkEmptyAdd" type="button">${icon('plus')} 最初の項目を登録</button>
+        <button class="btn btn-ghost bk-empty-tpl" id="bkEmptyTpl" type="button">${icon('grid')} 業種テンプレートから追加</button>
       </div>`;
       box.querySelector('#bkEmptyAdd').onclick = () => openEditor(null, '');
+      box.querySelector('#bkEmptyTpl').onclick = () => openTemplatePicker();
       return;
     }
     let { map, order } = grouped(items);
@@ -479,6 +484,38 @@ export async function renderBackItems(el) {
         toast('削除しました');
       };
     }
+  }
+
+  // ---- 業種テンプレート選択シート ----
+  function openTemplatePicker() {
+    const { sheet, close } = openSheet(`
+      <h3 class="bk-sheet-title">業種テンプレートから追加</h3>
+      <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 12px">お仕事を選ぶと、よく使う歩合項目をまとめて追加します。金額は追加後に各項目で設定できます。</p>
+      <div class="bk-occ-list">
+        ${OCCUPATIONS.filter((o) => o.key !== 'other').map((o) => `
+          <button class="bk-occ-btn" type="button" data-occ="${esc(o.key)}">
+            <span class="bk-occ-emoji">${o.emoji}</span>
+            <span class="bk-occ-label">${esc(o.label)}</span>
+            <span class="bk-occ-chev">${icon('chevron')}</span>
+          </button>`).join('')}
+      </div>`);
+    sheet.querySelectorAll('.bk-occ-btn').forEach((b) => {
+      b.onclick = async () => {
+        const occ = b.dataset.occ;
+        const defs = occupationBackItems(occ, uid, state.backItems.length);
+        if (!defs.length) { close(); return; }
+        // 無料枠（5個）を超える一括追加は有料。
+        if (state.backItems.length + defs.length > FREE_BACKITEM_LIMIT && !ensurePremium()) return;
+        const ok = await confirmModal(
+          `「${occupationLabel(occ)}」のテンプレートから${defs.length}件の歩合項目を追加しますか？`,
+          { okLabel: '追加する', danger: false });
+        if (!ok) return;
+        for (const it of defs) await put('backItems', it);
+        close();
+        await refresh();
+        toast(`${defs.length}件の項目を追加しました`);
+      };
+    });
   }
 
   // ---- 分類（グループ）の管理シート ----

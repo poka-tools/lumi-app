@@ -1,15 +1,18 @@
 // 初回起動時の使い方ツアー。実際の画面要素（設定・各タブ）を目印でハイライトしながら案内する。
 // いつでもスキップ可能・ホームのヘルプや設定からいつでも再表示できる。
-import { state } from '../state.js';
+import { state, loadAll } from '../state.js';
 import { icon } from './icons.js';
-import { saveProfile } from '../db.js';
+import { saveProfile, put, uid } from '../db.js';
 import { navigate } from '../app.js';
+import { OCCUPATIONS, occupationBackItems } from '../presets.js';
 
 // target を持つステップは、その要素をスポットライトで照らして吹き出しを近くに出す。
 // target 無しのステップ（ようこそ・完了）は中央に表示。
 const STEPS = [
   { img: 'assets/icon-192.png', title: 'Lumiへようこそ',
     body: 'お給料・歩合・出勤日をまるっと管理できるアプリです。画面の<b>目印</b>に沿って、使い方をかんたんにご案内します。データはあなたのスマホの中だけに保存され、外部には送信されません。' },
+  { occupation: true, title: 'あなたのお仕事は？',
+    body: 'お仕事に合わせて、よく使う歩合項目（チェキ・指名・シャンパンなど）をあらかじめ用意します。金額はあとから設定できます。' },
   { target: '#homeSettingsBtn', emoji: icon('gear', { size: '46px' }), title: 'まず時給を設定',
     body: 'ホーム下の <b>設定</b> から、基本時給・深夜手当・歩合項目を登録できます。設定しておくと、記録するだけで金額が自動計算されます。' },
   { target: '#tabbar button[data-tab="calendar"]', emoji: icon('calendar', { size: '46px' }), title: 'カレンダーで出勤を記録',
@@ -84,10 +87,45 @@ function position() {
   callout.style.visibility = 'visible';
 }
 
+// 職種を選んだら、その業種のプリセット歩合項目をまとめて作成して次へ進む。
+// すでに歩合項目がある場合は重複作成せず、職種の記録だけ残す。
+async function applyOccupation(occ) {
+  try {
+    if (occ !== 'other' && (state.backItems || []).length === 0) {
+      for (const it of occupationBackItems(occ, uid, 0)) await put('backItems', it);
+    }
+    state.profile = { ...state.profile, occupation: occ };
+    await saveProfile(state.profile);
+    await loadAll();
+  } catch { /* 失敗してもツアーは続行 */ }
+  idx++; render();
+}
+
 function render() {
   const s = STEPS[idx];
   const last = idx === STEPS.length - 1;
   const dots = STEPS.map((_, i) => `<span class="onb-dot${i === idx ? ' active' : ''}"></span>`).join('');
+
+  // 職種選択ステップ（中央表示・5択ボタン）。
+  if (s.occupation) {
+    callout.innerHTML = `
+      <button class="onb-skip" type="button" id="onbSkip">スキップ</button>
+      <div class="onb-emoji">${icon('bag', { size: '46px' })}</div>
+      <h2 class="onb-title">${s.title}</h2>
+      <p class="onb-body">${s.body}</p>
+      <div class="onb-occ">
+        ${OCCUPATIONS.map((o) => `<button class="onb-occ-btn" type="button" data-occ="${o.key}">
+          <span class="onb-occ-emoji">${o.emoji}</span><span>${o.label}</span></button>`).join('')}
+      </div>
+      <div class="onb-dots">${dots}</div>
+      <button class="onb-later" type="button" id="onbOccSkip">選ばずに進む</button>`;
+    callout.querySelector('#onbSkip').onclick = () => finish(false);
+    callout.querySelectorAll('.onb-occ-btn').forEach((b) => { b.onclick = () => applyOccupation(b.dataset.occ); });
+    callout.querySelector('#onbOccSkip').onclick = () => { idx++; render(); };
+    position();
+    return;
+  }
+
   callout.innerHTML = `
     <button class="onb-skip" type="button" id="onbSkip">スキップ</button>
     ${s.img

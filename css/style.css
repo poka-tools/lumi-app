@@ -473,6 +473,42 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .bk-empty-ic { width: 44px; height: 44px; margin: 0 auto 10px; color: #d9c7cf; }
 .bk-empty-ic .ic { width: 44px; height: 44px; }
 .bk-empty-add { width: auto; display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; }
+.bk-empty-tpl { width: auto; display: inline-flex; align-items: center; gap: 6px; margin: 10px 0 0 8px; }
+
+/* 業種テンプレートへの導線 */
+.bk-template-link { display: inline-flex; align-items: center; gap: 6px; background: none; border: none;
+  color: var(--pink); font-size: 13px; font-weight: 700; cursor: pointer; padding: 2px 2px; margin: 0 0 14px; }
+.bk-template-link .ic { width: 16px; height: 16px; }
+.bk-occ-list { display: flex; flex-direction: column; gap: 8px; }
+.bk-occ-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 14px;
+  background: #fff; border: 1.5px solid var(--pink-soft); border-radius: 14px; cursor: pointer;
+  font-size: 15px; font-weight: 700; color: var(--ink); text-align: left; }
+.bk-occ-btn:active { background: var(--pink-soft); }
+.bk-occ-emoji { font-size: 22px; flex: 0 0 auto; }
+.bk-occ-label { flex: 1; min-width: 0; }
+.bk-occ-chev { width: 18px; height: 18px; color: #c9b8c0; flex: 0 0 auto; }
+
+/* 年収の壁アラート（ホーム上部） */
+.wall-card { border: 1.5px solid transparent; }
+.wall-card.wall-near { background: #fff7e6; border-color: #ffdca1; }
+.wall-card.wall-over { background: #ffecec; border-color: #ffb3b3; }
+.wall-head { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 15px; }
+.wall-card.wall-near .wall-head { color: #b8791b; }
+.wall-card.wall-over .wall-head { color: #d8434a; }
+.wall-head .ic { width: 18px; height: 18px; }
+.wall-detail { font-size: 13px; color: var(--ink); margin-top: 6px; line-height: 1.6; }
+.wall-bar { height: 8px; border-radius: 999px; background: #fff; overflow: hidden; margin: 10px 0 6px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.05); }
+.wall-bar-fill { height: 100%; border-radius: 999px; }
+.wall-card.wall-near .wall-bar-fill { background: #f2a93b; }
+.wall-card.wall-over .wall-bar-fill { background: #e5484d; }
+.wall-note { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+/* オンボーディングの職種選択ボタン */
+.onb-occ { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 4px; }
+.onb-occ-btn { display: flex; align-items: center; gap: 8px; padding: 12px 12px; border-radius: 12px;
+  border: 1.5px solid var(--pink-soft); background: #fff; color: var(--ink); font-size: 14px; font-weight: 700; cursor: pointer; }
+.onb-occ-btn:active { background: var(--pink-soft); }
+.onb-occ-emoji { font-size: 20px; }
 .bk-nores { text-align: center; padding: 20px 0; }
 
 /* 編集シート・分類管理シート */

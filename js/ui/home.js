@@ -12,7 +12,8 @@ import { renderReminders } from './reminders.js';
 import { navigate } from '../app.js';
 import { icon } from './icons.js';
 import { birthdaysInMonth, visitsInMonth } from '../customers-logic.js';
-import { eventIncomeInMonth } from '../events-logic.js';
+import { eventIncomeInMonth, eventIncomeInYear } from '../events-logic.js';
+import { annualGrossIncome, wallStatus } from '../tax-logic.js';
 
 export async function renderHome(el) {
   const wage = state.profile;
@@ -45,6 +46,29 @@ export async function renderHome(el) {
   const todayAmount = todayShift ? shiftTotal(wage, items, todayShift) : 0;
 
   const monthLabel = state.month.replace('-', '年') + '月';
+
+  // 年収の壁アラート：設定ONで、今年の収入（額面）が壁に近い/超えたときだけ表示。
+  let wallCard = '';
+  const iw = state.profile.incomeWall || {};
+  if (iw.enabled && Number(iw.threshold) > 0) {
+    const year = new Date().getFullYear();
+    const eventYear = eventIncomeInYear(state.reservations, state.events, year);
+    const yearInc = annualGrossIncome(state.profile, items, state.shifts, year, eventYear);
+    const w = wallStatus(yearInc, iw.threshold);
+    if (w.over || w.near) {
+      const cls = w.over ? 'wall-over' : 'wall-near';
+      const head = w.over ? '年収の壁を超えました' : '年収の壁が近づいています';
+      const detail = w.over
+        ? `${year}年の収入 <strong>${yen(w.income)}</strong> が、壁 ${yen(w.threshold)} を <strong>${yen(-w.remaining)}</strong> 超えています`
+        : `${year}年の収入 <strong>${yen(w.income)}</strong>（壁 ${yen(w.threshold)} まであと <strong>${yen(w.remaining)}</strong>・${w.pct}%）`;
+      wallCard = `<div class="card wall-card ${cls}">
+        <div class="wall-head">${icon('warning')} ${head}</div>
+        <div class="wall-detail">${detail}</div>
+        <div class="wall-bar"><div class="wall-bar-fill" style="width:${Math.min(100, w.pct)}%"></div></div>
+        <div class="wall-note">扶養や税金の目安です（あくまで概算）。詳しくは設定で調整できます。</div>
+      </div>`;
+    }
+  }
 
   // 本日の予定：出勤の行（状態でラベル/値を出し分け）
   let shiftRow;
@@ -114,6 +138,8 @@ export async function renderHome(el) {
         <div><span class="muted">総勤務時間</span><strong>${hours}h</strong></div>
       </div>
     </div>
+
+    ${wallCard}
 
     <div id="reminders"></div>
     <div id="reminder"></div>

@@ -157,6 +157,15 @@ export function eventIncomeInMonth(reservations, events, month) {
   }, 0);
 }
 
+// 指定年(YYYY)の対応済みイベント歩合の合計（年収の壁アラート用）。
+export function eventIncomeInYear(reservations, events, year) {
+  const prefix = `${year}-`;
+  return (reservations || []).reduce((s, r) => {
+    if (!r.done) return s;
+    return reservationDate(r, events).startsWith(prefix) ? s + reservationBack(r) : s;
+  }, 0);
+}
+
 // 指定月(YYYY-MM)の対応済み歩合を「イベント名ごと＋明細（商品名別）」で返す（レポートの別枠用）。
 // 返り値: [{ eventId, name, total, items: [{ label, count, amount }] }]（金額降順・歩合0は除外）。
 // 全予約の全商品アイテムを走査し、同じ商品名は数量・金額をまとめて合算する。

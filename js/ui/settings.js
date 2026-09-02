@@ -74,6 +74,30 @@ export async function renderSettings(el) {
     </div>
 
     <div class="set-group">
+      <div class="set-group-title"><span>${icon('warning')} 年収の壁アラート</span>
+        <label class="switch"><input id="wallEnabled" type="checkbox" ${p.incomeWall.enabled ? 'checked' : ''}><span class="switch-slider"></span></label>
+      </div>
+      <p class="set-desc">今年の収入（額面）が設定した金額に近づく・超えると、ホームでお知らせします。扶養や税金の目安にどうぞ（あくまで概算です）。</p>
+      <div class="set-rows" id="wallRows">
+        <div class="set-row"><span class="set-ico">${icon('yen')}</span><span class="set-label">壁の金額（円）</span>
+          <input class="set-val" id="wallThreshold" type="number" inputmode="numeric" list="wallPresets" placeholder="1030000" value="${Number(p.incomeWall.threshold) || ''}">
+          <datalist id="wallPresets"><option value="1000000"></option><option value="1030000"></option><option value="1060000"></option><option value="1300000"></option><option value="1500000"></option></datalist></div>
+      </div>
+      <div class="set-hint">例：103万の壁＝1030000／130万の壁＝1300000</div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-group-title"><span>${icon('note')} 源泉徴収</span>
+        <label class="switch"><input id="whEnabled" type="checkbox" ${p.withholding.enabled ? 'checked' : ''}><span class="switch-slider"></span></label>
+      </div>
+      <p class="set-desc">報酬から源泉徴収される分（既定10.21%）を、レポートの手取りから自動で差し引いて表示します。確定申告で還付される場合の目安にもなります。</p>
+      <div class="set-rows" id="whRows">
+        <div class="set-row"><span class="set-ico">％</span><span class="set-label">源泉徴収率（％）</span>
+          <input class="set-val" id="whRate" type="number" inputmode="decimal" step="0.01" placeholder="10.21" value="${Number(p.withholding.rate) || ''}"></div>
+      </div>
+    </div>
+
+    <div class="set-group">
       <div class="set-group-title"><span>${icon('bell')} リマインダー通知</span></div>
       <p class="set-desc">アプリを開いたとき、ホーム画面に念押しのお知らせを出します（端末のプッシュ通知は出ません）。</p>
       <div class="set-rows">
@@ -151,6 +175,14 @@ export async function renderSettings(el) {
         enabled: el.querySelector('#campRemEnabled').checked,
         leadDays: Number(el.querySelector('#campRemLead').value) || 0,
       },
+      incomeWall: {
+        enabled: el.querySelector('#wallEnabled').checked,
+        threshold: num('#wallThreshold'),
+      },
+      withholding: {
+        enabled: el.querySelector('#whEnabled').checked,
+        rate: Number(el.querySelector('#whRate').value) || 10.21,
+      },
     });
     await loadAll();
     toast('保存しました');
@@ -158,8 +190,21 @@ export async function renderSettings(el) {
 
   // 変更で自動保存する項目（テキスト・数値・時刻・トグル・選択）。
   ['name', 'store', 'wage', 'npStart', 'npEnd', 'npAdd', 'defStart', 'defEnd', 'defBreak',
-    'dayPayCap', 'showDayPayDiff', 'shiftRemEnabled', 'shiftRemLead', 'campRemEnabled', 'campRemLead']
+    'dayPayCap', 'showDayPayDiff', 'shiftRemEnabled', 'shiftRemLead', 'campRemEnabled', 'campRemLead',
+    'wallEnabled', 'wallThreshold', 'whEnabled', 'whRate']
     .forEach((id) => { const f = el.querySelector('#' + id); if (f) f.onchange = saveAll; });
+
+  // 年収の壁／源泉徴収：トグルOFF時は配下の入力欄を淡色に。
+  const syncDim = (rowsId, toggleId) => {
+    const rows = el.querySelector('#' + rowsId), tg = el.querySelector('#' + toggleId);
+    if (rows && tg) rows.classList.toggle('is-off', !tg.checked);
+  };
+  const wallTg = el.querySelector('#wallEnabled');
+  wallTg.onchange = () => { syncDim('wallRows', 'wallEnabled'); saveAll(); };
+  const whTg = el.querySelector('#whEnabled');
+  whTg.onchange = () => { syncDim('whRows', 'whEnabled'); saveAll(); };
+  syncDim('wallRows', 'wallEnabled');
+  syncDim('whRows', 'whEnabled');
 
   // 深夜手当トグル：配下の入力欄の淡色表示を切り替えつつ自動保存。
   const npRows = el.querySelector('#npRows');

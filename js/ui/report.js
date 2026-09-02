@@ -1,6 +1,7 @@
 import { state, shiftsOfMonth } from '../state.js';
 import { icon } from './icons.js';
 import { plStatement, annualSeries, monthlyWorkedHours, backRanking, dayPaySummary } from '../calc.js';
+import { withholdingTax } from '../tax-logic.js';
 import { yen, signedYen, esc } from '../format.js';
 import { eventIncomeInMonth, eventIncentiveDetail, eventBackRanking } from '../events-logic.js';
 import { isPremium } from '../entitlement.js';
@@ -42,6 +43,10 @@ function drawReport(el) {
   const incentiveTotalAll = pl.incentiveTotal + eventInc;
   const grossIncomeAll = pl.grossIncome + eventInc;
   const netAll = pl.net + eventInc;
+  // 源泉徴収（設定ON時）：額面（収入合計）に率をかけて手取りから差し引く。
+  const wh = state.profile.withholding || {};
+  const whTax = wh.enabled ? withholdingTax(grossIncomeAll, wh.rate) : 0;
+  const whRate = Number(wh.rate) || 10.21;
   const year = Number(month.slice(0, 4));
   const series = annualSeries(wage, items, state.shifts, year);
   // 歩合ランキングはシフト内の歩合項目＋イベント予約(対応済み)の商品を商品名で合算。
@@ -134,10 +139,15 @@ function drawReport(el) {
       ${pl.deductionRows.map((r) => line(r.label, r.amount, 'pl-neg', r.count)).join('')}
       ${subtotal('その他控除 小計', pl.deductionTotal)}
     ` : ''}
+    ${whTax > 0 ? `
+      <div class="pl-section-head" style="margin-top:14px">源泉徴収</div>
+      ${line(`源泉徴収 (${whRate}%)`, -whTax, 'pl-neg')}
+    ` : ''}
     <div class="pl-net">
-      <span>差引 最終合計</span>
-      <strong>${yen(netAll)}</strong>
-    </div>`;
+      <span>差引 最終合計${whTax > 0 ? '（源泉徴収後）' : ''}</span>
+      <strong>${yen(netAll - whTax)}</strong>
+    </div>
+    ${whTax > 0 ? `<p class="muted" style="font-size:12px;margin:8px 0 0;line-height:1.6">源泉徴収 ¥${whTax.toLocaleString('ja-JP')} を差し引いた手取りです。確定申告で一部が還付される場合があります。</p>` : ''}`;
 
   // 歩合のみ：数量と額を項目別に並べ、末尾に合計（数量＋額）
   const plIncentiveOnly = () => (pl.incentiveRows.length === 0 && !eventInc)
