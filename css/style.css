@@ -721,11 +721,16 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 /* ホーム最下部の目立つ設定ボタン */
 /* ホーム下部：ヘルプ・設定への入口（アイコン＋文字） */
 .home-actions { display: flex; gap: 12px; margin-top: 2px; }
-.home-action { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
-  background: var(--card); border: 2px solid var(--pink); border-radius: 16px;
-  padding: 15px 12px; box-shadow: var(--shadow); cursor: pointer; }
-.home-action:active { background: var(--pink-soft); }
-.home-action .ha-ico { font-size: 22px; line-height: 1; }
+.home-action { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(135deg, #ffffff 0%, var(--pink-soft) 130%);
+  border: none; border-radius: 18px; padding: 15px 12px;
+  box-shadow: 0 6px 16px rgba(255, 92, 138, .14); cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease; }
+.home-action:active { transform: scale(.97); box-shadow: 0 3px 10px rgba(255, 92, 138, .2); }
+.home-action .ha-ico { display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  width: 32px; height: 32px; border-radius: 50%; background: var(--pink);
+  box-shadow: 0 2px 6px rgba(255, 92, 138, .35); }
+.home-action .ha-ico .ic { width: 18px; height: 18px; color: #fff; }
 .home-action .ha-label { font-weight: 700; font-size: 16px; color: var(--ink); }
 
 /* 本日の予定カード内の「今月の来店予定」「今月お誕生日」 */

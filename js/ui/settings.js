@@ -1,9 +1,8 @@
 import { state, loadAll } from '../state.js';
-import { put, del, uid, saveProfile } from '../db.js';
+import { saveProfile } from '../db.js';
 import { esc } from '../format.js';
 import { navigate } from '../app.js';
 import { toast } from './toast.js';
-import { confirmModal } from './confirm.js';
 import { icon } from './icons.js';
 import { ensurePremium } from './premium-gate.js';
 
@@ -105,10 +104,6 @@ export async function renderSettings(el) {
           <label class="switch"><input id="shiftRemEnabled" type="checkbox" ${p.shiftReminder.enabled ? 'checked' : ''}><span class="switch-slider"></span></label></div>
         <div class="set-row"><span class="set-label">何日前から通知</span>
           <span class="set-val-wrap">${leadSelect('shiftRemLead', p.shiftReminder.leadDays)}</span></div>
-        <div class="set-row"><span class="set-label">キャンペーン終了を通知する</span>
-          <label class="switch"><input id="campRemEnabled" type="checkbox" ${p.campaignReminder.enabled ? 'checked' : ''}><span class="switch-slider"></span></label></div>
-        <div class="set-row"><span class="set-label">終了の何日前から通知</span>
-          <span class="set-val-wrap">${leadSelect('campRemLead', p.campaignReminder.leadDays)}</span></div>
       </div>
     </div>
 
@@ -129,20 +124,7 @@ export async function renderSettings(el) {
           <span class="set-chev">${icon('chevron')}</span>
         </button>
       </div>
-    </div>
-
-    <details class="card set-details">
-      <summary class="set-details-sum">
-        <span class="set-details-title">キャンペーンお知らせ</span>
-        <span class="set-details-hint">タップで表示</span>
-        <span class="set-details-chev">${icon('chevronDown')}</span>
-      </summary>
-      <div class="set-details-body">
-        <p class="muted" style="font-size:12px;margin:2px 0 10px;line-height:1.6">期間を決めてホーム画面に表示されるメモです（例：今月のバック増額キャンペーン）。開始日〜終了日の間だけホームにお知らせとして表示されます。空欄なら常時表示します。</p>
-        <div id="annList"></div>
-        <button class="btn btn-ghost" id="addAnn">${icon('plus')} お知らせを追加</button>
-      </div>
-    </details>`;
+    </div>`;
 
   el.querySelector('#goBackItems').onclick = () => navigate('backitems');
 
@@ -171,10 +153,6 @@ export async function renderSettings(el) {
         enabled: el.querySelector('#shiftRemEnabled').checked,
         leadDays: Number(el.querySelector('#shiftRemLead').value) || 0,
       },
-      campaignReminder: {
-        enabled: el.querySelector('#campRemEnabled').checked,
-        leadDays: Number(el.querySelector('#campRemLead').value) || 0,
-      },
       incomeWall: {
         enabled: el.querySelector('#wallEnabled').checked,
         threshold: num('#wallThreshold'),
@@ -190,7 +168,7 @@ export async function renderSettings(el) {
 
   // 変更で自動保存する項目（テキスト・数値・時刻・トグル・選択）。
   ['name', 'store', 'wage', 'npStart', 'npEnd', 'npAdd', 'defStart', 'defEnd', 'defBreak',
-    'dayPayCap', 'showDayPayDiff', 'shiftRemEnabled', 'shiftRemLead', 'campRemEnabled', 'campRemLead',
+    'dayPayCap', 'showDayPayDiff', 'shiftRemEnabled', 'shiftRemLead',
     'wallEnabled', 'wallThreshold', 'whEnabled', 'whRate']
     .forEach((id) => { const f = el.querySelector('#' + id); if (f) f.onchange = saveAll; });
 
@@ -218,51 +196,5 @@ export async function renderSettings(el) {
   if (dpSel) dpSel.onchange = () => {
     if (dpSel.value !== 'none' && !ensurePremium()) { dpSel.value = 'none'; return; }
     saveAll();
-  };
-
-  const renderAnns = () => {
-    const box = el.querySelector('#annList');
-    box.innerHTML = state.announcements.map((a) => `
-      <div class="ann-item" style="margin-bottom:12px" data-id="${esc(a.id)}">
-        <div class="row" style="align-items:center;gap:8px">
-          <input class="a-title" value="${esc(a.title)}" placeholder="タイトル" style="flex:1;min-width:0">
-          <button class="a-del" style="border:none;background:none;color:#f55;width:auto;flex:0 0 auto">${icon('trash')}</button>
-        </div>
-        <div class="row" style="gap:8px;margin-top:6px">
-          <label class="ann-date" style="flex:1;min-width:0">
-            <span class="ann-date-lbl">開始日</span>
-            <input class="a-start" type="date" value="${esc(a.startDate)}">
-          </label>
-          <label class="ann-date" style="flex:1;min-width:0">
-            <span class="ann-date-lbl">終了日</span>
-            <input class="a-end" type="date" value="${esc(a.endDate)}">
-          </label>
-        </div>
-      </div>`).join('');
-    box.querySelectorAll('[data-id]').forEach((rowEl) => {
-      const id = rowEl.dataset.id;
-      const save = async () => {
-        const a = state.announcements.find((x) => x.id === id);
-        a.title = rowEl.querySelector('.a-title').value;
-        a.startDate = rowEl.querySelector('.a-start').value;
-        a.endDate = rowEl.querySelector('.a-end').value;
-        await put('announcements', a);
-        toast('保存しました');
-      };
-      rowEl.querySelectorAll('input').forEach((f) => (f.onchange = save));
-      rowEl.querySelector('.a-del').onclick = async () => {
-        if (!(await confirmModal('このお知らせを削除しますか？'))) return;
-        await del('announcements', id);
-        await loadAll();
-        renderAnns();
-      };
-    });
-  };
-  renderAnns();
-
-  el.querySelector('#addAnn').onclick = async () => {
-    await put('announcements', { id: uid(), title: '新しいお知らせ', body: '', startDate: '', endDate: '' });
-    await loadAll();
-    renderAnns();
   };
 }

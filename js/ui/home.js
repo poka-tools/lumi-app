@@ -98,9 +98,6 @@ export async function renderHome(el) {
       <ul>${bdays.map((c) => `<li><span class="v-date">${Number(c.birthday.slice(0, 2))}/${Number(c.birthday.slice(3, 5))}</span><span class="v-name">${esc(c.name)}</span></li>`).join('')}</ul>
     </div>` : '';
 
-  const activeAnn = state.announcements.filter((a) =>
-    (!a.startDate || a.startDate <= today) && (!a.endDate || today <= a.endDate));
-
   // 今月の目標（未設定は 0）。設定済みなら達成率バーを表示。
   const goal = Number(state.profile.monthlyGoal) || 0;
   const goalPct = goal ? Math.min(100, Math.round((estimateAll / goal) * 100)) : 0;
@@ -143,9 +140,6 @@ export async function renderHome(el) {
 
     <div id="reminders"></div>
     <div id="reminder"></div>
-
-    ${activeAnn.map((a) => `<div class="card" style="background:var(--pink-soft)">
-      ${icon('megaphone')} <strong>${esc(a.title)}</strong></div>`).join('')}
 
     <div class="card">
       <div class="card-head">
