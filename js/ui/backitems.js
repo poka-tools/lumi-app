@@ -88,7 +88,10 @@ export async function renderBackItems(el) {
         <button class="bk-selbar-cancel" id="bkSelCancel" type="button">キャンセル</button>
       </div>
 
-      <div class="bk-chips" id="bkChips"></div>
+      <div class="bk-chips-wrap" id="bkChipsWrap">
+        <div class="bk-chips" id="bkChips"></div>
+        <span class="bk-chips-hint" id="bkChipsHint">${icon('chevron')}</span>
+      </div>
 
       <div id="bkGroups"></div>
     </div>`;
@@ -179,6 +182,18 @@ export async function renderBackItems(el) {
         drawChips(); drawList();
       };
     });
+    // 「横にスライドできる」ヒント（右端フェード＋›）を、はみ出す時だけ表示。
+    box.onscroll = updateChipHint;
+    requestAnimationFrame(updateChipHint);
+  }
+
+  // チップがはみ出していて、まだ右にスクロール余地があるとき hint を出す。
+  function updateChipHint() {
+    const box = el.querySelector('#bkChips');
+    const wrap = el.querySelector('#bkChipsWrap');
+    if (!box || !wrap) return;
+    const more = box.scrollWidth - box.clientWidth - box.scrollLeft > 4;
+    wrap.classList.toggle('more', more);
   }
 
   // ---- 本体（グループ＋カード/リスト） ----

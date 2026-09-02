@@ -402,8 +402,21 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .bk-searchbar input { width: 100%; border: 1px solid #eee; border-radius: 14px;
   padding: 11px 12px 11px 38px; font-size: 14px; background: #fff; }
 
-.bk-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.bk-chips-wrap { position: relative; }
+.bk-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;
+  scroll-behavior: smooth; }
 .bk-chips::-webkit-scrollbar { display: none; }
+/* はみ出して横スクロールできる時だけ、右端にフェード＋「›」を出して気づかせる */
+.bk-chips-wrap::after { content: ''; position: absolute; top: 0; right: 0; bottom: 4px; width: 48px;
+  background: linear-gradient(to right, rgba(253,243,247,0), var(--bg) 70%);
+  pointer-events: none; opacity: 0; transition: opacity .2s; }
+.bk-chips-wrap.more::after { opacity: 1; }
+.bk-chips-hint { position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+  width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 5px rgba(255,92,138,.35);
+  display: flex; align-items: center; justify-content: center; color: var(--pink);
+  opacity: 0; transition: opacity .2s; pointer-events: none; }
+.bk-chips-hint .ic { width: 15px; height: 15px; }
+.bk-chips-wrap.more .bk-chips-hint { opacity: 1; }
 .bk-chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
   border: 1.5px solid #eadfe4; background: #fff; color: var(--muted); font-size: 12.5px; font-weight: 700;
   padding: 6px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
