@@ -703,6 +703,12 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .app-info-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .app-info-label { font-weight: 700; font-size: 14px; }
 .app-info-ver { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* 法的情報カード（マイページ最下部） */
+.legal-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+.legal-links { display: flex; flex-direction: column; }
+.legal-link { display: block; padding: 10px 2px; font-size: 13.5px; color: var(--pink);
+  text-decoration: none; border-top: 1px solid var(--pink-soft); }
+.legal-link:first-child { border-top: none; }
 /* ベルのお知らせパネル（お知らせ＋アプリの更新） */
 .notif-card { max-width: 380px; padding: 18px 18px 16px; text-align: left; }
 .notif-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; color: var(--ink); }
@@ -751,6 +757,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .pw-cta { margin-top: 16px; }
 .pw-note { margin-top: 14px; padding: 10px; border-radius: 10px; background: var(--pink-soft); color: var(--pink); font-size: 12.5px; text-align: center; font-weight: 700; }
 .pw-fine { font-size: 11px; color: var(--muted); text-align: center; margin: 8px 0 0; line-height: 1.6; }
+.pw-legal { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--pink-soft);
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; }
+.pw-legal-link { font-size: 11px; color: var(--muted); text-decoration: underline; }
 /* 有料機能ロック時のプレースホルダー画面 */
 .lock-screen { max-width: 340px; margin: 40px auto; padding: 24px 20px; text-align: center; }
 .lock-badge { width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--pink-soft); color: var(--pink); }

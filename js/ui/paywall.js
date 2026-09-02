@@ -2,6 +2,7 @@ import { esc } from '../format.js';
 import { icon } from './icons.js';
 import { toast } from './toast.js';
 import { PREMIUM_FEATURES, FREE_FEATURES, hasPremium, enforcing } from '../entitlement.js';
+import { legalLinksHtml } from './legal.js';
 
 // Lumi Premium の案内（ペイウォール）モーダル。
 // 「登録する」は RevenueCat（Web Billing）の購入フローに接続済み。
@@ -38,6 +39,7 @@ export function openPaywall() {
              <p class="pw-fine">最初の7日間は無料。いつでも解約できます。</p>`
           : `<div class="pw-note">現在すべての機能をお使いいただけます。</div>
              <p class="pw-fine">いつでも解約できます。※お支払い機能は準備中です。</p>`}
+      <nav class="pw-legal">${legalLinksHtml('pw-legal-link')}</nav>
     </div>`;
   document.body.appendChild(back);
 

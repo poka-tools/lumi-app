@@ -9,6 +9,7 @@ import { confirmModal } from './confirm.js';
 import { startTour } from './onboarding.js';
 import { icon } from './icons.js';
 import { openPaywall } from './paywall.js';
+import { legalLinksHtml } from './legal.js';
 
 // マイページ：アカウント・アプリ管理系（バックアップ／データ削除／操作ログ／ヘルプ／
 // Lumi Premium／購入復元／サブスク管理／バージョン）をまとめた下タブ画面。
@@ -110,6 +111,11 @@ export async function renderMyPage(el) {
         新しい更新があるか確認します。ある場合は内容をご案内し、その場で更新できます。
       </p>
       <button class="btn btn-ghost" id="checkUpdate">${icon('refresh')} アップデートを確認</button>
+    </div>
+
+    <div class="card legal-card">
+      <div class="legal-title">法的情報</div>
+      <nav class="legal-links">${legalLinksHtml('legal-link')}</nav>
     </div>`;
 
   el.querySelector('#showGuide').onclick = () => startTour();
