@@ -344,10 +344,18 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .bk-back-ic { width: 18px; height: 18px; transform: rotate(180deg); }
 .bk-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .bk-title { font-size: 22px; margin: 0; }
-.bk-new { display: inline-flex; align-items: center; gap: 3px; background: none; border: none;
-  color: var(--pink); font-weight: 700; font-size: 14px; cursor: pointer; flex: 0 0 auto; }
-.bk-new .ic { width: 16px; height: 16px; }
 .bk-lead { font-size: 12px; line-height: 1.7; margin: 6px 0 14px; }
+
+/* 作成アクション（項目の追加・分類の管理をひとまとめに） */
+.bk-actions { display: flex; gap: 8px; margin-bottom: 14px; }
+.bk-action { flex: 1; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  border-radius: 14px; padding: 12px 10px; font-size: 14px; font-weight: 700; cursor: pointer;
+  border: 1.5px solid transparent; white-space: nowrap; }
+.bk-action .ic { width: 17px; height: 17px; flex: 0 0 auto; }
+.bk-action.primary { background: var(--pink); color: #fff; box-shadow: 0 4px 12px rgba(255,92,138,.28); }
+.bk-action.primary:active { background: #f04d7c; }
+.bk-action.ghost { background: #fff; color: var(--pink); border-color: var(--pink-soft); box-shadow: var(--shadow); }
+.bk-action.ghost:active { background: var(--pink-soft); }
 
 .bk-stats { display: flex; gap: 8px; margin-bottom: 14px; }
 .bk-stat { flex: 1; background: var(--card); border-radius: 16px; box-shadow: var(--shadow);
@@ -377,10 +385,6 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .bk-chip.active { border-color: var(--pink); background: var(--pink-soft); color: var(--pink); }
 .bk-chip-n { font-size: 11px; background: #f0e6ea; color: var(--muted); border-radius: 999px; padding: 0 6px; min-width: 18px; text-align: center; }
 .bk-chip.active .bk-chip-n { background: var(--pink); color: #fff; }
-.bk-catmanage { margin: 8px 0 14px; }
-.bk-link { display: inline-flex; align-items: center; gap: 5px; background: none; border: none;
-  color: var(--pink); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; }
-.bk-link .ic { width: 15px; height: 15px; }
 
 .bk-group { background: var(--card); border-radius: 18px; box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
 .bk-group-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 14px 16px;

@@ -52,11 +52,20 @@ export async function renderBackItems(el) {
       <button class="bk-back" id="bkBack" type="button">${icon('chevron', { cls: 'bk-back-ic' })} 設定に戻る</button>
       <div class="bk-header">
         <h1 class="bk-title">歩合項目の設定</h1>
-        <button class="bk-new" id="bkNew" type="button">${icon('plus')} 新規登録</button>
       </div>
       <p class="muted bk-lead">売上や件数に応じて発生する歩合項目を登録・管理できます。分類（グループ）ごとに整理して、今月の実績も確認できます。</p>
 
       <div class="bk-stats" id="bkStats"></div>
+
+      <div class="bk-actions">
+        <button class="bk-action primary" id="bkAddItem" type="button">${icon('plus')} 項目を追加</button>
+        <button class="bk-action ghost" id="bkManageCats" type="button">${icon('folder')} 分類の管理</button>
+      </div>
+
+      <div class="bk-searchbar">
+        <span class="bk-search-ic">${icon('search')}</span>
+        <input id="bkSearch" type="search" placeholder="項目名で検索" autocomplete="off">
+      </div>
 
       <div class="bk-toolbar bk-toolbar-list">
         <label class="bk-sort">
@@ -69,19 +78,13 @@ export async function renderBackItems(el) {
         </label>
       </div>
 
-      <div class="bk-searchbar">
-        <span class="bk-search-ic">${icon('search')}</span>
-        <input id="bkSearch" type="search" placeholder="項目名で検索" autocomplete="off">
-      </div>
-
       <div class="bk-chips" id="bkChips"></div>
-      <div class="bk-catmanage"><button class="bk-link" id="bkManageCats" type="button">${icon('folder')} 分類（グループ）を管理</button></div>
 
       <div id="bkGroups"></div>
     </div>`;
 
   el.querySelector('#bkBack').onclick = () => navigate('settings');
-  el.querySelector('#bkNew').onclick = () => openEditor(null, activeCatForNew());
+  el.querySelector('#bkAddItem').onclick = () => openEditor(null, activeCatForNew());
   el.querySelector('#bkManageCats').onclick = () => { if (ensurePremium()) openCategoryManager(); };
 
   const sortSel = el.querySelector('#bkSort');
