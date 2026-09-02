@@ -28,8 +28,8 @@ const NAV_TAB = { backitems: 'settings' };
 
 // 画面ごとのヘッダー。ホームと主要タブは「Lumi」ブランドバー、
 // メニューから開く設定・ヘルプ・記録は「‹ 戻る」バー（ピンクグラデ）。
-const BRAND_TABS = new Set(['home', 'calendar', 'report', 'customers', 'backitems', 'mypage']);
-const BACK_TITLES = { settings: '設定', help: 'ヘルプ', record: '記録' };
+const BRAND_TABS = new Set(['home', 'calendar', 'report', 'customers', 'backitems']);
+const BACK_TITLES = { settings: '設定', help: 'ヘルプ', record: '記録', mypage: 'マイページ' };
 
 function brandBarHtml() {
   const bell = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 1.8 5.7 1.8 5.7H4.2S6 14.1 6 9.5Z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>`;
