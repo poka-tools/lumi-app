@@ -541,18 +541,26 @@ export async function renderBackItems(el) {
           toast('分類を変更しました');
         };
         row.querySelector('.bk-cat-del').onclick = async () => {
-          if (!(await confirmModal(`分類「${old}」を削除しますか？この分類の項目は「未分類」になります。`))) return;
+          // 分類を削除すると、その中の歩合項目もまとめて削除する。
+          const inCat = state.backItems.filter((it) => itemCategory(it) === old);
+          const names = inCat.map((it) => it.name).filter(Boolean);
+          const preview = names.slice(0, 8).map((n) => `・${n}`).join('\n')
+            + (names.length > 8 ? `\n…ほか${names.length - 8}件` : '');
+          const msg = inCat.length
+            ? `分類「${old}」と、その中の歩合項目 ${inCat.length}件も削除しますか？\n${preview}\n\nこの操作は元に戻せません。`
+            : `分類「${old}」を削除しますか？`;
+          if (!(await confirmModal(msg, { okLabel: '削除する', danger: true }))) return;
           await saveProfile({ ...state.profile, backCategories: (state.profile.backCategories || []).filter((c) => c !== old) });
-          for (const it of state.backItems) if (itemCategory(it) === old) { it.category = ''; await put('backItems', it); }
+          for (const it of inCat) await del('backItems', it.id);
           await loadAll(); draw(sheet); drawChips(); drawList();
-          toast('分類を削除しました');
+          toast(inCat.length ? `分類と${inCat.length}件の項目を削除しました` : '分類を削除しました');
         };
       });
     };
 
     const { sheet } = openSheet(`
       <h3 class="bk-sheet-title">分類（グループ）を管理</h3>
-      <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 10px">先に分類を登録しておくと、項目の編集画面から選べます。<strong>カンマ「,」や改行で区切ると、まとめて追加できます。</strong>名前の変更・削除は所属する項目にも反映されます。</p>
+      <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 10px">先に分類を登録しておくと、項目の編集画面から選べます。<strong>カンマ「,」や改行で区切ると、まとめて追加できます。</strong>名前の変更は所属する項目にも反映されます。<strong>分類を削除すると、その中の歩合項目もまとめて削除されます。</strong></p>
       <div id="catMgrList"></div>
       <form class="bk-cat-add" id="catMgrAdd">
         <textarea id="catMgrInput" class="inline-input" rows="1" placeholder="新しい分類名…（例: シャンパン）"></textarea>
