@@ -19,6 +19,8 @@ let sortKey = 'custom';   // 'custom' | 'name' | 'amount'
 let query = '';           // 名前検索
 let activeCat = null;     // null=すべて / 分類名で絞り込み
 const collapsed = new Set(); // 折りたたみ中の分類
+let selectMode = false;   // 選択（複数選択して削除）モード
+const selected = new Set(); // 選択中の項目id
 
 // 種別ごとの既定アイコン（項目に icon 未設定のとき）。
 const KIND_EMOJI = { income: '💰', penalty: '⚠️', deduction: '🧾' };
@@ -67,7 +69,8 @@ export async function renderBackItems(el) {
         <input id="bkSearch" type="search" placeholder="項目名で検索" autocomplete="off">
       </div>
 
-      <div class="bk-toolbar bk-toolbar-list">
+      <div class="bk-toolbar">
+        <button class="bk-select-toggle" id="bkSelect" type="button">${icon('checkbox')} 選択</button>
         <label class="bk-sort">
           ${icon('sort', { cls: 'bk-sort-ic' })}
           <select id="bkSort">
@@ -78,6 +81,13 @@ export async function renderBackItems(el) {
         </label>
       </div>
 
+      <div class="bk-selbar" id="bkSelBar" hidden>
+        <button class="bk-selbar-all" id="bkSelAll" type="button">すべて選択</button>
+        <span class="bk-selbar-count" id="bkSelCount">0件を選択中</span>
+        <button class="bk-selbar-del" id="bkSelDel" type="button" disabled>${icon('trash')} 削除</button>
+        <button class="bk-selbar-cancel" id="bkSelCancel" type="button">キャンセル</button>
+      </div>
+
       <div class="bk-chips" id="bkChips"></div>
 
       <div id="bkGroups"></div>
@@ -86,6 +96,10 @@ export async function renderBackItems(el) {
   el.querySelector('#bkBack').onclick = () => navigate('settings');
   el.querySelector('#bkAddItem').onclick = () => openEditor(null, activeCatForNew());
   el.querySelector('#bkManageCats').onclick = () => { if (ensurePremium()) openCategoryManager(); };
+  el.querySelector('#bkSelect').onclick = () => enterSelectMode();
+  el.querySelector('#bkSelCancel').onclick = () => exitSelectMode();
+  el.querySelector('#bkSelAll').onclick = () => toggleSelectAll();
+  el.querySelector('#bkSelDel').onclick = () => deleteSelected();
 
   const sortSel = el.querySelector('#bkSort');
   sortSel.value = sortKey;
@@ -217,6 +231,16 @@ export async function renderBackItems(el) {
         drawList();
       };
     });
+    // 選択モード：行タップで選択トグル（再描画せず見た目だけ更新）
+    box.querySelectorAll('[data-select]').forEach((c) => {
+      c.onclick = (e) => {
+        e.stopPropagation();
+        const id = c.dataset.select;
+        if (selected.has(id)) { selected.delete(id); c.classList.remove('selected'); c.querySelector('.bk-check').innerHTML = ''; }
+        else { selected.add(id); c.classList.add('selected'); c.querySelector('.bk-check').innerHTML = icon('check'); }
+        updateSelBar();
+      };
+    });
     // カード/行タップ→編集、＋タイル→追加
     box.querySelectorAll('[data-edit]').forEach((c) => {
       c.onclick = (e) => {
@@ -228,6 +252,7 @@ export async function renderBackItems(el) {
     box.querySelectorAll('[data-addin]').forEach((c) => {
       c.onclick = (e) => { e.stopPropagation(); openEditor(null, c.dataset.addin); };
     });
+    if (selectMode) updateSelBar();
   }
 
   function rowsHtml(list, st, cat) {
@@ -237,6 +262,19 @@ export async function renderBackItems(el) {
       const kind = it.kind || 'income';
       const amtCls = isDeductionKind(kind) ? 'neg' : '';
       const amtText = isDeductionKind(kind) ? signedYen(s.amount) : yen(s.amount);
+      if (selectMode) {
+        const on = selected.has(it.id);
+        return `
+        <div class="bk-lrow bk-lrow-sel${on ? ' selected' : ''}" data-select="${esc(it.id)}">
+          <span class="bk-check">${on ? icon('check') : ''}</span>
+          <div class="bk-ava sm kind-${kind}">${esc(itemEmoji(it))}</div>
+          <div class="bk-lrow-main">
+            <div class="bk-lrow-name">${esc(it.name || '（名称未設定）')}</div>
+            <div class="bk-lrow-sub">${esc(rateLabel(it))}・今月 ${s.count}${esc(itemUnit(it))}</div>
+          </div>
+          <div class="bk-lrow-amt ${amtCls}">${amtText}</div>
+        </div>`;
+      }
       return `
         <div class="bk-lrow" data-edit="${esc(it.id)}">
           <div class="bk-ava sm kind-${kind}">${esc(itemEmoji(it))}</div>
@@ -248,15 +286,66 @@ export async function renderBackItems(el) {
           <span class="bk-kebab">${icon('chevron')}</span>
         </div>`;
     }).join('');
-    return `<div class="bk-list">${rows}
+    const addTile = selectMode ? '' : `
       <button class="bk-lrow bk-ladd" data-addin="${esc(addCat)}" type="button">
-        <span class="bk-add-ic sm">${icon('plus')}</span><span>項目を追加</span></button>
-    </div>`;
+        <span class="bk-add-ic sm">${icon('plus')}</span><span>項目を追加</span></button>`;
+    return `<div class="bk-list">${rows}${addTile}</div>`;
   }
 
   // 新規登録時に、絞り込み中の分類があればそれを初期分類に。
   function activeCatForNew() {
     return activeCat && activeCat !== UNCATEGORIZED ? activeCat : '';
+  }
+
+  // ---- 選択モード（複数選択して削除／1件だけ選べば個別削除） ----
+  // 「すべて選択」の対象＝いま画面に表示されている項目（検索・分類フィルタ適用後）。
+  function visibleItems() {
+    let items = filteredItems();
+    if (activeCat !== null) items = items.filter((it) => itemCategory(it) === activeCat);
+    return items;
+  }
+  function enterSelectMode() {
+    selectMode = true; selected.clear();
+    el.querySelector('.bk-page').classList.add('sel-mode');
+    el.querySelector('#bkSelBar').hidden = false;
+    el.querySelector('#bkSelect').hidden = true;
+    drawList(); updateSelBar();
+  }
+  function exitSelectMode() {
+    selectMode = false; selected.clear();
+    el.querySelector('.bk-page').classList.remove('sel-mode');
+    el.querySelector('#bkSelBar').hidden = true;
+    el.querySelector('#bkSelect').hidden = false;
+    drawList();
+  }
+  function toggleSelectAll() {
+    const vis = visibleItems();
+    const allOn = vis.length > 0 && vis.every((it) => selected.has(it.id));
+    if (allOn) vis.forEach((it) => selected.delete(it.id));
+    else vis.forEach((it) => selected.add(it.id));
+    drawList(); updateSelBar();
+  }
+  function updateSelBar() {
+    el.querySelector('#bkSelCount').textContent = `${selected.size}件を選択中`;
+    el.querySelector('#bkSelDel').disabled = selected.size === 0;
+    const vis = visibleItems();
+    const allOn = vis.length > 0 && vis.every((it) => selected.has(it.id));
+    el.querySelector('#bkSelAll').textContent = allOn ? '選択を解除' : 'すべて選択';
+  }
+  async function deleteSelected() {
+    if (!selected.size) return;
+    const ids = [...selected];
+    const names = ids.map((id) => state.backItems.find((x) => x.id === id)?.name).filter(Boolean);
+    const preview = names.slice(0, 8).map((n) => `・${n}`).join('\n')
+      + (names.length > 8 ? `\n…ほか${names.length - 8}件` : '');
+    const ok = await confirmModal(
+      `選択した${ids.length}件の歩合項目を削除しますか？\n${preview}\n\nこの操作は元に戻せません。`,
+      { okLabel: '削除する', danger: true });
+    if (!ok) return;
+    for (const id of ids) await del('backItems', id);
+    exitSelectMode();
+    await refresh();
+    toast(`${ids.length}件を削除しました`);
   }
 
   async function refresh() {

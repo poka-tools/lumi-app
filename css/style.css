@@ -366,6 +366,31 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 
 .bk-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .bk-toolbar-list { justify-content: flex-end; }
+.bk-select-toggle { display: inline-flex; align-items: center; gap: 5px; background: #fff;
+  border: 1.5px solid #eadfe4; color: var(--ink); font-size: 12.5px; font-weight: 700;
+  padding: 7px 12px; border-radius: 10px; cursor: pointer; }
+.bk-select-toggle .ic { width: 16px; height: 16px; color: var(--pink); }
+
+/* 選択モードのアクションバー */
+.bk-selbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  background: var(--pink-soft); border-radius: 14px; padding: 8px 10px; }
+.bk-selbar-all { background: #fff; border: 1.5px solid var(--pink-soft); color: var(--pink);
+  font-size: 12.5px; font-weight: 700; padding: 6px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.bk-selbar-count { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 700; color: var(--pink); text-align: center; }
+.bk-selbar-del { display: inline-flex; align-items: center; gap: 4px; background: #e5484d; color: #fff;
+  border: none; font-size: 12.5px; font-weight: 700; padding: 7px 12px; border-radius: 10px; cursor: pointer; white-space: nowrap; }
+.bk-selbar-del .ic { width: 15px; height: 15px; }
+.bk-selbar-del:disabled { background: #e6c3c6; cursor: default; }
+.bk-selbar-cancel { background: none; border: none; color: var(--muted); font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+
+/* 選択可能な行のチェック表示 */
+.bk-check { width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%; border: 2px solid #d9c7cf;
+  display: flex; align-items: center; justify-content: center; color: #fff; }
+.bk-check .ic { width: 14px; height: 14px; }
+.bk-lrow-sel { cursor: pointer; }
+.bk-lrow-sel.selected { border-color: var(--pink); background: var(--pink-soft); }
+.bk-lrow-sel.selected .bk-check { background: var(--pink); border-color: var(--pink); }
+
 .bk-sort { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
 .bk-sort-ic { width: 16px; height: 16px; }
 .bk-sort select { border: 1px solid #eadfe4; border-radius: 10px; padding: 7px 8px; font-size: 12.5px;
