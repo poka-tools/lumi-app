@@ -5,7 +5,6 @@ import { shiftTotal, shiftBackTotal, workedHours, backAmount } from '../calc.js'
 import { yen, esc, weekdayJa, todayIso, dateTimeJa } from '../format.js';
 import { openItemPicker } from './itempicker.js';
 import { renderTodos } from './todos.js';
-import { renderMemos } from './memos.js';
 import { confirmModal } from './confirm.js';
 import { toast } from './toast.js';
 import { visitCountByDate, visitsOnDate, birthdaysByDate } from '../customers-logic.js';
@@ -120,7 +119,6 @@ export async function renderCalendar(el) {
          <button id="bulkStartBtn" class="btn btn-ghost" style="margin-top:4px">${icon('calendar')} まとめて入力（複数日）</button>`}
 
     <div id="todoSection" style="margin-top:16px"></div>
-    <div id="memoSection" style="margin-top:16px"></div>
 
     <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
     <section class="sheet" id="sheet" hidden aria-label="日別入力">
@@ -133,7 +131,6 @@ export async function renderCalendar(el) {
     </section>`;
 
   renderTodos(el.querySelector('#todoSection'));
-  renderMemos(el.querySelector('#memoSection'));
 
   // 金額を必ず1行に収める：セル幅からはみ出す分だけフォントを縮小して横1列に揃える
   const fitAmounts = () => {

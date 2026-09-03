@@ -14,8 +14,7 @@ export const STORE_LABELS = {
   visits: '来店予定',
   events: 'イベント',
   reservations: '予約',
-  notes: '顧客メモ',
-  memos: 'メモ',
+  notes: 'メモ',
 };
 
 // 変更対象の内容から見出し用の短い名前を取り出す（顧客名・シフト日 等）

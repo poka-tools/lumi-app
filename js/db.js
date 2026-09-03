@@ -32,7 +32,9 @@ export function openDb() {
         db.createObjectStore('notes', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('auditLog'))
         db.createObjectStore('auditLog', { keyPath: 'id' });
-      // v7: カレンダー画面の汎用メモ（写真つき・日付非依存の走り書き）
+      // v7: 旧「写真つきメモ」機能で追加したストア。機能は撤去したが、
+      // IndexedDB はバージョンを下げられない（既にv7の端末がある）ため、
+      // ストア定義だけ残す（未使用・空のまま。DB_VERSION は 7 を維持）。
       if (!db.objectStoreNames.contains('memos'))
         db.createObjectStore('memos', { keyPath: 'id' });
     };

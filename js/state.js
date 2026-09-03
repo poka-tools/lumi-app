@@ -11,7 +11,6 @@ export const state = {
   events: [],
   reservations: [],
   notes: [],
-  memos: [],
   month: monthIso(new Date()),
 };
 
@@ -31,7 +30,6 @@ export async function loadAll() {
   state.events = await getAll('events');
   state.reservations = await getAll('reservations');
   state.notes = await getAll('notes');
-  state.memos = await getAll('memos');
 }
 
 export function shiftsOfMonth(month = state.month) {
