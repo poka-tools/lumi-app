@@ -46,6 +46,14 @@ input, select { min-width: 0; }
 input[type="date"] { -webkit-appearance: none; appearance: none; width: 100%; max-width: 100%; }
 /* デスクトップのカレンダー起動ボタンは押しやすいよう残す */
 input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
+/* 空の日付欄に「薄い今日の日付」をプレースホルダー表示（値はセットしない）。
+   空のときだけネイティブの「年/月/日」を透明にし、::before で薄い日付を重ねる。 */
+.date-ph-wrap { position: relative; display: inline-flex; align-items: center; }
+.date-ph-wrap[data-empty="1"] input[type="date"]::-webkit-datetime-edit { color: transparent; }
+.date-ph-wrap[data-empty="1"]::before {
+  content: attr(data-ph); position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); opacity: .45; pointer-events: none; white-space: nowrap; font-size: 14px;
+}
 /* お知らせの開始日/終了日ラベル（日付入力の上に小さく表示） */
 .ann-date { display: flex; flex-direction: column; }
 .ann-date-lbl { font-size: 11px; color: #999; margin-bottom: 3px; }

@@ -63,13 +63,23 @@ export function renderTodos(el) {
             maxlength="120" autocomplete="off" style="width:100%">
           <div class="row" style="margin-top:8px;align-items:center;gap:8px">
             <label class="muted" for="todoDue" style="flex:0 0 auto">期限</label>
-            <input id="todoDue" type="date" style="flex:0 0 auto;width:auto;min-width:140px;max-width:none">
+            <span class="date-ph-wrap" data-empty="1" data-ph="${esc(today.replaceAll('-', '/'))}" style="flex:0 0 auto">
+              <input id="todoDue" type="date" style="width:auto;min-width:140px;max-width:none">
+            </span>
             <button class="btn" type="submit" style="flex:1;padding:10px 16px">追加</button>
           </div>
         </form>
         <ul class="todo-list">${listHtml}</ul>
         ${todos.some((t) => t.done) ? '<button class="btn btn-ghost todo-clear" id="todoClear" type="button">完了済みを消す</button>' : ''}
       </section>`;
+
+    // 期限が空のときだけ「薄い今日の日付」をプレースホルダー表示（値はセットしない）。
+    const dueWrap = el.querySelector('.date-ph-wrap');
+    const dueInput = el.querySelector('#todoDue');
+    const syncDuePh = () => dueWrap.setAttribute('data-empty', dueInput.value ? '0' : '1');
+    dueInput.oninput = syncDuePh;
+    dueInput.onchange = syncDuePh;
+    syncDuePh();
 
     el.querySelector('#todoAdd').onsubmit = async (e) => {
       e.preventDefault();
