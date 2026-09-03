@@ -1,7 +1,7 @@
 import { describeChange } from './audit-logic.js';
 
 const DB_NAME = 'yashoku-salary';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 let _db = null;
 
 export function openDb() {
@@ -32,6 +32,9 @@ export function openDb() {
         db.createObjectStore('notes', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('auditLog'))
         db.createObjectStore('auditLog', { keyPath: 'id' });
+      // v7: カレンダー画面の汎用メモ（写真つき・日付非依存の走り書き）
+      if (!db.objectStoreNames.contains('memos'))
+        db.createObjectStore('memos', { keyPath: 'id' });
     };
     req.onsuccess = () => { _db = req.result; resolve(_db); };
     req.onerror = () => reject(req.error);

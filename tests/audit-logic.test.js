@@ -11,7 +11,8 @@ test('changeSubject はストアごとに見出しを取り出す', () => {
   assert.equal(changeSubject('todos', { text: '買い物' }), '買い物');
   assert.equal(changeSubject('announcements', { title: 'GW' }), 'GW');
   assert.equal(changeSubject('shifts', { date: '2026-07-12' }), '7/12(日)');
-  assert.equal(changeSubject('notes', { text: 'x' }), ''); // メモは本文を出さない
+  assert.equal(changeSubject('notes', { text: 'x' }), ''); // 顧客メモは本文を出さない
+  assert.equal(changeSubject('memos', { text: 'x' }), ''); // 汎用メモも本文を出さない
   assert.equal(changeSubject('customers', null), '');
   assert.equal(changeSubject('customers', 'id-string'), ''); // 非オブジェクトは空
 });
@@ -20,7 +21,8 @@ test('describeChange は保存/削除の文言を作る', () => {
   assert.equal(describeChange('customers', 'put', { name: '田中' }), '顧客「田中」を保存');
   assert.equal(describeChange('customers', 'del', { name: '田中' }), '顧客「田中」を削除');
   assert.equal(describeChange('profile', 'put', { id: 'me' }), '設定を保存'); // 名前なし
-  assert.equal(describeChange('notes', 'del', { id: 'n1' }), 'メモを削除');
+  assert.equal(describeChange('notes', 'del', { id: 'n1' }), '顧客メモを削除');
+  assert.equal(describeChange('memos', 'put', { id: 'm1' }), 'メモを保存');
 });
 
 test('logTime / logDayKey はゼロ埋めのローカル時刻・日付', () => {

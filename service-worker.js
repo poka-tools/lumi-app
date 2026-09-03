@@ -1,11 +1,11 @@
-const CACHE = 'yashoku-v164';
+const CACHE = 'yashoku-v165';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/style.css',
   './assets/logo.png', './assets/icon-192.png', './assets/icon-512.png',
   './js/app.js', './js/state.js', './js/db.js', './js/calc.js', './js/format.js',
   './js/customers-logic.js', './js/events-logic.js', './js/reminders-logic.js',
-  './js/tax-logic.js', './js/presets.js',
+  './js/tax-logic.js', './js/presets.js', './js/memos-logic.js', './js/img.js',
   './js/audit-logic.js', './js/version.js', './changelog.json', './js/entitlement.js',
   './js/subscription-logic.js', './js/ui/lapsed.js',
   './js/rc.js', './js/vendor/purchases-js.mjs',
@@ -18,6 +18,7 @@ const ASSETS = [
   './js/ui/toast.js', './js/ui/events.js', './js/ui/confirm.js',
   './js/ui/reminders.js', './js/ui/onboarding.js', './js/ui/help.js',
   './js/ui/backitems.js', './js/ui/itempicker.js', './js/ui/premium-gate.js',
+  './js/ui/memos.js',
 ];
 self.addEventListener('install', (e) => {
   // skipWaiting はここでは呼ばない。新SWは「待機」状態で止め、アプリ内の
