@@ -61,10 +61,9 @@ export function renderTodos(el) {
         <form class="todo-add" id="todoAdd">
           <input id="todoInput" class="inline-input" type="text" placeholder="やることを入力…"
             maxlength="120" autocomplete="off" style="width:100%">
-          <div class="row" style="margin-top:8px;align-items:center">
-            <label class="muted" style="flex:0 0 auto">期限
-              <input id="todoDue" type="date" style="margin-left:6px">
-            </label>
+          <div class="row" style="margin-top:8px;align-items:center;gap:8px">
+            <label class="muted" for="todoDue" style="flex:0 0 auto">期限</label>
+            <input id="todoDue" type="date" style="flex:0 0 auto;width:auto;min-width:140px;max-width:none">
             <button class="btn" type="submit" style="flex:1;padding:10px 16px">追加</button>
           </div>
         </form>
