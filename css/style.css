@@ -151,6 +151,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .sheet-total strong { color: var(--pink); }
 .sheet-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
 .sheet-sub strong { color: var(--purple); font-size: 14px; }
+.saved-at { display: flex; align-items: center; gap: 5px; font-size: 12px; margin: -4px 0 12px; }
+.saved-at .ic { width: 14px; height: 14px; }
 
 /* ============ やることリスト（カレンダー下） ============ */
 .todo-card { padding: 16px; }

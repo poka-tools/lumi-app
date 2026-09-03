@@ -89,7 +89,7 @@ export async function renderRecord(el) {
   updatePreview();
 
   el.querySelector('#save').onclick = async () => {
-    await put('shifts', collect());
+    await put('shifts', { ...collect(), savedAt: Date.now() });
     setEditingShift(null);
     await loadAll();
     toast('保存しました');

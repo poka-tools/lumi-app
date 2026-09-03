@@ -2,7 +2,7 @@ import { state, shiftsOfMonth, loadAll } from '../state.js';
 import { icon } from './icons.js';
 import { put, del, uid } from '../db.js';
 import { shiftTotal, shiftBackTotal, workedHours, backAmount } from '../calc.js';
-import { yen, esc, weekdayJa, todayIso } from '../format.js';
+import { yen, esc, weekdayJa, todayIso, dateTimeJa } from '../format.js';
 import { openItemPicker } from './itempicker.js';
 import { renderTodos } from './todos.js';
 import { confirmModal } from './confirm.js';
@@ -284,6 +284,7 @@ export async function renderCalendar(el) {
         </div>
         <strong id="sheetTotal" style="font-size:26px;font-weight:800">¥0</strong>
       </div>
+      ${draft.savedAt ? `<div class="saved-at muted">${icon('note')} 記録日時：${esc(dateTimeJa(draft.savedAt))}</div>` : ''}
       <label style="display:block;margin-bottom:12px">
         <input id="sConfirmed" type="checkbox" ${draft.confirmed ? 'checked' : ''}> 確定（実績）にする
         <span class="muted">＝カレンダーに金額表示。OFFは「出勤予定」</span>
@@ -369,7 +370,9 @@ export async function renderCalendar(el) {
     };
 
     q('#sSave').onclick = async () => {
-      await put('shifts', collectDraft());
+      const rec = collectDraft();
+      rec.savedAt = Date.now(); // 「保存」を押した日時を記録（毎回最新に更新）
+      await put('shifts', rec);
       await loadAll();
       closeSheet();
       renderCalendar(el);
@@ -476,15 +479,16 @@ export async function renderCalendar(el) {
           { okLabel: '上書きする', cancelLabel: '既存はそのまま' });
       }
 
+      const now = Date.now();
       for (const d of emptyDates) {
-        await put('shifts', { id: uid(), date: d, start, end, breakMin, confirmed, entries: [] });
+        await put('shifts', { id: uid(), date: d, start, end, breakMin, confirmed, entries: [], savedAt: now });
       }
       let ow = 0;
       if (overwrite) {
         for (const d of existingDates) {
           const ex = state.shifts.find((s) => s.date === d);
           // 時間帯・確定のみ更新。歩合（entries）は保持、欠勤は解除
-          await put('shifts', { ...ex, start, end, breakMin, confirmed, absent: false });
+          await put('shifts', { ...ex, start, end, breakMin, confirmed, absent: false, savedAt: now });
           ow++;
         }
       }

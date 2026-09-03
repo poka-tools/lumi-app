@@ -17,6 +17,13 @@ export function shortDateJa(iso) {
   if (!iso) return '';
   return `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}(${weekdayJa(iso)})`;
 }
+// タイムスタンプ(ms)→ローカルの「M/D HH:MM」。記録した日時の表示に使う。
+export function dateTimeJa(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 export function esc(s) {
   return String(s ?? '')
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
