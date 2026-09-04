@@ -913,8 +913,17 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
   0% { box-shadow: 0 0 0 0 rgba(255, 92, 138, .5); }
   100% { box-shadow: 0 0 0 12px rgba(255, 92, 138, 0); } }
 /* 吹き出し（.onb-card を再利用しつつ固定配置に上書き） */
-.tour-callout { position: fixed; z-index: 2; transform: none; width: calc(100vw - 28px); }
+.tour-callout { position: fixed; z-index: 2; transform: none; width: calc(100vw - 28px);
+  max-height: calc(100vh - 28px); overflow-y: auto; }
 .tour-overlay.show .tour-callout { transform: none; }
+
+/* ホーム画面追加ガイド（OS別・該当OSを強調） */
+.onb-oslist { display: flex; flex-direction: column; gap: 10px; margin: 2px 0 16px; text-align: left; }
+.onb-os { border: 1px solid var(--pink-soft); border-radius: 12px; padding: 10px 12px; background: #fff; }
+.onb-os.active { border-color: var(--pink); box-shadow: 0 0 0 2px rgba(255, 92, 138, .15); }
+.onb-os-h { font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--ink); }
+.onb-os-steps { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--ink); }
+.onb-os-steps li { margin: 2px 0; }
 
 /* ===== 常設ヘルプ ===== */
 .help-item { border-bottom: 1px solid #f0e3e9; }

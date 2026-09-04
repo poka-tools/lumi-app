@@ -6,6 +6,14 @@ import { saveProfile, put, uid } from '../db.js';
 import { navigate } from '../app.js';
 import { OCCUPATIONS, occupationBackItems } from '../presets.js';
 
+// 端末の判定（ホーム画面追加ガイドで該当OSを強調するため）。iPadOS13+ は Mac+タッチとして現れる。
+function platform() {
+  const ua = (navigator.userAgent || '') + ' ' + (navigator.platform || '');
+  if (/iPhone|iPad|iPod/i.test(ua) || (/Mac/i.test(ua) && 'ontouchend' in document)) return 'ios';
+  if (/Android/i.test(ua)) return 'android';
+  return 'other';
+}
+
 // target を持つステップは、その要素をスポットライトで照らして吹き出しを近くに出す。
 // target 無しのステップ（ようこそ・完了）は中央に表示。
 const STEPS = [
@@ -25,6 +33,8 @@ const STEPS = [
     body: '<b>顧客</b>では、来店予定やお誕生日を管理。上部の「イベント」でシャンパン予約の名簿も作れます。' },
   { target: '#homeHelpBtn', emoji: icon('help', { size: '46px' }), title: '困ったときはヘルプ',
     body: '使い方に迷ったら、ホーム下の <b>ヘルプ</b> から、この案内やよくある質問をいつでも確認できます。' },
+  { homeScreen: true, title: 'アプリのように使う（ホーム画面に追加）',
+    body: 'Lumiは<b>ホーム画面に追加</b>すると、全画面でアプリのように使えて、次からワンタップで開けます。お使いの端末に合わせて操作してください。' },
   { emoji: icon('save', { size: '46px' }), title: '準備OK！',
     body: 'データは端末内だけに保存されます。機種変更などに備えて、設定の<b>「バックアップ」</b>でときどき保存しておくと安心です。<br>この案内は、ホーム下の <b>ヘルプ</b> からいつでも見返せます。', final: true },
 ];
@@ -122,6 +132,47 @@ function render() {
     callout.querySelector('#onbSkip').onclick = () => finish(false);
     callout.querySelectorAll('.onb-occ-btn').forEach((b) => { b.onclick = () => applyOccupation(b.dataset.occ); });
     callout.querySelector('#onbOccSkip').onclick = () => { idx++; render(); };
+    position();
+    return;
+  }
+
+  // ホーム画面追加ガイド（中央表示・OS別。該当OSを強調し先頭に出す）。
+  if (s.homeScreen) {
+    const os = platform();
+    const ios = `
+      <div class="onb-os${os === 'ios' ? ' active' : ''}">
+        <div class="onb-os-h">🍎 iPhone（Safari）</div>
+        <ol class="onb-os-steps">
+          <li><b>Safari</b>でこのページを開く</li>
+          <li>下の<b>共有</b>ボタン（□に↑のマーク）をタップ</li>
+          <li>「<b>ホーム画面に追加</b>」をタップ</li>
+          <li>右上の「<b>追加</b>」をタップ</li>
+        </ol>
+      </div>`;
+    const android = `
+      <div class="onb-os${os === 'android' ? ' active' : ''}">
+        <div class="onb-os-h">🤖 Android（Chrome）</div>
+        <ol class="onb-os-steps">
+          <li><b>Chrome</b>でこのページを開く</li>
+          <li>右上の<b>︙</b>（メニュー）をタップ</li>
+          <li>「<b>ホーム画面に追加</b>」（または「アプリをインストール」）をタップ</li>
+          <li>「<b>追加</b>」をタップ</li>
+        </ol>
+      </div>`;
+    callout.innerHTML = `
+      <button class="onb-skip" type="button" id="onbSkip">スキップ</button>
+      <div class="onb-emoji">📱</div>
+      <h2 class="onb-title">${s.title}</h2>
+      <p class="onb-body">${s.body}</p>
+      <div class="onb-oslist">${os === 'android' ? android + ios : ios + android}</div>
+      <div class="onb-dots">${dots}</div>
+      <div class="onb-actions">
+        <button class="btn btn-ghost" id="onbBack" style="flex:1">戻る</button>
+        <button class="btn" id="onbNext" style="flex:2">次へ</button>
+      </div>`;
+    callout.querySelector('#onbSkip').onclick = () => finish(false);
+    callout.querySelector('#onbBack').onclick = () => { idx--; render(); };
+    callout.querySelector('#onbNext').onclick = () => { idx++; render(); };
     position();
     return;
   }
