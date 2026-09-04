@@ -17,6 +17,8 @@ function platform() {
 // target を持つステップは、その要素をスポットライトで照らして吹き出しを近くに出す。
 // target 無しのステップ（ようこそ・完了）は中央に表示。
 const STEPS = [
+  { homeScreen: true, title: 'まずはホーム画面に追加',
+    body: 'Lumiは<b>ホーム画面に追加</b>すると、全画面でアプリのように使えて、次からワンタップで開けます。お使いの端末に合わせて操作してください。' },
   { img: 'assets/icon-192.png', title: 'Lumiへようこそ',
     body: 'お給料・歩合・出勤日をまるっと管理できるアプリです。画面の<b>目印</b>に沿って、使い方をかんたんにご案内します。データはあなたのスマホの中だけに保存され、外部には送信されません。' },
   { occupation: true, title: 'あなたのお仕事は？',
@@ -33,8 +35,6 @@ const STEPS = [
     body: '<b>顧客</b>では、来店予定やお誕生日を管理。上部の「イベント」でシャンパン予約の名簿も作れます。' },
   { target: '#homeHelpBtn', emoji: icon('help', { size: '46px' }), title: '困ったときはヘルプ',
     body: '使い方に迷ったら、ホーム下の <b>ヘルプ</b> から、この案内やよくある質問をいつでも確認できます。' },
-  { homeScreen: true, title: 'アプリのように使う（ホーム画面に追加）',
-    body: 'Lumiは<b>ホーム画面に追加</b>すると、全画面でアプリのように使えて、次からワンタップで開けます。お使いの端末に合わせて操作してください。' },
   { emoji: icon('save', { size: '46px' }), title: '準備OK！',
     body: 'データは端末内だけに保存されます。機種変更などに備えて、設定の<b>「バックアップ」</b>でときどき保存しておくと安心です。<br>この案内は、ホーム下の <b>ヘルプ</b> からいつでも見返せます。', final: true },
 ];
@@ -167,11 +167,12 @@ function render() {
       <div class="onb-oslist">${os === 'android' ? android + ios : ios + android}</div>
       <div class="onb-dots">${dots}</div>
       <div class="onb-actions">
-        <button class="btn btn-ghost" id="onbBack" style="flex:1">戻る</button>
+        ${idx > 0 ? '<button class="btn btn-ghost" id="onbBack" style="flex:1">戻る</button>' : ''}
         <button class="btn" id="onbNext" style="flex:2">次へ</button>
       </div>`;
     callout.querySelector('#onbSkip').onclick = () => finish(false);
-    callout.querySelector('#onbBack').onclick = () => { idx--; render(); };
+    const hsBack = callout.querySelector('#onbBack');
+    if (hsBack) hsBack.onclick = () => { idx--; render(); };
     callout.querySelector('#onbNext').onclick = () => { idx++; render(); };
     position();
     return;

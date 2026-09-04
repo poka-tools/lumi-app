@@ -924,6 +924,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
 .onb-os-h { font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--ink); }
 .onb-os-steps { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--ink); }
 .onb-os-steps li { margin: 2px 0; }
+/* 日本語が変な位置で折り返さないように（句読点・小書き文字の禁則を厳格化） */
+.help-a, .onb-body, .onb-os-steps, .onb-os-h { line-break: strict; overflow-wrap: break-word; }
 
 /* ===== 常設ヘルプ ===== */
 .help-item { border-bottom: 1px solid #f0e3e9; }
