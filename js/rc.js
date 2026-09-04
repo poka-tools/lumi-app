@@ -10,7 +10,7 @@ import { setPremiumCached } from './entitlement.js';
 // → 同じコードを両URLへ配信しても、本番決済は販売用URLのみで走る。
 const WEB_BILLING_KEYS = {
   sandbox: 'rcb_sb_kWvtmwBHxCpQTosEdzqugZEdJ',
-  production: '', // ★Stripe本番連携後に取得する本番の rcb_ キーをここに設定する
+  production: 'rcb_SSANxGHmGUobsiwHkYDHufYsXNuI', // 本番 rcb_ キー（新App「Lumi (RevenueCat Billing)」・Live Stripe連携・2026-09-04設定）
 };
 
 function webBillingKey() {
