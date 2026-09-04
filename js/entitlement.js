@@ -23,9 +23,14 @@ export const FREE_FEATURES = [
   'データのバックアップ',
 ];
 
-// 本番で機能ロックを有効化するときに true にする（テスト完了＋本番キー切替後）。
-// false の間は「誰も」ロックされない＝現状の全機能無料を維持する。
-const ENFORCE = false;
+// 本番の販売用サイト(lumi-official)でだけ機能ロックを本番有効化する。
+// テストURL(lumi-app)・ローカルは従来どおり ?rctest=1 のときだけロックを確認できる（＝本番用のみロック）。
+const ENFORCE = true;
+
+// 本番の販売用サイトか（URLに /lumi-official を含む）。ここでだけ ENFORCE を効かせる。
+function isProdSite() {
+  try { return location.pathname.includes('/lumi-official'); } catch { return false; }
+}
 
 // テスト用スイッチ：?rctest=1 で有効化・?rctest=0 で無効化（localStorage に記憶）。
 // 本番ユーザーに影響を与えず、購入フローや権利反映を確認するために使う。
@@ -38,8 +43,8 @@ export function rcTestMode() {
   } catch { return false; }
 }
 
-// 機能ロックを効かせるモードか（本番有効化 or テストモード）。
-export function enforcing() { return ENFORCE || rcTestMode(); }
+// 機能ロックを効かせるモードか（本番サイトで本番有効 or テストモード）。
+export function enforcing() { return (ENFORCE && isProdSite()) || rcTestMode(); }
 
 // rc.js が取得した「実際に有料権利を持っているか」のキャッシュ（同期参照用）。
 let _premiumCached = false;

@@ -136,7 +136,7 @@ export async function getProfile() {
   if (p.dayPayType === undefined) p.dayPayType = 'none'; // 日払いの受け取り方（全シフト共通）
   if (p.showDayPayDiff === undefined) p.showDayPayDiff = true;
   // 年収の壁アラート（既定=無効・103万）／源泉徴収の自動計算（既定=無効・10.21%）
-  p.incomeWall = { enabled: false, threshold: 1030000, ...(p.incomeWall || {}) };
+  p.incomeWall = { enabled: false, threshold: 1300000, ...(p.incomeWall || {}) };
   p.withholding = { enabled: false, rate: 10.21, ...(p.withholding || {}) };
   return p;
 }

@@ -79,7 +79,7 @@ export async function renderSettings(el) {
       <p class="set-desc">今年の収入（額面）が設定した金額に近づく・超えると、ホームでお知らせします。扶養や税金の目安にどうぞ（あくまで概算です）。</p>
       <div class="set-rows" id="wallRows">
         <div class="set-row"><span class="set-ico">${icon('yen')}</span><span class="set-label">壁の金額（円）</span>
-          <input class="set-val" id="wallThreshold" type="number" inputmode="numeric" list="wallPresets" placeholder="1030000" value="${Number(p.incomeWall.threshold) || ''}">
+          <input class="set-val" id="wallThreshold" type="number" inputmode="numeric" list="wallPresets" placeholder="1300000" value="${Number(p.incomeWall.threshold) || ''}">
           <datalist id="wallPresets"><option value="1000000"></option><option value="1030000"></option><option value="1060000"></option><option value="1300000"></option><option value="1500000"></option></datalist></div>
       </div>
       <div class="set-hint">例：103万の壁＝1030000／130万の壁＝1300000</div>
