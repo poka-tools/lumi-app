@@ -1,5 +1,5 @@
 {
-  "name": "Lumi 夜職の給与管理アプリ",
+  "name": "Lumi キャスト・アイドルの給与管理アプリ",
   "short_name": "Lumi",
   "description": "出勤シフトと各種バックから当月の給料を概算・管理するアプリ",
   "start_url": "./index.html",

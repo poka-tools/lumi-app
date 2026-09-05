@@ -1,7 +1,7 @@
 // 年収の壁アラート・源泉徴収の純粋計算。UI から切り離してテスト可能にする。
 import { plStatement } from './calc.js';
 
-// 源泉徴収税額。夜職の業務委託は報酬から 10.21% 源泉徴収されることが多い。
+// 源泉徴収税額。キャスト・アイドルの業務委託は報酬から 10.21% 源泉徴収されることが多い。
 // base（対象額・額面）に率を掛けて小数切り捨て。base が負なら 0。
 export function withholdingTax(base, rate = 10.21) {
   const b = Number(base) || 0;
