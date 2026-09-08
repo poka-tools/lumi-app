@@ -98,7 +98,6 @@ export async function renderMyPage(el) {
         </div>
         <span class="premium-cta-chev">${icon('chevron')}</span>
       </button>
-      <button class="btn btn-ghost" id="restorePurchase" type="button">${icon('refresh')} 購入を復元</button>
       <button class="btn btn-ghost" id="manageSub" type="button">${icon('gear')} サブスクを管理／解約する</button>
     </div>
 
@@ -122,23 +121,6 @@ export async function renderMyPage(el) {
   el.querySelector('#openHelp').onclick = () => navigate('help');
   el.querySelector('#checkUpdate').onclick = () => checkForUpdate();
   el.querySelector('#openPaywall').onclick = () => openPaywall();
-
-  el.querySelector('#restorePurchase').onclick = async (e) => {
-    const btn = e.currentTarget;
-    const orig = btn.innerHTML;
-    btn.disabled = true;
-    btn.textContent = '確認中…';
-    try {
-      const rc = await import('../rc.js'); // 重いSDKはここで初めて読み込む
-      const active = await rc.refreshCustomerInfo();
-      toast(active ? 'Premium を復元しました' : 'この端末では有効な購入が見つかりませんでした');
-    } catch (err) {
-      toast('復元を確認できませんでした：\n' + ((err && err.message) || err));
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = orig;
-    }
-  };
 
   el.querySelector('#manageSub').onclick = async (e) => {
     const btn = e.currentTarget;
