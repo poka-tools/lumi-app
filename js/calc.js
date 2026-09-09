@@ -21,14 +21,22 @@ export function workedHours(shift) {
 
 // 歩合額。後方互換: 旧 type:'fixed'/'rate'+value はそのまま。
 // 新モデル: fixedValue(円/件) と rateValue(％) の併用に対応。
+// unitPrice(販売価格) を設定した％は「販売価格 × 数量 × ％」（数量ベース）で計算し、
+// 未設定の％は従来どおり「対象売上 × ％」（売上ベース）で計算する。
 // kind:'penalty'（罰金）/ 'deduction'（その他控除）の項目はマイナスとして扱う。
 export function backAmount(item, entry) {
   if (!item || !entry) return 0;
   let amt;
   if (item.type === 'fixed') amt = (item.value || 0) * (entry.count || 0);
   else if (item.type === 'rate') amt = (entry.sales || 0) * (item.value || 0) / 100;
-  else amt = (item.fixedValue || 0) * (entry.count || 0)
-          + (entry.sales || 0) * (item.rateValue || 0) / 100;
+  else {
+    const count = entry.count || 0;
+    const unitPrice = Number(item.unitPrice) || 0;
+    const ratePart = unitPrice > 0
+      ? unitPrice * count * (item.rateValue || 0) / 100          // 販売価格×数量×％
+      : (entry.sales || 0) * (item.rateValue || 0) / 100;        // 対象売上×％（旧式）
+    amt = (item.fixedValue || 0) * count + ratePart;
+  }
   return isDeductionKind(item.kind) ? -Math.abs(amt) : amt;
 }
 // 収入以外（罰金・その他控除）＝マイナス計上・歩合ランキング対象外。

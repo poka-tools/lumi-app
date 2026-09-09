@@ -30,16 +30,24 @@ const UNIT_PRESETS = ['件', '本', '杯', '名', '時間', '回'];
 
 const itemFixed = (it) => it.type === 'fixed' ? Number(it.value) || 0 : Number(it.fixedValue) || 0;
 const itemRate = (it) => it.type === 'rate' ? Number(it.value) || 0 : Number(it.rateValue) || 0;
+const itemPrice = (it) => Number(it.unitPrice) || 0;
 const itemUnit = (it) => (it.unit || '件');
 const itemEmoji = (it) => (it.icon || KIND_EMOJI[it.kind || 'income'] || '💰');
 
-// 1件あたりの歩合表示（例「¥1,100/本」「売上10%」／控除・罰金は「−」付き）。
+// 1件あたりの歩合表示（例「¥1,100/本」「¥1,100×10%（¥110/枚）」「売上10%」／控除・罰金は「−」付き）。
 function rateLabel(it) {
-  const f = itemFixed(it), r = itemRate(it);
+  const f = itemFixed(it), r = itemRate(it), up = itemPrice(it);
   const sign = isDeductionKind(it.kind) ? '−' : '';
   const parts = [];
   if (f) parts.push(`${sign}¥${f.toLocaleString('ja-JP')}/${itemUnit(it)}`);
-  if (r) parts.push(`${sign}売上${r}%`);
+  if (r) {
+    if (up > 0) {
+      const per = Math.round(up * r / 100);
+      parts.push(`${sign}¥${up.toLocaleString('ja-JP')}×${r}%（¥${per.toLocaleString('ja-JP')}/${itemUnit(it)}）`);
+    } else {
+      parts.push(`${sign}売上${r}%`);
+    }
+  }
   return parts.join(' ＋ ') || '未設定';
 }
 
@@ -378,7 +386,7 @@ export async function renderBackItems(el) {
     const isNew = !item;
     // 新規追加は無料枠（5個）まで。6個目以降はペイウォールを出す（既存項目の編集は制限なし）。
     if (isNew && state.backItems.length >= FREE_BACKITEM_LIMIT && !ensurePremium()) return;
-    const it = item || { id: uid(), name: '', kind: 'income', fixedValue: 0, rateValue: 0,
+    const it = item || { id: uid(), name: '', kind: 'income', fixedValue: 0, rateValue: 0, unitPrice: 0,
       category: presetCat || '', unit: '件', icon: '', order: state.backItems.length };
     const curEmoji = it.icon || '';
     const cats = allCategories(state.profile, state.backItems);
@@ -409,9 +417,12 @@ export async function renderBackItems(el) {
       <div class="bk-field2">
         <label class="bk-field"><span class="bk-flabel">1件あたり（円）</span>
           <input id="eFixed" class="inline-input" type="number" inputmode="numeric" placeholder="0" value="${itemFixed(it) || ''}"></label>
-        <label class="bk-field"><span class="bk-flabel">売上に対する％</span>
+        <label class="bk-field"><span class="bk-flabel">歩合（％）</span>
           <input id="eRate" class="inline-input" type="number" inputmode="numeric" placeholder="0" value="${itemRate(it) || ''}"></label>
       </div>
+      <label class="bk-field"><span class="bk-flabel">販売価格（円・1つあたり）</span>
+        <input id="ePrice" class="inline-input" type="number" inputmode="numeric" placeholder="例: 1100" value="${itemPrice(it) || ''}"></label>
+      <p class="muted" id="ePriceHint" style="font-size:12px;line-height:1.6;margin:-4px 0 8px">販売価格を入れると、歩合％は「<strong>販売価格 × 数量</strong>」にかかります（例：チェキ 販売価格1,100円 × 10% ＝ 110円/枚 × 枚数）。<br>空のときは、入力画面で「対象売上」を直接入力する方式になります。</p>
       <label class="bk-field"><span class="bk-flabel">単位</span>
         <input id="eUnit" class="inline-input" list="unitPresets" value="${esc(itemUnit(it))}" placeholder="件">
         <datalist id="unitPresets">${unitList}</datalist></label>
@@ -457,6 +468,7 @@ export async function renderBackItems(el) {
         kind: sheet.querySelector('#eKind').value,
         fixedValue: Number(sheet.querySelector('#eFixed').value) || 0,
         rateValue: Number(sheet.querySelector('#eRate').value) || 0,
+        unitPrice: Number(sheet.querySelector('#ePrice').value) || 0,
         unit: sheet.querySelector('#eUnit').value.trim() || '件',
         icon: emoji,
         category,

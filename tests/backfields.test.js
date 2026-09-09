@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { categoryList, allCategories, itemCategory, UNCATEGORIZED } from '../js/ui/backfields.js';
+import { categoryList, allCategories, itemCategory, UNCATEGORIZED, needsSalesInput, itemUnitPrice } from '../js/ui/backfields.js';
 
 const items = [
   { id: 'a', name: 'モエ', category: 'シャンパン' },
@@ -32,4 +32,20 @@ test('allCategories：マスター未設定なら使用中分類のみ（未分�
 test('allCategories：重複や順序が壊れない', () => {
   const profile = { backCategories: ['シャンパン'] };
   assert.deepEqual(allCategories(profile, items), ['シャンパン', 'ドリンク']);
+});
+
+test('itemUnitPrice：数値化・既定は0', () => {
+  assert.equal(itemUnitPrice({ unitPrice: 1100 }), 1100);
+  assert.equal(itemUnitPrice({}), 0);
+  assert.equal(itemUnitPrice(null), 0);
+});
+
+test('needsSalesInput：率のみ＆販売価格なし＝対象売上を入力', () => {
+  assert.equal(needsSalesInput({ rateValue: 10 }), true);
+});
+test('needsSalesInput：販売価格ありは数量入力（売上入力しない）', () => {
+  assert.equal(needsSalesInput({ rateValue: 10, unitPrice: 1100 }), false);
+});
+test('needsSalesInput：1件あたり固定ありは数量入力', () => {
+  assert.equal(needsSalesInput({ fixedValue: 400 }), false);
 });

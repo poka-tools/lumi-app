@@ -48,6 +48,18 @@ test('backAmount hybrid: 円/件＋％ の併用', () => {
   const item = { fixedValue: 1000, rateValue: 5 };
   assert.equal(backAmount(item, { count: 2, sales: 100000 }), 7000); // 2000 + 5000
 });
+test('backAmount 販売価格×数量×％（数量ベース）', () => {
+  const item = { rateValue: 10, unitPrice: 1100 };
+  assert.equal(backAmount(item, { count: 3 }), 330); // 1100×3×10%
+});
+test('backAmount 販売価格＋1件あたり固定の併用（ともに数量ベース）', () => {
+  const item = { fixedValue: 50, rateValue: 10, unitPrice: 1100 };
+  assert.equal(backAmount(item, { count: 2 }), 320); // 50×2 ＋ 1100×2×10%
+});
+test('backAmount 販売価格ありは対象売上を無視（数量ベース優先）', () => {
+  const item = { rateValue: 10, unitPrice: 1100 };
+  assert.equal(backAmount(item, { count: 2, sales: 999999 }), 220); // salesは使わない
+});
 test('backAmount penalty: マイナス（旧fixed型）', () => {
   const item = { type: 'fixed', value: 3000, kind: 'penalty' };
   assert.equal(backAmount(item, { count: 1 }), -3000);

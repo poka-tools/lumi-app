@@ -8,6 +8,14 @@ export const hasFixed = (it) =>
 export const hasRate = (it) =>
   it.type === 'rate' || Number(it.rateValue) > 0;
 
+// 1つあたりの販売価格（新モデル）。％を「販売価格 × 数量」に掛けるための単価。
+export const itemUnitPrice = (it) => Number(it && it.unitPrice) || 0;
+
+// 入力時に「対象売上（総額）」を直接入力する項目か。
+// ＝率(%)があり、かつ 1件あたり固定額(fixedValue)も 販売価格(unitPrice)も無い旧式のみ。
+// 販売価格を設定した項目は「数量」入力（数量ベース）になる。
+export const needsSalesInput = (it) => hasRate(it) && !hasFixed(it) && itemUnitPrice(it) <= 0;
+
 export function itemLabel(it) {
   const parts = [];
   if (it.type === 'fixed') parts.push((Number(it.value) || 0) + '円/件');

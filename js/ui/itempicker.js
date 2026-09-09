@@ -5,7 +5,7 @@
 import { state, shiftsOfMonth } from '../state.js';
 import { esc, yen } from '../format.js';
 import { backItemStats, isDeductionKind, backAmount } from '../calc.js';
-import { itemCategory, categoryList, UNCATEGORIZED, hasFixed, hasRate } from './backfields.js';
+import { itemCategory, categoryList, UNCATEGORIZED, itemUnitPrice, needsSalesInput } from './backfields.js';
 import { icon } from './icons.js';
 import { navigate } from '../app.js';
 
@@ -14,16 +14,21 @@ const itemFixed = (it) => (it.type === 'fixed' ? Number(it.value) || 0 : Number(
 const itemRate = (it) => (it.type === 'rate' ? Number(it.value) || 0 : Number(it.rateValue) || 0);
 const itemUnit = (it) => it.unit || '件';
 const itemEmoji = (it) => it.icon || KIND_EMOJI[it.kind || 'income'] || '💰';
-// 率(売上%)のみで、1件あたりの固定額が無い項目＝件数ではなく売上を入力する。
-const isRateOnly = (it) => hasRate(it) && !hasFixed(it);
 
-// 1件あたりの歩合表示（例「¥1,100/本」「売上10%」／控除・罰金は「−」付き）。
+// 1件あたりの歩合表示（例「¥1,100/本」「¥1,100×10%（¥110/枚）」「売上10%」／控除・罰金は「−」付き）。
 function rateLabel(it) {
-  const f = itemFixed(it), r = itemRate(it);
+  const f = itemFixed(it), r = itemRate(it), up = itemUnitPrice(it);
   const sign = isDeductionKind(it.kind) ? '−' : '';
   const parts = [];
   if (f) parts.push(`${sign}¥${f.toLocaleString('ja-JP')}/${itemUnit(it)}`);
-  if (r) parts.push(`${sign}売上${r}%`);
+  if (r) {
+    if (up > 0) {
+      const per = Math.round(up * r / 100);
+      parts.push(`${sign}¥${up.toLocaleString('ja-JP')}×${r}%（¥${per.toLocaleString('ja-JP')}/${itemUnit(it)}）`);
+    } else {
+      parts.push(`${sign}売上${r}%`);
+    }
+  }
   return parts.join(' ＋ ') || '未設定';
 }
 
@@ -117,7 +122,7 @@ export function openItemPicker({ initial = {}, onApply } = {}) {
 
   // 件数ステッパー or 売上入力欄（率のみ項目）。
   function controlHtml(it) {
-    if (isRateOnly(it)) {
+    if (needsSalesInput(it)) {
       const sv = Number(salesMap[it.id]) || 0;
       return `<div class="pick-sales">対象売上
         <input class="pick-sales-in" data-id="${esc(it.id)}" type="number" inputmode="numeric" placeholder="0" value="${sv > 0 ? sv : ''}">円</div>`;
